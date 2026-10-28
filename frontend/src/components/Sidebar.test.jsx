@@ -16,6 +16,7 @@ describe('Sidebar Component', () => {
     expect(screen.queryByText('Meus vídeos')).not.toBeInTheDocument();
     expect(screen.getByText('Backup Automático')).toBeInTheDocument();
     expect(screen.getByText('Gerenciamento de logs')).toBeInTheDocument();
+    expect(screen.getByText('Infraestrutura e Recursos')).toBeInTheDocument();
     expect(screen.getByText('Gestão de Usuário')).toBeInTheDocument();
     unmount();
 
@@ -24,6 +25,7 @@ describe('Sidebar Component', () => {
     render(<Sidebar user={regularUser} />);
     expect(screen.queryByText('Backup Automático')).not.toBeInTheDocument();
     expect(screen.queryByText('Gerenciamento de logs')).not.toBeInTheDocument();
+    expect(screen.queryByText('Infraestrutura e Recursos')).not.toBeInTheDocument();
     expect(screen.queryByText('Gestão de Usuário')).not.toBeInTheDocument();
   });
 
@@ -49,5 +51,14 @@ describe('Sidebar Component', () => {
     const backupBtn = screen.getByTestId('nav-item-backup');
     fireEvent.click(backupBtn);
     expect(onSelectTabMock).toHaveBeenCalledWith('backup');
+  });
+
+  it('sets active class properly on "Infraestrutura e Recursos" tab', () => {
+    const superAdminUser = { name: 'Super Admin', email: 'admin@test.com', role: 'superadmin' };
+    render(<Sidebar user={superAdminUser} activeTab="infrastructure" />);
+
+    const infraBtn = screen.getByTestId('nav-item-infrastructure');
+    expect(infraBtn).toHaveClass('active');
+    expect(infraBtn).toHaveTextContent('Infraestrutura e Recursos');
   });
 });

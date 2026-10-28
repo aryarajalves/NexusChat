@@ -20,6 +20,7 @@ export function useUserManagement(currentUser) {
   const [users, setUsers] = useState([]);
   const [invites, setInvites] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
+  const [createUserModalOpen, setCreateUserModalOpen] = useState(false);
   const [inviteRole, setInviteRole] = useState('user');
   const [expireHours, setExpireHours] = useState(24);
   const [generatedInvite, setGeneratedInvite] = useState(null);
@@ -374,6 +375,8 @@ export function useUserManagement(currentUser) {
     fetchInvites,
     modalOpen,
     setModalOpen,
+    createUserModalOpen,
+    setCreateUserModalOpen,
     inviteRole,
     setInviteRole,
     expireHours,

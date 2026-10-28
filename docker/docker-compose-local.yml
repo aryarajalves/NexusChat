@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: postgrespassword
       POSTGRES_DB: projetobase
     ports:
-      - "5435:5432"
+      - "5436:5432"
     volumes:
       - projeto_base_pg_data:/var/lib/postgresql/data
     healthcheck:
@@ -31,7 +31,7 @@ services:
     env_file:
       - ../backend/.env
     ports:
-      - "8000:8000"
+      - "8030:8000"
     volumes:
       - ../backend:/app
       - /var/run/docker.sock:/var/run/docker.sock:ro

@@ -7,6 +7,7 @@ from app.core.database import engine, Base, SessionLocal
 from app.core.security import get_password_hash
 from app.models.user import User
 from app.models.backup import BackupSchedule, BackupHistory
+from app.models.infrastructure import SystemAlertConfig, SystemPeakMetric, SystemConnectionHistory
 from app.api.v1.api import api_router
 from app.services.scheduler import setup_scheduler, scheduler
 

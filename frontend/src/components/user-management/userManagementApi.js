@@ -45,3 +45,17 @@ export const bulkDeleteInvitesApi = async (selectedInviteIds, token) => {
   if (!res.ok) throw new Error(data.detail || 'Erro ao excluir convites.');
   return data;
 };
+
+export const createUserManualApi = async (userData, token) => {
+  const res = await fetch('/api/v1/auth/users', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(userData),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || 'Erro ao criar conta de usuário.');
+  return data;
+};

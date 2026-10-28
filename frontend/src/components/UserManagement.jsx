@@ -5,6 +5,7 @@ import {
   UserTableTab,
   InviteTableTab,
   CreateInviteModal,
+  CreateUserModal,
   EditUserRoleModal,
   ResetPasswordModal,
   useUserManagement,
@@ -20,6 +21,8 @@ export default function UserManagement({ currentUser }) {
     fetchInvites,
     modalOpen,
     setModalOpen,
+    createUserModalOpen,
+    setCreateUserModalOpen,
     inviteRole,
     setInviteRole,
     expireHours,
@@ -89,18 +92,38 @@ export default function UserManagement({ currentUser }) {
           <p>Gerencie o acesso da equipe e acompanhe os convites gerados.</p>
         </div>
         {canCreate && (
-          <button
-            onClick={() => {
-              setModalOpen(true);
-              setGeneratedInvite(null);
-              setError('');
-            }}
-            className="primary-btn"
-            data-testid="open-invite-modal-btn"
-          >
-            <UserPlus size={18} />
-            <span>Convidar Usuário</span>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={() => setCreateUserModalOpen(true)}
+              className="primary-btn"
+              data-testid="open-create-user-modal-btn"
+            >
+              <UserPlus size={18} />
+              <span>Criar Conta</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setModalOpen(true);
+                setGeneratedInvite(null);
+                setError('');
+              }}
+              className="pagination-btn"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 14px',
+                fontSize: '14px',
+                fontWeight: 600,
+              }}
+              data-testid="open-invite-modal-btn"
+            >
+              <Mail size={16} />
+              <span>Convidar Usuário</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -178,6 +201,14 @@ export default function UserManagement({ currentUser }) {
       )}
 
       {/* Modais */}
+      <CreateUserModal
+        isOpen={createUserModalOpen}
+        onClose={() => setCreateUserModalOpen(false)}
+        onSuccess={() => {
+          fetchUsers();
+        }}
+      />
+
       <CreateInviteModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}

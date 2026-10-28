@@ -238,6 +238,35 @@ describe('UserManagement Component Tabs', () => {
       expect(deletedUserId).toBe(2);
     });
   });
+
+  it('renders "Criar Conta" button and opens CreateUserModal when clicked', async () => {
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/users')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [
+            { id: 1, name: 'Aryaraj', email: 'aryaraj@gmail.com', role: 'superadmin', is_active: true, created_at: new Date().toISOString() },
+          ],
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+
+    render(
+      <ToastProvider>
+        <UserManagement currentUser={{ id: 1, role: 'superadmin' }} />
+      </ToastProvider>
+    );
+
+    const openCreateBtn = screen.getByTestId('open-create-user-modal-btn');
+    expect(openCreateBtn).toBeInTheDocument();
+    expect(openCreateBtn).toHaveTextContent('Criar Conta');
+
+    fireEvent.click(openCreateBtn);
+
+    expect(screen.getByTestId('create-user-modal-overlay')).toBeInTheDocument();
+    expect(screen.getByText('Criar Conta de Usuário')).toBeInTheDocument();
+  });
 });
 
 

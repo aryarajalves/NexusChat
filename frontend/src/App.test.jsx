@@ -63,6 +63,28 @@ describe('App Component', () => {
     expect(screen.queryByText('Gestão de Usuários')).not.toBeInTheDocument();
   });
 
+  it('renders infrastructure management view when active_tab is infrastructure', () => {
+    localStorage.setItem('auth_token', 'mock_token');
+    localStorage.setItem(
+      'auth_user',
+      JSON.stringify({
+        id: 1,
+        name: 'Super Admin',
+        email: 'aryarajmarketing@gmail.com',
+        role: 'superadmin',
+      })
+    );
+    localStorage.setItem('active_tab', 'infrastructure');
+
+    render(
+      <ToastProvider>
+        <App />
+      </ToastProvider>
+    );
+
+    expect(screen.getByTestId('infrastructure-management-view')).toBeInTheDocument();
+  });
+
   it('renders welcome screen for non-superadmin users without mentioning restricted areas', () => {
     localStorage.setItem('auth_token', 'mock_token');
     localStorage.setItem(

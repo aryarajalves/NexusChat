@@ -5,6 +5,8 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Projeto Base"
     API_V1_STR: str = "/api/v1"
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./app.db")
+    DB_POOL_SIZE: int = int(os.getenv("DB_POOL_SIZE", "20"))
+    DB_MAX_OVERFLOW: int = int(os.getenv("DB_MAX_OVERFLOW", "30"))
 
     SECRET_KEY: str = os.getenv("SECRET_KEY", "supersecret-jwt-key-projeto-base-981273491")
     ALGORITHM: str = "HS256"

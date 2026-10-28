@@ -18,3 +18,12 @@ Registro de migrações e atualizações estruturais do banco de dados (PostgreS
   - `backup_schedules`: Armazena a rotina de agendamento automático de backups (`is_active`, `frequency`, `destination_folder`, `retention_max`, `last_run_at`, `next_run_at`, `updated_at`).
   - `backup_histories`: Histórico de dumps gerados, baixados, restaurados e importados (`filename`, `s3_key`, `file_size_bytes`, `backup_type`, `status`, `error_message`, `created_at`).
 - **Script de Migração:** `backend/scripts/migrate_backup_tables.py`
+
+---
+
+### [27/10/2026] - Sistema de Monitoramento de Infraestrutura e Recursos do Servidor
+- **Tabelas Criadas:**
+  - `system_alert_configs`: Configurações de limites (RAM, CPU, Pool de Conexões), cooldown e webhook de alerta.
+  - `system_peak_metrics`: Registro histórico de maiores picos de hardware e conexões nas últimas 24h.
+  - `system_connection_histories`: Histórico horário de conexões ativas e ocupação do pool PostgreSQL.
+- **Script de Migração:** `backend/scripts/migrate_infrastructure_tables.py`

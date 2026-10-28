@@ -231,4 +231,26 @@ describe('LogManagement Component', () => {
       expect(endTimeInput).toHaveValue('');
     });
   });
+
+  it('allows toggling between light theme and dark theme for terminal', async () => {
+    setupFetchMock();
+    render(
+      <ToastProvider>
+        <LogManagement currentUser={{ role: 'superadmin' }} />
+      </ToastProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Servidor iniciado com sucesso/)).toBeInTheDocument();
+    });
+
+    const themeToggleBtn = screen.getByTestId('toggle-terminal-theme-btn');
+    expect(themeToggleBtn).toHaveTextContent('Tema Escuro');
+
+    fireEvent.click(themeToggleBtn);
+    expect(themeToggleBtn).toHaveTextContent('Tema Claro');
+
+    fireEvent.click(themeToggleBtn);
+    expect(themeToggleBtn).toHaveTextContent('Tema Escuro');
+  });
 });

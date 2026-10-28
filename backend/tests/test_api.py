@@ -246,6 +246,97 @@ def test_edit_user_role_and_superadmin_protection():
     assert edit_back.status_code == 200
     assert edit_back.json()["role"] == "user"
 
+def test_create_user_manual_success():
+    login_res = client.post("/api/v1/auth/login", json={
+        "email": settings.SUPERADMIN_EMAIL,
+        "password": settings.SUPERADMIN_PASSWORD
+    })
+    token = login_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Criar conta de usuário manualmente
+    create_res = client.post("/api/v1/auth/users", json={
+        "name": "Carlos Manual",
+        "email": "carlos.manual@exemplo.com",
+        "password": "SenhaForte123!@",
+        "password_confirm": "SenhaForte123!@",
+        "role": "admin"
+    }, headers=headers)
+
+    assert create_res.status_code == 201
+    user_data = create_res.json()
+    assert user_data["name"] == "Carlos Manual"
+    assert user_data["email"] == "carlos.manual@exemplo.com"
+    assert user_data["role"] == "admin"
+    assert user_data["is_active"] is True
+
+    # Validar que o usuário criado consegue fazer login
+    login_user = client.post("/api/v1/auth/login", json={
+        "email": "carlos.manual@exemplo.com",
+        "password": "SenhaForte123!@"
+    })
+    assert login_user.status_code == 200
+    assert "access_token" in login_user.json()
+
+def test_create_user_manual_validations():
+    login_res = client.post("/api/v1/auth/login", json={
+        "email": settings.SUPERADMIN_EMAIL,
+        "password": settings.SUPERADMIN_PASSWORD
+    })
+    token = login_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Senha fraca (falha de validação 422)
+    weak_res = client.post("/api/v1/auth/users", json={
+        "name": "Usuario Fraco",
+        "email": "fraco@exemplo.com",
+        "password": "123",
+        "password_confirm": "123",
+        "role": "user"
+    }, headers=headers)
+    assert weak_res.status_code == 422
+
+    # 2. Senhas não coincidem (400)
+    mismatch_res = client.post("/api/v1/auth/users", json={
+        "name": "Usuario Mismatch",
+        "email": "mismatch@exemplo.com",
+        "password": "SenhaForte123!@",
+        "password_confirm": "SenhaDiferente123!@",
+        "role": "user"
+    }, headers=headers)
+    assert mismatch_res.status_code == 400
+    assert "não coincidem" in mismatch_res.json()["detail"]
+
+    # 3. Cria usuário com sucesso para testar duplicidade
+    first_res = client.post("/api/v1/auth/users", json={
+        "name": "Usuario Unico",
+        "email": "unico@exemplo.com",
+        "password": "SenhaForte123!@",
+        "password_confirm": "SenhaForte123!@",
+        "role": "user"
+    }, headers=headers)
+    assert first_res.status_code == 201
+
+    # 4. Tentar criar com mesmo email (400)
+    dup_res = client.post("/api/v1/auth/users", json={
+        "name": "Usuario Duplicado",
+        "email": "unico@exemplo.com",
+        "password": "SenhaForte123!@",
+        "password_confirm": "SenhaForte123!@",
+        "role": "user"
+    }, headers=headers)
+    assert dup_res.status_code == 400
+    assert "Já existe um usuário" in dup_res.json()["detail"]
+
+    # 5. Tentativa de criação sem autenticação (401)
+    unauth_res = client.post("/api/v1/auth/users", json={
+        "name": "Sem Auth",
+        "email": "sem.auth@exemplo.com",
+        "password": "SenhaForte123!@",
+        "role": "user"
+    })
+    assert unauth_res.status_code == 401
+
 def test_password_reset_flow():
     # Login superadmin
     login_res = client.post("/api/v1/auth/login", json={

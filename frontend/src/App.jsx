@@ -5,6 +5,7 @@ import Login from './components/Login';
 import UserManagement from './components/UserManagement';
 import AutomatedBackup from './components/AutomatedBackup';
 import LogManagement from './components/LogManagement';
+import { InfrastructureManagement } from './components/infrastructure';
 import Register from './components/Register';
 import ResetPassword from './components/ResetPassword';
 import LogoutConfirmModal from './components/LogoutConfirmModal';
@@ -119,6 +120,7 @@ function App() {
             {activeTab === 'users' && <UserManagement currentUser={user} />}
             {activeTab === 'backup' && <AutomatedBackup currentUser={user} />}
             {activeTab === 'logs' && <LogManagement currentUser={user} />}
+            {activeTab === 'infrastructure' && <InfrastructureManagement currentUser={user} />}
           </>
         ) : (
           <div className="restricted-access-container user-welcome-container" data-testid="restricted-access-screen">

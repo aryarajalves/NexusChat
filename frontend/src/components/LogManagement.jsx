@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Terminal, RefreshCw, Copy, Check, Filter, ArrowDown, Activity } from 'lucide-react';
+import { Terminal, RefreshCw, Copy, Check, Filter, ArrowDown, Activity, Sun, Moon } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { LogTypeFilter, LogDateFilter, TerminalLogLine, classifyLogLine } from './log-management';
 
@@ -20,6 +20,7 @@ export default function LogManagement({ currentUser }) {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const terminalEndRef = useRef(null);
   const { addToast } = useToast();
 
@@ -84,8 +85,8 @@ export default function LogManagement({ currentUser }) {
 
   // Classifica todas as linhas e converte para Horário de Brasília
   const parsedLogs = useMemo(() => {
-    return logs.map((line) => classifyLogLine(line));
-  }, [logs]);
+    return logs.map((line) => classifyLogLine(line, isDarkMode));
+  }, [logs, isDarkMode]);
 
   // Contagens para os botões de separação por tipo
   const counts = useMemo(() => {
@@ -151,7 +152,7 @@ export default function LogManagement({ currentUser }) {
         ))}
       </div>
 
-      {/* Barra de Filtro de Data e Horário (Novo) */}
+      {/* Barra de Filtro de Data e Horário */}
       <LogDateFilter
         selectedDate={filterDate}
         onDateChange={setFilterDate}
@@ -165,7 +166,7 @@ export default function LogManagement({ currentUser }) {
       />
 
       {/* Barra de Ferramentas / Controles do Log */}
-      <div className="table-card" style={{ marginBottom: '12px' }}>
+      <div className="table-card" style={{ marginBottom: '12px', borderRadius: '10px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)' }}>
         <div className="table-toolbar" style={{ flexWrap: 'wrap', gap: '12px' }}>
           {/* Busca de texto */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 250px' }}>
@@ -224,6 +225,18 @@ export default function LogManagement({ currentUser }) {
             <span>{autoRefresh ? 'Auto (Ligado)' : 'Auto (Desligado)'}</span>
           </button>
 
+          {/* Botão Alternar Tema do Terminal */}
+          <button
+            type="button"
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className="pagination-btn"
+            data-testid="toggle-terminal-theme-btn"
+            title="Alternar entre modo claro e escuro"
+          >
+            {isDarkMode ? <Sun size={15} color="#d97706" /> : <Moon size={15} color="#64748b" />}
+            <span>{isDarkMode ? 'Tema Claro' : 'Tema Escuro'}</span>
+          </button>
+
           {/* Botão Atualizar Manual */}
           <button
             type="button"
@@ -274,13 +287,14 @@ export default function LogManagement({ currentUser }) {
         className="terminal-view-card"
         data-testid="terminal-container"
         style={{
-          backgroundColor: '#0f172a',
+          backgroundColor: isDarkMode ? '#0f172a' : '#ffffff',
           borderRadius: '12px',
-          border: '1px solid #1e293b',
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
+          border: isDarkMode ? '1px solid #1e293b' : '1px solid #e2e8f0',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
+          transition: 'all 0.2s ease',
         }}
       >
         {/* Terminal Header Bar */}
@@ -290,15 +304,15 @@ export default function LogManagement({ currentUser }) {
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '10px 16px',
-            backgroundColor: '#1e293b',
-            borderBottom: '1px solid #334155',
+            backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc',
+            borderBottom: isDarkMode ? '1px solid #334155' : '1px solid #e2e8f0',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ef4444' }}></span>
             <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></span>
             <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#10b981' }}></span>
-            <span style={{ color: '#94a3b8', fontSize: '12px', fontWeight: 600, marginLeft: '8px' }}>
+            <span style={{ color: isDarkMode ? '#94a3b8' : '#475569', fontSize: '12px', fontWeight: 600, marginLeft: '8px' }}>
               docker logs --tail {tailLines} {services.find((s) => s.id === selectedService)?.container}
               {filterDate && ` [${filterDate}${startTime ? ` ${startTime}` : ''}${endTime ? ` - ${endTime}` : ''}]`}
             </span>
@@ -318,22 +332,23 @@ export default function LogManagement({ currentUser }) {
             display: 'flex',
             flexDirection: 'column',
             gap: '2px',
+            backgroundColor: isDarkMode ? '#0f172a' : '#ffffff',
           }}
           data-testid="terminal-logs-body"
         >
           {loading && logs.length === 0 ? (
-            <div style={{ color: '#94a3b8', textAlign: 'center', padding: '40px 0', fontFamily: 'monospace' }}>
+            <div style={{ color: isDarkMode ? '#94a3b8' : '#64748b', textAlign: 'center', padding: '40px 0', fontFamily: 'monospace' }}>
               Carregando logs do contêiner...
             </div>
           ) : filteredLogs.length === 0 ? (
-            <div style={{ color: '#64748b', textAlign: 'center', padding: '40px 0', fontFamily: 'monospace' }}>
+            <div style={{ color: isDarkMode ? '#64748b' : '#94a3b8', textAlign: 'center', padding: '40px 0', fontFamily: 'monospace' }}>
               {isDateFilterActive || searchTerm || selectedType !== 'all'
                 ? 'Nenhum log encontrado para o período ou filtro informado.'
                 : 'Nenhum log registrado para este contêiner.'}
             </div>
           ) : (
             filteredLogs.map((item, index) => (
-              <TerminalLogLine key={index} parsed={item} index={index} />
+              <TerminalLogLine key={index} parsed={item} index={index} isDarkMode={isDarkMode} />
             ))
           )}
           <div ref={terminalEndRef} />

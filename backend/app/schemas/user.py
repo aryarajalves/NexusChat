@@ -111,3 +111,16 @@ class PasswordResetValidateResponse(BaseModel):
     email: Optional[str] = None
     name: Optional[str] = None
     detail: Optional[str] = None
+
+class UserCreateManual(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+    password_confirm: Optional[str] = None
+    role: Literal["admin", "user"] = "user"
+
+    @field_validator("password")
+    @classmethod
+    def validate_password_strength(cls, v: str) -> str:
+        return validate_password_strength_func(v)
+

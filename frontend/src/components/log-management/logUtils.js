@@ -56,8 +56,9 @@ export function formatToBrasiliaTime(line) {
 
 /**
  * Classifica a linha de log por tipo e retorna metadados visuais de cores e badges.
+ * Suporta tema claro nativo do sistema e tema escuro opcional.
  */
-export function classifyLogLine(rawLine) {
+export function classifyLogLine(rawLine, isDarkMode = false) {
   const line = formatToBrasiliaTime(rawLine || '');
   const lower = line.toLowerCase();
 
@@ -76,10 +77,10 @@ export function classifyLogLine(rawLine) {
       type: 'error',
       badge: 'ERRO',
       badgeColor: '#ef4444',
-      badgeBg: 'rgba(239, 68, 68, 0.16)',
-      badgeBorder: 'rgba(239, 68, 68, 0.35)',
-      textColor: '#fca5a5',
-      lineBg: 'rgba(239, 68, 68, 0.08)',
+      badgeBg: isDarkMode ? 'rgba(239, 68, 68, 0.16)' : '#fee2e2',
+      badgeBorder: isDarkMode ? 'rgba(239, 68, 68, 0.35)' : '#fecaca',
+      textColor: isDarkMode ? '#fca5a5' : '#b91c1c',
+      lineBg: isDarkMode ? 'rgba(239, 68, 68, 0.08)' : '#fef2f2',
       formattedLine: line,
     };
   }
@@ -96,10 +97,10 @@ export function classifyLogLine(rawLine) {
       type: 'warning',
       badge: 'AVISO',
       badgeColor: '#f59e0b',
-      badgeBg: 'rgba(245, 158, 11, 0.16)',
-      badgeBorder: 'rgba(245, 158, 11, 0.35)',
-      textColor: '#fde047',
-      lineBg: 'rgba(245, 158, 11, 0.05)',
+      badgeBg: isDarkMode ? 'rgba(245, 158, 11, 0.16)' : '#fef3c7',
+      badgeBorder: isDarkMode ? 'rgba(245, 158, 11, 0.35)' : '#fde68a',
+      textColor: isDarkMode ? '#fde047' : '#92400e',
+      lineBg: isDarkMode ? 'rgba(245, 158, 11, 0.05)' : '#fffbeb',
       formattedLine: line,
     };
   }
@@ -113,8 +114,16 @@ export function classifyLogLine(rawLine) {
     const is3xx = codeNum >= 300 && codeNum < 400;
 
     const badgeColor = is2xx ? '#10b981' : is3xx ? '#06b6d4' : '#f97316';
-    const badgeBg = is2xx ? 'rgba(16, 185, 129, 0.16)' : 'rgba(6, 182, 212, 0.16)';
-    const badgeBorder = is2xx ? 'rgba(16, 185, 129, 0.35)' : 'rgba(6, 182, 212, 0.35)';
+    const badgeBg = isDarkMode
+      ? (is2xx ? 'rgba(16, 185, 129, 0.16)' : 'rgba(6, 182, 212, 0.16)')
+      : (is2xx ? '#dcfce7' : '#e0f2fe');
+    const badgeBorder = isDarkMode
+      ? (is2xx ? 'rgba(16, 185, 129, 0.35)' : 'rgba(6, 182, 212, 0.35)')
+      : (is2xx ? '#bbf7d0' : '#bae6fd');
+
+    const textColor = isDarkMode
+      ? '#cbd5e1'
+      : (is2xx ? '#15803d' : is3xx ? '#0284c7' : '#c2410c');
 
     return {
       type: 'http',
@@ -122,7 +131,7 @@ export function classifyLogLine(rawLine) {
       badgeColor,
       badgeBg,
       badgeBorder,
-      textColor: '#cbd5e1',
+      textColor,
       lineBg: 'transparent',
       formattedLine: line,
       httpMeta: { method, path, statusCode },
@@ -134,9 +143,9 @@ export function classifyLogLine(rawLine) {
     type: 'info',
     badge: 'INFO',
     badgeColor: '#38bdf8',
-    badgeBg: 'rgba(56, 189, 248, 0.16)',
-    badgeBorder: 'rgba(56, 189, 248, 0.35)',
-    textColor: '#cbd5e1',
+    badgeBg: isDarkMode ? 'rgba(56, 189, 248, 0.16)' : '#e0f2fe',
+    badgeBorder: isDarkMode ? 'rgba(56, 189, 248, 0.35)' : '#bae6fd',
+    textColor: isDarkMode ? '#cbd5e1' : '#334155',
     lineBg: 'transparent',
     formattedLine: line,
   };

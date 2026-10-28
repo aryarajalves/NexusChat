@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function TerminalLogLine({ parsed, index }) {
+export default function TerminalLogLine({ parsed, index, isDarkMode = false }) {
   const { badge, badgeColor, badgeBg, badgeBorder, textColor, lineBg, formattedLine } = parsed;
 
   return (
@@ -9,7 +9,7 @@ export default function TerminalLogLine({ parsed, index }) {
         display: 'flex',
         alignItems: 'flex-start',
         gap: '10px',
-        padding: '3px 6px',
+        padding: '3px 8px',
         borderRadius: '4px',
         backgroundColor: lineBg,
         whiteSpace: 'pre-wrap',
@@ -23,7 +23,7 @@ export default function TerminalLogLine({ parsed, index }) {
       {/* Número da Linha */}
       <span
         style={{
-          color: '#475569',
+          color: isDarkMode ? '#64748b' : '#94a3b8',
           userSelect: 'none',
           minWidth: '32px',
           textAlign: 'right',

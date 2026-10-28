@@ -1,5 +1,5 @@
 import React from 'react';
-import { Database, Users, LogOut, Terminal } from 'lucide-react';
+import { Database, Users, LogOut, Terminal, Server } from 'lucide-react';
 
 export default function Sidebar({ activeTab = 'users', onSelectTab, user, onLogout }) {
   const isSuperAdmin = user?.role === 'superadmin';
@@ -9,6 +9,7 @@ export default function Sidebar({ activeTab = 'users', onSelectTab, user, onLogo
     ? [
         { id: 'backup', label: 'Backup Automático', icon: Database },
         { id: 'logs', label: 'Gerenciamento de logs', icon: Terminal },
+        { id: 'infrastructure', label: 'Infraestrutura e Recursos', icon: Server },
         { id: 'users', label: 'Gestão de Usuário', icon: Users },
       ]
     : [];

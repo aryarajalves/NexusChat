@@ -28,7 +28,8 @@ from app.schemas.user import (
     ResendCodeRequest,
     PasswordResetRequestResponse,
     PasswordResetConfirm,
-    PasswordResetValidateResponse
+    PasswordResetValidateResponse,
+    UserCreateManual
 )
 
 router = APIRouter(prefix="/auth", tags=["Auth & Users"])
@@ -104,6 +105,43 @@ def list_users(
     current_user: User = Depends(require_superadmin)
 ):
     return db.query(User).order_by(User.id.asc()).all()
+
+@router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def create_user_manual(
+    data: UserCreateManual,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_superadmin)
+):
+    if data.password_confirm is not None and data.password != data.password_confirm:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="As senhas digitadas não coincidem."
+        )
+
+    existing_user = db.query(User).filter(User.email == data.email).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Já existe um usuário cadastrado com este e-mail."
+        )
+
+    if data.role not in ["admin", "user"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tipo de usuário inválido. Apenas 'admin' ou 'user' são permitidos."
+        )
+
+    new_user = User(
+        email=data.email,
+        name=data.name,
+        hashed_password=get_password_hash(data.password),
+        role=data.role,
+        is_active=True
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
 
 @router.patch("/users/{user_id}", response_model=UserResponse)
 def update_user(

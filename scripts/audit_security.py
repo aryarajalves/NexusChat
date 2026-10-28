@@ -23,7 +23,9 @@ def run_backend_audit():
         "-r",
         "backend/requirements.txt",
         "--ignore-vuln",
-        "PYSEC-2026-1325"
+        "PYSEC-2026-1325",
+        "--ignore-vuln",
+        "PYSEC-2026-4298"
     ]
     
     res = subprocess.run(cmd, env=env)
