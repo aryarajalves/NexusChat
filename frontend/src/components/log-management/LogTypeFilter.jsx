@@ -8,18 +8,18 @@ export default function LogTypeFilter({ currentFilter, onSelectFilter, counts })
       label: 'Todos',
       icon: ListFilter,
       count: counts.all,
-      activeColor: '#0284c7',
-      activeBg: '#e0f2fe',
-      activeBorder: '#bae6fd',
+      activeColor: '#5865f2',
+      activeBg: '#232428',
+      activeBorder: '#5865f2',
     },
     {
       id: 'info',
       label: 'Info',
       icon: Info,
       count: counts.info,
-      activeColor: '#0284c7',
-      activeBg: '#e0f2fe',
-      activeBorder: '#bae6fd',
+      activeColor: '#5865f2',
+      activeBg: '#232428',
+      activeBorder: '#5865f2',
     },
     {
       id: 'warning',
@@ -58,15 +58,15 @@ export default function LogTypeFilter({ currentFilter, onSelectFilter, counts })
         gap: '8px',
         flexWrap: 'wrap',
         padding: '10px 16px',
-        backgroundColor: '#ffffff',
+        backgroundColor: '#2b2d31',
         borderRadius: '10px',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+        border: '1px solid #35373c',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
         marginBottom: '12px',
       }}
       data-testid="log-type-filter-bar"
     >
-      <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155', marginRight: '6px' }}>
+      <span style={{ fontSize: '13px', fontWeight: 600, color: '#f2f3f5', marginRight: '6px' }}>
         Separar por tipo:
       </span>
       {filterOptions.map((opt) => {
@@ -87,21 +87,21 @@ export default function LogTypeFilter({ currentFilter, onSelectFilter, counts })
               fontWeight: isActive ? 600 : 500,
               cursor: 'pointer',
               transition: 'all 0.15s ease',
-              border: isActive ? `1px solid ${opt.activeBorder}` : '1px solid #e2e8f0',
-              backgroundColor: isActive ? opt.activeBg : '#f8fafc',
-              color: isActive ? opt.activeColor : '#64748b',
+              border: isActive ? `1px solid ${opt.activeBorder}` : '1px solid #35373c',
+              backgroundColor: isActive ? opt.activeBg : '#1e1f22',
+              color: isActive ? opt.activeColor : '#dbdee1',
             }}
             data-testid={`filter-btn-${opt.id}`}
           >
-            <IconComponent size={14} color={isActive ? opt.activeColor : '#64748b'} />
+            <IconComponent size={14} color={isActive ? opt.activeColor : '#949ba4'} />
             <span>{opt.label}</span>
             <span
               style={{
                 fontSize: '11px',
                 padding: '1px 7px',
                 borderRadius: '10px',
-                backgroundColor: isActive ? opt.activeColor : '#e2e8f0',
-                color: isActive ? '#ffffff' : '#475569',
+                backgroundColor: isActive ? opt.activeColor : '#35373c',
+                color: isActive ? '#ffffff' : '#dbdee1',
                 fontWeight: 700,
                 minWidth: '18px',
                 textAlign: 'center',

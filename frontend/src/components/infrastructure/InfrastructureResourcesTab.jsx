@@ -28,9 +28,9 @@ export default function InfrastructureResourcesTab({ hardware, alertConfig }) {
         <div
           className="infra-card"
           style={{
-            background: '#ffffff',
+            background: '#2b2d31',
             borderRadius: '12px',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #35373c',
             padding: '22px',
             display: 'flex',
             flexDirection: 'column',
@@ -41,8 +41,8 @@ export default function InfrastructureResourcesTab({ hardware, alertConfig }) {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-                <HardDrive size={18} color="#0284c7" />
-                <span style={{ fontSize: '14px', fontWeight: 600, color: '#334155' }}>Memória RAM (VPS)</span>
+                <HardDrive size={18} color="#5865f2" />
+                <span style={{ fontSize: '14px', fontWeight: 600, color: '#f2f3f5' }}>Memória RAM (VPS)</span>
               </div>
               <span
                 style={{
@@ -59,19 +59,19 @@ export default function InfrastructureResourcesTab({ hardware, alertConfig }) {
               </span>
             </div>
 
-            <div style={{ fontSize: '25px', fontWeight: 800, color: '#0f172a', marginBottom: '14px' }}>
+            <div style={{ fontSize: '25px', fontWeight: 800, color: '#f2f3f5', marginBottom: '14px' }}>
               {hardware.ram_used_gb} GB{' '}
-              <span style={{ fontSize: '15px', color: '#64748b', fontWeight: 500 }}>/ {hardware.ram_total_gb} GB</span>{' '}
+              <span style={{ fontSize: '15px', color: '#949ba4', fontWeight: 500 }}>/ {hardware.ram_total_gb} GB</span>{' '}
               <span style={{ fontSize: '16px', color: '#0284c7', fontWeight: 700 }}>({hardware.ram_pct}%)</span>
             </div>
 
             {/* Barra de Progresso */}
-            <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '10px', overflow: 'hidden', marginBottom: '14px' }}>
+            <div style={{ width: '100%', height: '8px', background: '#1e1f22', borderRadius: '10px', overflow: 'hidden', marginBottom: '14px' }}>
               <div
                 style={{
                   width: `${Math.min(100, hardware.ram_pct)}%`,
                   height: '100%',
-                  background: hardware.ram_pct >= 90 ? 'linear-gradient(90deg, #dc2626, #ef4444)' : 'linear-gradient(90deg, #0284c7, #38bdf8)',
+                  background: hardware.ram_pct >= 90 ? 'linear-gradient(90deg, #dc2626, #ef4444)' : 'linear-gradient(90deg, #5865f2, #7983f5)',
                   borderRadius: '10px',
                   transition: 'width 0.4s ease',
                 }}
@@ -79,9 +79,9 @@ export default function InfrastructureResourcesTab({ hardware, alertConfig }) {
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#64748b', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-            <span>Resta livre: <strong style={{ color: '#0f172a' }}>{hardware.ram_free_gb} GB</strong></span>
-            <span>Contêiner API: <strong style={{ color: '#0f172a' }}>{hardware.api_container_mb} MB</strong></span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#949ba4', borderTop: '1px solid #35373c', paddingTop: '12px' }}>
+            <span>Resta livre: <strong style={{ color: '#f2f3f5' }}>{hardware.ram_free_gb} GB</strong></span>
+            <span>Contêiner API: <strong style={{ color: '#f2f3f5' }}>{hardware.api_container_mb} MB</strong></span>
           </div>
         </div>
 
@@ -89,9 +89,9 @@ export default function InfrastructureResourcesTab({ hardware, alertConfig }) {
         <div
           className="infra-card"
           style={{
-            background: '#ffffff',
+            background: '#2b2d31',
             borderRadius: '12px',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #35373c',
             padding: '22px',
             display: 'flex',
             flexDirection: 'column',
@@ -102,8 +102,8 @@ export default function InfrastructureResourcesTab({ hardware, alertConfig }) {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-                <Cpu size={18} color="#0284c7" />
-                <span style={{ fontSize: '14px', fontWeight: 600, color: '#334155' }}>Processamento (CPU)</span>
+                <Cpu size={18} color="#5865f2" />
+                <span style={{ fontSize: '14px', fontWeight: 600, color: '#f2f3f5' }}>Processamento (CPU)</span>
               </div>
               <span
                 style={{
@@ -120,18 +120,18 @@ export default function InfrastructureResourcesTab({ hardware, alertConfig }) {
               </span>
             </div>
 
-            <div style={{ fontSize: '25px', fontWeight: 800, color: '#0f172a', marginBottom: '14px' }}>
+            <div style={{ fontSize: '25px', fontWeight: 800, color: '#f2f3f5', marginBottom: '14px' }}>
               {hardware.cpu_pct}%{' '}
-              <span style={{ fontSize: '14px', color: '#64748b', fontWeight: 500 }}>({hardware.vcpus} vCPUs disponíveis)</span>
+              <span style={{ fontSize: '14px', color: '#949ba4', fontWeight: 500 }}>({hardware.vcpus} vCPUs disponíveis)</span>
             </div>
 
             {/* Barra de Progresso */}
-            <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '10px', overflow: 'hidden', marginBottom: '14px' }}>
+            <div style={{ width: '100%', height: '8px', background: '#1e1f22', borderRadius: '10px', overflow: 'hidden', marginBottom: '14px' }}>
               <div
                 style={{
                   width: `${Math.min(100, hardware.cpu_pct)}%`,
                   height: '100%',
-                  background: 'linear-gradient(90deg, #0284c7, #38bdf8)',
+                  background: 'linear-gradient(90deg, #5865f2, #7983f5)',
                   borderRadius: '10px',
                   transition: 'width 0.4s ease',
                 }}
@@ -139,8 +139,8 @@ export default function InfrastructureResourcesTab({ hardware, alertConfig }) {
             </div>
           </div>
 
-          <div style={{ fontSize: '12px', color: '#64748b', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-            <span>Alerta dispara quando o uso sustentado passar de <strong style={{ color: '#0f172a' }}>{cpuThreshold}%</strong>.</span>
+          <div style={{ fontSize: '12px', color: '#949ba4', borderTop: '1px solid #35373c', paddingTop: '12px' }}>
+            <span>Alerta dispara quando o uso sustentado passar de <strong style={{ color: '#f2f3f5' }}>{cpuThreshold}%</strong>.</span>
           </div>
         </div>
 
@@ -148,9 +148,9 @@ export default function InfrastructureResourcesTab({ hardware, alertConfig }) {
         <div
           className="infra-card"
           style={{
-            background: '#ffffff',
+            background: '#2b2d31',
             borderRadius: '12px',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #35373c',
             padding: '22px',
             display: 'flex',
             flexDirection: 'column',
@@ -161,7 +161,7 @@ export default function InfrastructureResourcesTab({ hardware, alertConfig }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
               <Zap size={18} color="#d97706" />
-              <span style={{ fontSize: '14px', fontWeight: 600, color: '#334155' }}>Maiores Picos de Hardware (24h)</span>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: '#f2f3f5' }}>Maiores Picos de Hardware (24h)</span>
             </div>
             <span
               style={{
@@ -181,20 +181,20 @@ export default function InfrastructureResourcesTab({ hardware, alertConfig }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13.5px' }}>
-                <span style={{ color: '#64748b' }}>Pico Máximo de RAM:</span>
-                <strong style={{ color: '#0f172a' }}>{hardware.peak_ram_details || `${hardware.peak_ram_pct}%`}</strong>
+                <span style={{ color: '#949ba4' }}>Pico Máximo de RAM:</span>
+                <strong style={{ color: '#f2f3f5' }}>{hardware.peak_ram_details || `${hardware.peak_ram_pct}%`}</strong>
               </div>
-              <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '3px' }}>
+              <div style={{ fontSize: '11.5px', color: '#949ba4', marginTop: '3px' }}>
                 Registrado em: {hardware.peak_ram_recorded_at}
               </div>
             </div>
 
-            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '10px' }}>
+            <div style={{ borderTop: '1px solid #35373c', paddingTop: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13.5px' }}>
-                <span style={{ color: '#64748b' }}>Pico Máximo de CPU:</span>
-                <strong style={{ color: '#0f172a' }}>{hardware.peak_cpu_pct}%</strong>
+                <span style={{ color: '#949ba4' }}>Pico Máximo de CPU:</span>
+                <strong style={{ color: '#f2f3f5' }}>{hardware.peak_cpu_pct}%</strong>
               </div>
-              <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '3px' }}>
+              <div style={{ fontSize: '11.5px', color: '#949ba4', marginTop: '3px' }}>
                 Registrado em: {hardware.peak_cpu_recorded_at}
               </div>
             </div>
@@ -205,18 +205,18 @@ export default function InfrastructureResourcesTab({ hardware, alertConfig }) {
       {/* Card Inferior: Diretrizes de Infraestrutura */}
       <div
         style={{
-          background: '#f0f9ff',
+          background: '#2b2d31',
           borderRadius: '12px',
-          border: '1px solid #bae6fd',
+          border: '1px solid #35373c',
           padding: '22px',
           boxShadow: '0 1px 3px rgba(2, 132, 199, 0.05)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '9px', marginBottom: '10px' }}>
-          <ShieldCheck size={18} color="#0284c7" />
-          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#0369a1' }}>Diretrizes de Infraestrutura do Servidor</h4>
+          <ShieldCheck size={18} color="#5865f2" />
+          <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#5865f2' }}>Diretrizes de Infraestrutura do Servidor</h4>
         </div>
-        <p style={{ margin: 0, fontSize: '13px', lineHeight: '1.6', color: '#0f172a' }}>
+        <p style={{ margin: 0, fontSize: '13px', lineHeight: '1.6', color: '#f2f3f5' }}>
           Todos os horários de picos acima seguem o <strong>Horário Oficial de Brasília (UTC-3)</strong>. Caso o consumo de memória RAM passe do limite configurado ({ramThreshold}%), um alerta será disparado automaticamente para evitar a sobrecarga do servidor por falta de memória (OOM Killer).
         </p>
       </div>

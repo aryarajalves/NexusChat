@@ -1,0 +1,199 @@
+/* =========================================================
+   DISCORD CLONE - MENSAGENS DE ÁUDIO / VOICE NOTES (discord-audio.css)
+   Gravador de áudio no input e player de voz no chat
+   Regra Obrigatória: Máximo 500 linhas por arquivo
+   ========================================================= */
+
+/* Botão de Microfone no Formulário de Entrada */
+.chat-mic-btn {
+  background: transparent;
+  border: none;
+  color: #b5bac1;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.chat-mic-btn:hover:not(:disabled) {
+  color: #5865f2;
+  background-color: rgba(88, 101, 242, 0.12);
+}
+
+.chat-mic-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Barra de Gravação Ativa */
+.chat-voice-recorder-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #2b2d31;
+  border: 1px solid rgba(242, 63, 67, 0.4);
+  border-radius: 8px;
+  padding: 8px 14px;
+  height: 44px;
+  width: 100%;
+  animation: recorderSlideIn 0.2s ease-out;
+  box-shadow: 0 2px 10px rgba(242, 63, 67, 0.15);
+}
+
+@keyframes recorderSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.voice-recorder-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.voice-recording-pulsing-dot {
+  width: 10px;
+  height: 10px;
+  background-color: #f23f43;
+  border-radius: 50%;
+  animation: pulsingRedDot 1.2s infinite ease-in-out;
+}
+
+@keyframes pulsingRedDot {
+  0% {
+    transform: scale(0.85);
+    box-shadow: 0 0 0 0 rgba(242, 63, 67, 0.7);
+  }
+  70% {
+    transform: scale(1.15);
+    box-shadow: 0 0 0 6px rgba(242, 63, 67, 0);
+  }
+  100% {
+    transform: scale(0.85);
+    box-shadow: 0 0 0 0 rgba(242, 63, 67, 0);
+  }
+}
+
+.voice-recording-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f2f3f5;
+}
+
+.voice-recording-timer {
+  font-size: 13px;
+  font-family: monospace;
+  font-weight: 700;
+  color: #f23f43;
+  background-color: rgba(242, 63, 67, 0.12);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Equalizador com ondas sonoras animadas */
+.voice-wave-container {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+}
+
+.voice-wave-bar {
+  display: inline-block;
+  width: 3px;
+  background: linear-gradient(180deg, #5865f2, #7983f5);
+  border-radius: 2px;
+  animation: waveMotion 1s ease-in-out infinite alternate;
+}
+
+.voice-wave-bar.bar-1 { height: 6px; animation-delay: 0.1s; }
+.voice-wave-bar.bar-2 { height: 16px; animation-delay: 0.3s; }
+.voice-wave-bar.bar-3 { height: 10px; animation-delay: 0.2s; }
+.voice-wave-bar.bar-4 { height: 20px; animation-delay: 0.5s; }
+.voice-wave-bar.bar-5 { height: 14px; animation-delay: 0.25s; }
+.voice-wave-bar.bar-6 { height: 18px; animation-delay: 0.4s; }
+.voice-wave-bar.bar-7 { height: 8px; animation-delay: 0.15s; }
+
+@keyframes waveMotion {
+  0% {
+    transform: scaleY(0.3);
+  }
+  100% {
+    transform: scaleY(1);
+  }
+}
+
+.voice-recorder-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.voice-cancel-btn {
+  background: transparent;
+  border: none;
+  color: #949ba4;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.voice-cancel-btn:hover:not(:disabled) {
+  color: #f23f43;
+  background-color: rgba(242, 63, 67, 0.15);
+}
+
+.voice-send-btn {
+  background-color: #23a55a;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.voice-send-btn:hover:not(:disabled) {
+  background-color: #1f9450;
+  transform: scale(1.04);
+}
+
+.voice-send-btn:disabled,
+.voice-cancel-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Player de Áudio no Feed */
+.chat-attachment-audio-wrapper {
+  margin-top: 6px;
+  padding: 6px 10px;
+  background-color: #2b2d31;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+}
+
+.chat-attachment-audio {
+  width: 100%;
+  height: 38px;
+  outline: none;
+  filter: invert(0.9) hue-rotate(180deg);
+}

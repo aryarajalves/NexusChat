@@ -173,6 +173,9 @@ def restore_backup(
 
     try:
         file_bytes = download_backup_file(backup.s3_key, backup.filename)
+        db.close()
+        from app.core.database import engine
+        engine.dispose()
         restore_db_dump(file_bytes)
         return {"message": f"Banco de dados restaurado com sucesso a partir de {backup.filename}!"}
     except Exception as e:

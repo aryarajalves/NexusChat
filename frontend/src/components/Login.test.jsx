@@ -10,7 +10,7 @@ describe('Login Component', () => {
         <Login />
       </ToastProvider>
     );
-    expect(screen.getByText('Projeto Base')).toBeInTheDocument();
+    expect(screen.getByText('NexusChat')).toBeInTheDocument();
     expect(screen.getByTestId('login-email-input')).toBeInTheDocument();
     expect(screen.getByTestId('login-password-input')).toBeInTheDocument();
     expect(screen.getByTestId('login-submit-btn')).toBeInTheDocument();

@@ -1,7 +1,11 @@
+import os
+import uuid
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status, Header
+from fastapi import APIRouter, Depends, HTTPException, status, Header, File, UploadFile, Request
+from app.core.rate_limiter import check_rate_limit, get_client_ip
+from app.core.upload_security import validate_uploaded_file
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.config import settings
@@ -13,6 +17,7 @@ from app.core.security import (
 )
 from app.models.user import User, Invite, PasswordResetToken, RegistrationVerification
 from app.services.email import send_verification_email
+from app.services.storage import upload_discord_media_file
 from app.schemas.user import (
     UserLogin,
     Token,
@@ -28,6 +33,8 @@ from app.schemas.user import (
     ResendCodeRequest,
     PasswordResetRequestResponse,
     PasswordResetConfirm,
+    UserProfileUpdate,
+    ChangePasswordRequest,
     PasswordResetValidateResponse,
     UserCreateManual
 )
@@ -76,7 +83,15 @@ def require_superadmin(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 @router.post("/login", response_model=Token)
-def login(login_data: UserLogin, db: Session = Depends(get_db)):
+async def login(login_data: UserLogin, request: Request, db: Session = Depends(get_db)):
+    client_ip = get_client_ip(request)
+    email_clean = (login_data.email or "").strip().lower()
+    await check_rate_limit(
+        key=f"login:{client_ip}:{email_clean}",
+        max_requests=5,
+        window_seconds=60,
+        error_detail="Muitas tentativas de login com este e-mail. Aguarde 1 minuto antes de tentar novamente."
+    )
     user = db.query(User).filter(User.email == login_data.email).first()
     if not user or not verify_password(login_data.password, user.hashed_password):
         raise HTTPException(
@@ -98,6 +113,66 @@ def login(login_data: UserLogin, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+@router.patch("/profile", response_model=UserResponse)
+def update_profile(
+    payload: UserProfileUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Atualiza nome e avatar do perfil do usuário logado."""
+    if payload.name is not None and payload.name.strip():
+        current_user.name = payload.name.strip()
+    if payload.avatar_url is not None:
+        current_user.avatar_url = payload.avatar_url.strip() or None
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+@router.post("/avatar")
+async def upload_avatar(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Faz upload de imagem para o avatar do usuário logado (sanitizado contra XSS)."""
+    await check_rate_limit(
+        f"avatar:user:{current_user.id}",
+        max_requests=10,
+        window_seconds=60,
+        error_detail="Limite de uploads de avatar excedido. Aguarde 1 minuto."
+    )
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext not in {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}:
+        raise HTTPException(status_code=400, detail="Formato de imagem inválido. Use PNG, JPG, GIF ou WEBP.")
+    file_bytes = await file.read()
+    validate_uploaded_file(file.filename or "", file_bytes, max_size_bytes=10 * 1024 * 1024)
+    unique_name = f"avatar_{current_user.id}_{uuid.uuid4().hex[:10]}{ext}"
+    upload_res = upload_discord_media_file(file_bytes, unique_name, file.content_type)
+    avatar_url = upload_res["attachment_url"]
+    current_user.avatar_url = avatar_url
+    db.commit()
+    db.refresh(current_user)
+    return {"avatar_url": avatar_url, "message": "Avatar atualizado com sucesso!"}
+
+@router.post("/change-password")
+async def change_password(
+    payload: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Altera a senha do usuário autenticado mediante verificação da senha atual."""
+    await check_rate_limit(
+        key=f"pwd_change:{current_user.id}",
+        max_requests=5,
+        window_seconds=60,
+        error_detail="Muitas tentativas de alteração de senha. Aguarde alguns instantes."
+    )
+    if not verify_password(payload.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="A senha atual está incorreta.")
+    current_user.hashed_password = get_password_hash(payload.new_password)
+    db.commit()
+    return {"message": "Senha alterada com sucesso!"}
 
 @router.get("/users", response_model=List[UserResponse])
 def list_users(
@@ -503,10 +578,19 @@ async def register_user(
     )
 
 @router.post("/register/verify", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def verify_registration(
+async def verify_registration(
     data: VerifyCodeRequest,
+    request: Request,
     db: Session = Depends(get_db)
 ):
+    client_ip = get_client_ip(request)
+    email_clean = (data.email or "").strip().lower()
+    await check_rate_limit(
+        key=f"verify_otp:{client_ip}:{email_clean}",
+        max_requests=5,
+        window_seconds=60,
+        error_detail="Muitas tentativas de validação de código. Aguarde 1 minuto."
+    )
     now = datetime.now(timezone.utc)
     verification = (
         db.query(RegistrationVerification)
@@ -560,8 +644,17 @@ def verify_registration(
 @router.post("/register/resend-code")
 async def resend_registration_code(
     data: ResendCodeRequest,
+    request: Request,
     db: Session = Depends(get_db)
 ):
+    client_ip = get_client_ip(request)
+    email_clean = (data.email or "").strip().lower()
+    await check_rate_limit(
+        key=f"resend_otp:{client_ip}:{email_clean}",
+        max_requests=3,
+        window_seconds=60,
+        error_detail="Aguarde um minuto antes de solicitar um novo código."
+    )
     now = datetime.now(timezone.utc)
     last_verif = (
         db.query(RegistrationVerification)

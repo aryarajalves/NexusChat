@@ -1,0 +1,497 @@
+/* ==========================================================================
+   DISCORD CLONE - CHAT ENHANCEMENTS, ATTACHMENTS & REALTIME UX (discord-chat.css)
+   ========================================================================== */
+
+@import './discord-voice.css';
+@import './discord-messages.css';
+@import './discord-modals.css';
+
+/* 1. Badge / Pill de Conexão em Tempo Real */
+.connection-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  user-select: none;
+}
+.status-indicator-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.pill-connected { color: #57f287; border-color: rgba(87, 242, 135, 0.25); background: rgba(87, 242, 135, 0.08); }
+.pill-connected .status-indicator-dot { background: #57f287; box-shadow: 0 0 8px rgba(87, 242, 135, 0.6); }
+.pill-connecting { color: #fee75c; border-color: rgba(254, 231, 92, 0.25); background: rgba(254, 231, 92, 0.08); }
+.pill-connecting .status-indicator-dot { background: #fee75c; animation: pulse-connecting 1.5s infinite ease-in-out; }
+.pill-disconnected { color: #ed4245; border-color: rgba(237, 66, 69, 0.25); background: rgba(237, 66, 69, 0.08); }
+.pill-disconnected .status-indicator-dot { background: #ed4245; }
+
+@keyframes pulse-connecting {
+0% { transform: scale(0.9); opacity: 0.6; }
+50% { transform: scale(1.2); opacity: 1; }
+100% { transform: scale(0.9); opacity: 0.6; }
+}
+
+/* 1.1 Topbar do Canal de Chat (Alinhamento Horizontal e Botões) */
+.chat-topbar {
+  height: 48px;
+  min-height: 48px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #313338;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.24);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  z-index: 5;
+  user-select: none;
+}
+
+.chat-channel-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  flex: 1;
+}
+
+.channel-hash-icon {
+  color: #80848e;
+  flex-shrink: 0;
+}
+
+.chat-channel-name {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: #f2f3f5 !important;
+  margin: 0 !important;
+  white-space: nowrap;
+  line-height: 1 !important;
+}
+
+.channel-topic-divider {
+  color: rgba(255, 255, 255, 0.12);
+  font-size: 16px;
+  margin: 0 4px;
+}
+
+.channel-topic {
+  font-size: 13px;
+  color: #949ba4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.topbar-action-btn {
+  background: transparent !important;
+  border: none !important;
+  color: #b5bac1 !important;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: none !important;
+}
+
+.topbar-action-btn:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #f2f3f5 !important;
+}
+
+.topbar-action-btn.active {
+  color: #f2f3f5 !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* 1.2 Barra de Entrada e Digitação (Input Pill Estilo Discord) */
+.chat-input-wrapper {
+  padding: 0 16px 24px 16px;
+  background: transparent;
+  width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.chat-typing-status {
+  height: 20px;
+  font-size: 12px;
+  color: #b5bac1;
+  padding-left: 8px;
+  margin-bottom: 4px;
+}
+
+.chat-input-form {
+  background-color: #383a40;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  padding: 2px 14px;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: box-shadow 0.15s ease;
+}
+
+.chat-input-form:focus-within {
+  box-shadow: 0 0 0 1px #5865f2;
+}
+
+.chat-attach-btn {
+  background: transparent !important;
+  border: none !important;
+  color: #b5bac1 !important;
+  padding: 8px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 50% !important;
+  transition: color 0.15s ease, background 0.15s ease;
+  flex-shrink: 0;
+  box-shadow: none !important;
+}
+
+.chat-attach-btn:hover:not(:disabled) {
+  color: #f2f3f5 !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.chat-text-input {
+  flex: 1;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  color: #dbdee1 !important;
+  font-size: 15px !important;
+  padding: 11px 0 !important;
+  box-shadow: none !important;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.chat-text-input::placeholder {
+  color: #80848e !important;
+}
+
+.chat-send-btn {
+  background: transparent !important;
+  border: none !important;
+  color: #b5bac1 !important;
+  padding: 8px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color 0.15s ease, background 0.15s ease;
+  flex-shrink: 0;
+  box-shadow: none !important;
+}
+
+.chat-send-btn:hover:not(:disabled) {
+  color: #5865f2 !important;
+  background: rgba(88, 101, 242, 0.1) !important;
+}
+
+.chat-send-btn:disabled {
+  color: #4e5058 !important;
+  cursor: not-allowed;
+}
+
+.chat-emoji-btn {
+  background: transparent !important;
+  border: none !important;
+  color: #b5bac1 !important;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 4px;
+  transition: color 0.15s ease, transform 0.1s ease;
+  margin-right: 2px;
+}
+
+.chat-emoji-btn:hover:not(:disabled) {
+  color: #f2f3f5 !important;
+  transform: scale(1.1);
+}
+
+.chat-input-emoji-picker {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 16px;
+  width: 260px;
+  background: #2b2d31;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65);
+  z-index: 1000;
+  animation: emoji-pop 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.input-emoji-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #b5bac1;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.input-emoji-close {
+  background: transparent;
+  border: none;
+  color: #949ba4;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+}
+.input-emoji-close:hover { color: #f2f3f5; }
+
+.input-emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+
+.input-emoji-item {
+  background: transparent;
+  border: none;
+  font-size: 22px;
+  padding: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s ease, transform 0.1s ease;
+}
+.input-emoji-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.2);
+}
+
+
+
+/* 3. Renderização de Anexos no Chat */
+.chat-attachment-wrapper { margin-top: 8px; }
+.chat-attachment-img-link {
+  display: inline-block;
+  max-width: 480px;
+  max-height: 340px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.chat-attachment-img-link:hover { transform: scale(1.01); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
+.chat-attachment-img { width: 100%; max-height: 340px; object-fit: cover; display: block; }
+.chat-attachment-file-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 420px;
+  background: #2b2d31;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 10px 14px;
+  text-decoration: none;
+  color: #f2f3f5;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.chat-attachment-file-card:hover { background: #313338; border-color: #5865f2; }
+.attachment-file-icon { color: #5865f2; flex-shrink: 0; }
+.attachment-file-info { display: flex; flex-direction: column; overflow: hidden; flex: 1; }
+.attachment-filename { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #5865f2; }
+.attachment-filesize { font-size: 11px; color: #949ba4; }
+.attachment-download-icon { color: #b5bac1; flex-shrink: 0; }
+
+/* 4. Pré-visualização de Anexo Pendente (Input Bar) */
+.attachment-pending-container { margin-bottom: 8px; animation: slide-up 0.2s ease; }
+.attachment-pending-media-card {
+  display: inline-flex;
+  flex-direction: column;
+  background: #2b2d31;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px;
+  max-width: 220px;
+}
+.pending-thumb-wrapper {
+  position: relative;
+  width: 100%;
+  height: 120px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #1e1f22;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pending-media-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pending-remove-btn-floating {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(17, 18, 20, 0.85);
+  color: #dbdee1;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+.pending-remove-btn-floating:hover { background: #da373c; color: #ffffff; transform: scale(1.1); }
+.pending-media-caption { display: flex; flex-direction: column; margin-top: 6px; gap: 2px; }
+.attachment-pending-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #2b2d31;
+  border: 1px solid rgba(88, 101, 242, 0.3);
+  border-radius: 8px;
+  padding: 6px 12px;
+  color: #dbdee1;
+  font-size: 13px;
+}
+.pending-file-icon { color: #5865f2; flex-shrink: 0; }
+.pending-file-name { font-weight: 500; font-size: 12px; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pending-file-size { color: #949ba4; font-size: 11px; }
+.remove-pending-btn {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: #949ba4;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+.remove-pending-btn:hover { color: #ed4245; background: rgba(237, 66, 69, 0.1); }
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 5. Banner de Resposta a Mensagem (Input Area) */
+.chat-reply-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #2b2d31;
+  border-left: 4px solid #5865f2;
+  border-radius: 8px 8px 0 0;
+  padding: 8px 14px;
+  margin-bottom: 2px;
+  animation: slide-up 0.15s ease;
+}
+
+.chat-reply-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  flex: 1;
+  font-size: 13px;
+  color: #dbdee1;
+}
+
+.chat-reply-banner-icon { color: #5865f2; flex-shrink: 0; }
+.chat-reply-banner-text strong { color: #f2f3f5; }
+.chat-reply-banner-preview {
+  color: #949ba4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+  font-style: italic;
+}
+
+.chat-reply-close-btn {
+  background: transparent;
+  border: none;
+  color: #949ba4;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.15s ease;
+}
+
+.chat-reply-close-btn:hover {
+  background: rgba(237, 66, 69, 0.15);
+  color: #ed4245;
+}
+
+/* 6. Drag & Drop Overlay e Legenda */
+.discord-chat-area.drag-over-active { position: relative; }
+.chat-drag-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 999;
+  background: rgba(17, 18, 20, 0.88);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  animation: fadeIn 0.15s ease-out;
+}
+.chat-drag-modal {
+  background: #2b2d31;
+  border: 2px dashed #5865f2;
+  border-radius: 12px;
+  padding: 28px 40px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+.chat-drag-icon { color: #5865f2; }
+.chat-drag-title { color: #f2f3f5; font-size: 17px; font-weight: 700; margin: 0; }
+.chat-drag-subtitle { color: #949ba4; font-size: 13px; margin: 0; }
+.pending-legend-badge {
+  font-size: 11px;
+  color: #5865f2;
+  background: rgba(88, 101, 242, 0.12);
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-top: 4px;
+}

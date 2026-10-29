@@ -14,6 +14,8 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     role = Column(String, nullable=False, default="user") # 'superadmin', 'admin', 'user'
     is_active = Column(Boolean, default=True)
+    avatar_url = Column(String(500), nullable=True)
+    max_servers = Column(Integer, default=100, nullable=True) # -1 para ilimitado ou teto específico (ex: 100)
     created_at = Column(DateTime, default=utc_now)
 
 
@@ -26,6 +28,7 @@ class Invite(Base):
     expires_at = Column(DateTime, nullable=False)
     is_used = Column(Boolean, default=False)
     used_by_email = Column(String, nullable=True)
+    max_servers = Column(Integer, default=100, nullable=True)
     created_at = Column(DateTime, default=utc_now)
 
 
@@ -53,4 +56,3 @@ class RegistrationVerification(Base):
     expires_at = Column(DateTime, nullable=False)
     is_used = Column(Boolean, default=False)
     created_at = Column(DateTime, default=utc_now)
-

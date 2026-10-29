@@ -1,0 +1,337 @@
+/* ==========================================================================
+   DISCORD CLONE - GRAVAÇÃO E EXPORTAÇÃO DE CANAL DE VOZ
+   ========================================================================== */
+
+/* Contêiner Relativo no Dock */
+.voice-recorder-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Menu Popover Flutuante Acima do Dock */
+.voice-recorder-menu {
+  position: absolute;
+  bottom: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #2b2d31;
+  border: 1px solid #35373c;
+  border-radius: 8px;
+  padding: 8px;
+  width: 290px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: voiceRecorderMenuFadeIn 0.15s ease-out;
+}
+
+@keyframes voiceRecorderMenuFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.voice-recorder-menu-header {
+  font-size: 11px;
+  font-weight: 700;
+  color: #949ba4;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 6px 10px;
+}
+
+.voice-recorder-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease;
+  width: 100%;
+}
+
+.voice-recorder-menu-item:hover {
+  background-color: #35373c;
+}
+
+.voice-recorder-menu-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.voice-recorder-menu-icon-wrap.audio {
+  background-color: rgba(88, 101, 242, 0.15);
+  color: #5865f2;
+}
+
+.voice-recorder-menu-icon-wrap.video {
+  background-color: rgba(35, 165, 90, 0.15);
+  color: #23a55a;
+}
+
+.voice-recorder-menu-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.voice-recorder-menu-text strong {
+  font-size: 13px;
+  color: #f2f3f5;
+  font-weight: 600;
+}
+
+.voice-recorder-menu-text small {
+  font-size: 11px;
+  color: #949ba4;
+}
+
+/* Estado Gravando Ativo no Dock */
+.voice-recording-active-dock {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #232428;
+  padding: 4px 6px 4px 12px;
+  border-radius: 28px;
+  border: 1px solid rgba(242, 63, 67, 0.35);
+  box-shadow: 0 0 12px rgba(242, 63, 67, 0.2);
+}
+
+.voice-recording-pulse-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.voice-recording-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #f23f43;
+  animation: voiceRecordingPulse 1.2s infinite ease-in-out;
+}
+
+@keyframes voiceRecordingPulse {
+  0% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(242, 63, 67, 0.7);
+  }
+  70% {
+    transform: scale(1.15);
+    box-shadow: 0 0 0 8px rgba(242, 63, 67, 0);
+  }
+  100% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(242, 63, 67, 0);
+  }
+}
+
+.voice-recording-type-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #f23f43;
+  letter-spacing: 0.5px;
+}
+
+.voice-recording-timer {
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #f2f3f5;
+  background: #1e1f22;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.btn-stop-recording {
+  background-color: #da373c !important;
+  color: #ffffff !important;
+  border-radius: 20px !important;
+  padding: 6px 14px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  gap: 6px !important;
+}
+
+.btn-stop-recording:hover {
+  background-color: #a12828 !important;
+}
+
+.btn-active-blurple {
+  background-color: #5865f2 !important;
+  color: #ffffff !important;
+}
+
+/* Modal de Prévia e Exportação */
+.voice-recording-dialog {
+  background-color: #313338;
+  border: 1px solid #35373c;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 580px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.voice-recording-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid #35373c;
+}
+
+.voice-recording-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.voice-recording-icon-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background-color: #2b2d31;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #35373c;
+}
+
+.voice-recording-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #f2f3f5;
+}
+
+.voice-recording-subtitle {
+  margin: 3px 0 0 0;
+  font-size: 13px;
+  color: #949ba4;
+}
+
+.voice-recording-close-btn {
+  background: transparent;
+  border: none;
+  color: #949ba4;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.voice-recording-close-btn:hover {
+  background-color: #35373c;
+  color: #f2f3f5;
+}
+
+.voice-recording-preview-box {
+  padding: 20px 24px;
+  background-color: #1e1f22;
+  display: flex;
+  justify-content: center;
+}
+
+.voice-recording-video-player {
+  width: 100%;
+  max-height: 280px;
+  border-radius: 8px;
+  background-color: #000000;
+  outline: none;
+}
+
+.voice-recording-audio-card {
+  width: 100%;
+  background-color: #2b2d31;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid #35373c;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.voice-recording-audio-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.voice-recording-audio-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.voice-recording-audio-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f2f3f5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.voice-recording-audio-sub {
+  font-size: 12px;
+  color: #949ba4;
+}
+
+.voice-recording-native-audio {
+  width: 100%;
+  height: 40px;
+  border-radius: 6px;
+  outline: none;
+}
+
+.voice-recording-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 16px 24px;
+  border-bottom: 1px solid #35373c;
+  background-color: #2b2d31;
+}
+
+.voice-recording-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #949ba4;
+}
+
+.voice-recording-meta-item strong {
+  color: #f2f3f5;
+}
+
+.voice-recording-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  background-color: #2b2d31;
+}

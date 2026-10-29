@@ -1,0 +1,457 @@
+/* ==========================================================================
+   DISCORD CLONE - MESSAGES, REACTIONS, ACTIONS & EDITING (discord-messages.css)
+   ========================================================================== */
+
+/* 1. Linha da Mensagem e Metadados */
+.chat-message-row {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 16px;
+  border-radius: 4px;
+  margin: 1px 0;
+  transition: background-color 0.15s ease;
+}
+
+.chat-message-row:hover {
+  background-color: rgba(2, 2, 2, 0.08);
+}
+
+.chat-message-main-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+}
+
+.chat-author-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #5865f2;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  flex-shrink: 0;
+  user-select: none;
+  margin-top: 2px;
+}
+
+.chat-message-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-message-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.chat-author-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f23f43; /* Cor destacada estilo imagem */
+  cursor: pointer;
+}
+
+.chat-author-name:hover {
+  text-decoration: underline;
+}
+
+.chat-timestamp-brasilia {
+  font-size: 12px;
+  color: #949ba4;
+  font-weight: 400;
+  user-select: none;
+}
+
+.chat-text-content {
+  color: #dbdee1;
+  font-size: 15px;
+  line-height: 1.375;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.chat-message-edited {
+  font-size: 11px;
+  color: #949ba4;
+  margin-left: 5px;
+  user-select: none;
+  font-weight: 400;
+}
+
+/* 2. Barra Flutuante de Ações no Hover */
+.chat-message-row:hover .chat-message-actions,
+.chat-message-actions.has-open-picker {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+.chat-message-actions {
+  position: absolute;
+  right: 16px;
+  top: -14px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: #313338;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 2px 4px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  z-index: 100;
+}
+
+.message-action-btn {
+  background: transparent;
+  border: none;
+  color: #b5bac1;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.message-action-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f2f3f5;
+}
+
+.message-action-btn.delete-btn:hover {
+  background: rgba(237, 66, 69, 0.15);
+  color: #ed4245;
+}
+
+/* 3. Popover de Seleção Rápida de Emojis */
+.quick-emoji-popover {
+  position: absolute;
+  right: 0;
+  background: #2b2d31;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  animation: emoji-pop 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  min-width: 220px;
+}
+
+.quick-emoji-popover.placement-bottom {
+  top: calc(100% + 6px);
+  bottom: auto;
+}
+
+.quick-emoji-popover.placement-top {
+  bottom: calc(100% + 6px);
+  top: auto;
+}
+
+@keyframes emoji-pop {
+  from { opacity: 0; transform: translateY(4px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.quick-emoji-btn {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s ease, transform 0.1s ease;
+}
+
+.quick-emoji-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.15);
+}
+
+/* 4. Badges de Reações em Mensagens (Chips) */
+.message-reactions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+  align-items: center;
+}
+
+.reaction-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  background: #2b2d31;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #b5bac1;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.reaction-badge:hover {
+  background: #35373c;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.reaction-badge.active {
+  background: rgba(88, 101, 242, 0.15);
+  border-color: #5865f2;
+  color: #c9cdfb;
+}
+
+.reaction-badge-count {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.reaction-badge-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  background: #2b2d31;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  cursor: pointer;
+  color: #949ba4;
+  transition: all 0.15s ease;
+}
+
+.reaction-badge-add:hover {
+  background: #35373c;
+  color: #f2f3f5;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 5. Edição Inline de Mensagem */
+.message-edit-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+  width: 100%;
+}
+
+.message-edit-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: #383a40;
+  border: 1px solid #5865f2;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #dbdee1;
+  font-size: 14px;
+  resize: vertical;
+  min-height: 48px;
+  font-family: inherit;
+}
+
+.message-edit-input:focus {
+  outline: none;
+}
+
+.message-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #949ba4;
+}
+
+.message-edit-btn {
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.message-edit-btn.btn-save {
+  background: #5865f2;
+  color: #ffffff;
+}
+
+.message-edit-btn.btn-cancel {
+  background: transparent;
+  color: #f2f3f5;
+  text-decoration: underline;
+}
+
+/* 6. Caixa de Citação / Mensagem Encaminhada */
+.forwarded-quote-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: #b5bac1;
+  font-style: italic;
+}
+
+.forwarded-quote-arrow {
+  color: #949ba4;
+  transform: rotate(180deg);
+}
+
+/* 7. Anexos de Vídeo e Áudio no Chat */
+.chat-attachment-video-wrapper,
+.chat-attachment-audio-wrapper {
+  margin-top: 6px;
+  max-width: 480px;
+}
+
+.chat-attachment-video {
+  max-width: 100%;
+  max-height: 360px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #1e1f22;
+  display: block;
+}
+
+.chat-attachment-audio {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 20px;
+}
+
+/* 8. Referência da Mensagem Respondida (Estilo Discord) */
+.chat-reply-reference {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 28px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: #b5bac1;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  line-height: 1.2;
+}
+
+.chat-reply-reference:hover .chat-reply-ref-content {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.chat-reply-spine {
+  position: absolute;
+  left: -20px;
+  top: 50%;
+  width: 16px;
+  height: 10px;
+  border-left: 2px solid #4e5058;
+  border-top: 2px solid #4e5058;
+  border-top-left-radius: 6px;
+  pointer-events: none;
+}
+
+.chat-reply-ref-avatar {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #5865f2;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.chat-reply-ref-author {
+  font-weight: 600;
+  color: #00a8fc;
+  flex-shrink: 0;
+}
+
+.chat-reply-ref-content {
+  color: #949ba4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 420px;
+}
+
+/* 10. Menu Popover dos 3 Pontinhos (Mais Opções) */
+.message-more-popover {
+  position: absolute;
+  right: 0;
+  min-width: 190px;
+  background: #111214;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.65);
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.message-more-popover.placement-top { bottom: calc(100% + 6px); }
+.message-more-popover.placement-bottom { top: calc(100% + 6px); }
+
+.more-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: #dbdee1;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.more-menu-item:hover {
+  background: #5865f2;
+  color: #ffffff;
+}
+
+.more-menu-item.more-menu-danger { color: #da373c; }
+.more-menu-item.more-menu-danger:hover {
+  background: #da373c;
+  color: #ffffff;
+}
+
+/* 11. Efeito de Realce ao Navegar para a Mensagem Respondida */
+.message-highlight-pulse { animation: reply-pulse 2s ease; }
+@keyframes reply-pulse {
+  0% { background: rgba(88, 101, 242, 0.35); }
+  100% { background: transparent; }
+}

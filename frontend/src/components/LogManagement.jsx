@@ -20,7 +20,7 @@ export default function LogManagement({ currentUser }) {
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const terminalEndRef = useRef(null);
   const { addToast } = useToast();
 
@@ -180,7 +180,9 @@ export default function LogManagement({ currentUser }) {
                 width: '100%',
                 padding: '7px 12px',
                 borderRadius: '8px',
-                border: '1px solid #cbd5e1',
+                border: '1px solid #3f4147',
+                backgroundColor: '#1e1f22',
+                color: '#f2f3f5',
                 fontSize: '13px',
               }}
               data-testid="log-search-input"
@@ -189,7 +191,7 @@ export default function LogManagement({ currentUser }) {
 
           {/* Quantidade de Linhas */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label htmlFor="tail-select" style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>
+            <label htmlFor="tail-select" style={{ fontSize: '13px', fontWeight: 600, color: '#dbdee1' }}>
               Linhas:
             </label>
             <select
@@ -199,7 +201,9 @@ export default function LogManagement({ currentUser }) {
               style={{
                 padding: '6px 10px',
                 borderRadius: '8px',
-                border: '1px solid #cbd5e1',
+                border: '1px solid #3f4147',
+                backgroundColor: '#1e1f22',
+                color: '#f2f3f5',
                 fontSize: '13px',
                 fontWeight: 500,
               }}

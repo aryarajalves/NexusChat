@@ -1,13 +1,21 @@
 """
-Serviço de Armazenamento S3 (Backblaze B2 / AWS S3) para Backups do PostgreSQL.
+Serviço de Armazenamento S3 (Backblaze B2 / AWS S3) para Backups e Mídias do Discord.
 """
 import io
 import os
+from typing import Optional
 import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
 from app.core.config import settings
 from app.core.logger import logger
+
+DISCORD_UPLOAD_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    "uploads",
+    "discord"
+)
+os.makedirs(DISCORD_UPLOAD_DIR, exist_ok=True)
 
 def get_s3_client():
     """Retorna o cliente S3 configurado para o Backblaze B2."""
@@ -89,7 +97,6 @@ def upload_backup_file(file_bytes: bytes, filename: str, folder: str = None) -> 
             return s3_key
         except Exception as e:
             logger.error(f"Erro ao enviar backup para S3/B2: {e}")
-            # Se falhar no upload remoto, salva localmente em /app/backups_local/
             pass
 
     # Fallback local se S3 não estiver configurado
@@ -146,7 +153,6 @@ def rename_backup_file(old_s3_key: str, old_filename: str, new_filename: str, fo
     s3 = get_s3_client()
     if s3 and settings.B2_BUCKET_NAME:
         try:
-            # No S3 a renomeação é realizada copiando para a nova chave e excluindo a antiga
             copy_source = {"Bucket": settings.B2_BUCKET_NAME, "Key": old_s3_key}
             s3.copy_object(CopySource=copy_source, Bucket=settings.B2_BUCKET_NAME, Key=new_s3_key)
             s3.delete_object(Bucket=settings.B2_BUCKET_NAME, Key=old_s3_key)
@@ -165,3 +171,95 @@ def rename_backup_file(old_s3_key: str, old_filename: str, new_filename: str, fo
             logger.error(f"Erro ao renomear arquivo local: {e}")
 
     return new_s3_key
+
+
+# ==========================================
+# 🎮 Armazenamento de Mídias do Discord (S3 / B2)
+# ==========================================
+
+def upload_discord_media_file(file_bytes: bytes, filename: str, content_type: Optional[str] = None) -> dict:
+    """
+    Salva o arquivo no cache local de uploads e realiza upload assíncrono/sincronizado
+    para o Backblaze B2 (se configurado).
+    """
+    target_folder = settings.B2_MEDIA_FOLDER or "discord_media/"
+    if not target_folder.endswith("/"):
+        target_folder += "/"
+    s3_key = f"{target_folder}{filename}"
+
+    # Salva sempre no disco local (cache de acesso instantâneo)
+    local_path = os.path.join(DISCORD_UPLOAD_DIR, filename)
+    with open(local_path, "wb") as f:
+        f.write(file_bytes)
+
+    s3 = get_s3_client()
+    storage_type = "local"
+    if s3 and settings.B2_BUCKET_NAME:
+        try:
+            s3.put_object(
+                Bucket=settings.B2_BUCKET_NAME,
+                Key=s3_key,
+                Body=file_bytes,
+                ContentType=content_type or "application/octet-stream"
+            )
+            storage_type = "b2"
+            logger.info(f"Mídia do Discord {filename} enviada para o Backblaze B2: {s3_key}")
+        except Exception as e:
+            logger.error(f"Erro ao enviar mídia {filename} para o Backblaze B2: {e}")
+
+    return {
+        "filename": filename,
+        "s3_key": s3_key,
+        "storage": storage_type,
+        "attachment_url": f"/api/v1/discord/attachments/{filename}",
+        "size": len(file_bytes),
+        "local_path": local_path
+    }
+
+def get_discord_media_file_path(filename: str) -> Optional[str]:
+    """
+    Retorna o caminho do arquivo de mídia no disco local.
+    Se o arquivo não existir localmente (ex: instância escalada em outro container),
+    baixa sob demanda a partir do Backblaze B2 e salva no cache local.
+    """
+    safe_filename = os.path.basename(filename)
+    local_path = os.path.join(DISCORD_UPLOAD_DIR, safe_filename)
+
+    if os.path.exists(local_path):
+        return local_path
+
+    s3 = get_s3_client()
+    if s3 and settings.B2_BUCKET_NAME:
+        target_folder = settings.B2_MEDIA_FOLDER or "discord_media/"
+        if not target_folder.endswith("/"):
+            target_folder += "/"
+        s3_key = f"{target_folder}{safe_filename}"
+        try:
+            response = s3.get_object(Bucket=settings.B2_BUCKET_NAME, Key=s3_key)
+            data = response["Body"].read()
+            with open(local_path, "wb") as f:
+                f.write(data)
+            logger.info(f"Mídia {safe_filename} baixada do Backblaze B2 e armazenada no cache local")
+            return local_path
+        except Exception as e:
+            logger.error(f"Falha ao recuperar mídia {safe_filename} do Backblaze B2: {e}")
+
+    return None
+
+def get_discord_media_presigned_url(filename: str, expires_in: int = 3600) -> Optional[str]:
+    """Gera URL pré-assinada do Backblaze B2 para acesso direto e CDN."""
+    s3 = get_s3_client()
+    if s3 and settings.B2_BUCKET_NAME:
+        target_folder = settings.B2_MEDIA_FOLDER or "discord_media/"
+        if not target_folder.endswith("/"):
+            target_folder += "/"
+        s3_key = f"{target_folder}{os.path.basename(filename)}"
+        try:
+            return s3.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": settings.B2_BUCKET_NAME, "Key": s3_key},
+                ExpiresIn=expires_in
+            )
+        except Exception as e:
+            logger.error(f"Erro ao gerar URL assinada para {s3_key}: {e}")
+    return None

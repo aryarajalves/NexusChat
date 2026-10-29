@@ -10,43 +10,7 @@ from app.core.config import settings
 from app.core.security import get_password_hash
 from app.models.user import User, Invite, RegistrationVerification
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
-
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-def override_get_db():
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-app.dependency_overrides[get_db] = override_get_db
-
-@pytest.fixture(autouse=True)
-def setup_database():
-    Base.metadata.create_all(bind=engine)
-    # Seed superadmin
-    db = TestingSessionLocal()
-    superadmin = User(
-        email=settings.SUPERADMIN_EMAIL,
-        name=settings.SUPERADMIN_NAME,
-        hashed_password=get_password_hash(settings.SUPERADMIN_PASSWORD),
-        role="superadmin",
-        is_active=True
-    )
-    db.add(superadmin)
-    db.commit()
-    db.close()
-    yield
-    Base.metadata.drop_all(bind=engine)
-
-client = TestClient(app)
+from conftest import engine, TestingSessionLocal, client
 
 def test_health_and_root():
     res = client.get("/health")
@@ -55,7 +19,7 @@ def test_health_and_root():
 
     res_root = client.get("/")
     assert res_root.status_code == 200
-    assert "Projeto Base" in res_root.json()["message"]
+    assert "NexusChat" in res_root.json()["message"]
 
 def test_login_superadmin_success():
     login_payload = {

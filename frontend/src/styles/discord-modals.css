@@ -1,0 +1,469 @@
+/* ==========================================================================
+   DISCORD CLONE - MODAIS, FORMULÁRIOS & BOTÕES (discord-modals.css)
+   ========================================================================== */
+
+.discord-modal-card,
+.modal-backdrop .modal-content {
+  background: #313338 !important;
+  border-radius: 14px !important;
+  width: 100% !important;
+  max-width: 480px !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  overflow: hidden;
+  display: flex !important;
+  flex-direction: column !important;
+  animation: modal-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  margin: auto !important;
+}
+
+@keyframes modal-pop {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-header,
+.discord-modal-header {
+  padding: 22px 24px 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.discord-modal-title,
+.modal-header h3 { font-size: 20px; font-weight: 700; color: #f2f3f5; margin: 0; }
+.discord-modal-subtitle { font-size: 13px; color: #949ba4; margin: 4px 0 0 0; }
+
+.modal-body,
+.discord-modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+
+.modal-footer,
+.discord-modal-footer {
+  background: #2b2d31;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.form-group { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.form-label {
+  display: block !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.4px !important;
+  text-transform: uppercase !important;
+  color: #b5bac1 !important;
+  margin-bottom: 6px !important;
+}
+.form-input {
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  background: #1e1f22 !important;
+  border: 1px solid rgba(0, 0, 0, 0.4) !important;
+  border-radius: 6px !important;
+  padding: 10px 14px !important;
+  color: #dbdee1 !important;
+  font-size: 14px !important;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.form-input:focus { outline: none !important; border-color: #5865f2 !important; box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3) !important; }
+.form-input::placeholder { color: #5c5f66 !important; }
+
+.form-error-banner {
+  background: rgba(237, 66, 69, 0.12);
+  border: 1px solid rgba(237, 66, 69, 0.35);
+  border-radius: 6px;
+  padding: 10px 14px;
+  color: #ed4245;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.discord-modal-btn,
+.modal-footer .btn {
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s, box-shadow 0.15s, opacity 0.15s;
+}
+.discord-modal-btn.btn-secondary,
+.modal-footer .btn-secondary { background: transparent; color: #f2f3f5; }
+.discord-modal-btn.btn-secondary:hover:not(:disabled),
+.modal-footer .btn-secondary:hover:not(:disabled) { text-decoration: underline; background: rgba(255, 255, 255, 0.05); }
+
+.discord-modal-btn.btn-primary,
+.modal-footer .btn-primary { background: #5865f2; color: #ffffff; }
+.discord-modal-btn.btn-primary:hover:not(:disabled),
+.modal-footer .btn-primary:hover:not(:disabled) { background: #4752c4; box-shadow: 0 4px 14px rgba(88, 101, 242, 0.4); }
+
+.discord-modal-btn:disabled,
+.modal-footer .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* 5. Modal de Confirmação para Deletar Mensagem */
+.delete-header { display: flex; align-items: flex-start; gap: 14px; }
+.delete-icon-wrapper {
+  background: rgba(237, 66, 69, 0.12);
+  border: 1px solid rgba(237, 66, 69, 0.3);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ed4245;
+}
+.delete-message-preview {
+  background: #2b2d31;
+  border-left: 4px solid #ed4245;
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin: 16px 0;
+  color: #dbdee1;
+  font-size: 13px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+.delete-preview-author { font-weight: 600; color: #f2f3f5; margin-bottom: 4px; }
+.delete-preview-text { color: #b5bac1; line-height: 1.4; word-break: break-word; }
+.delete-warning-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(237, 66, 69, 0.08);
+  border: 1px dashed rgba(237, 66, 69, 0.3);
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: #f04747;
+  font-size: 12px;
+  margin-bottom: 20px;
+}
+.btn-danger { background: #ed4245; color: #ffffff; }
+.btn-danger:hover:not(:disabled) { background: #da373a; box-shadow: 0 4px 14px rgba(237, 66, 69, 0.4); }
+.btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
+.spinner { animation: spin 1s linear infinite; }
+@keyframes spin {from { transform: rotate(0deg); }to { transform: rotate(360deg); } }
+
+/* 6. Sistema Centralizado de Modais Discord (Backdrop Escuro & Posicionamento) */
+.discord-modal-backdrop,
+.modal-backdrop {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0, 0, 0, 0.78) !important;
+  backdrop-filter: blur(5px);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 99999 !important;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* 7. Estilos do Modal de Criar Canal (Seleção de Tipo e Prefixo #) */
+.channel-type-selector { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.channel-type-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: #2b2d31;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.channel-type-card:hover { background: #35373c; }
+.channel-type-card.selected { background: #35373c; border-color: #5865f2; box-shadow: 0 0 0 1px #5865f2; }
+.channel-type-card-left { display: flex; align-items: center; gap: 14px; }
+.channel-type-icon { color: #949ba4; flex-shrink: 0; transition: color 0.15s ease; }
+.channel-type-card.selected .channel-type-icon { color: #5865f2; }
+.channel-type-card-info { display: flex; flex-direction: column; gap: 2px; }
+.channel-type-title { font-size: 15px; font-weight: 600; color: #f2f3f5; }
+.channel-type-desc { font-size: 12px; color: #949ba4; line-height: 1.3; }
+.channel-type-radio-outer {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #b5bac1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+.channel-type-card.selected .channel-type-radio-outer { border-color: #5865f2; }
+.channel-type-radio-inner { width: 10px; height: 10px; border-radius: 50%; background: #5865f2; }
+.channel-name-input-wrapper { position: relative; display: flex; align-items: center; width: 100%; }
+.channel-name-prefix {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #949ba4;
+  font-size: 16px;
+  font-weight: 700;
+  pointer-events: none;
+  z-index: 2;
+  user-select: none;
+}
+.channel-input-with-prefix { padding-left: 38px !important; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
+
+/* --- Menu Dropdown do Cabeçalho do Servidor --- */
+.server-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 8px;
+  right: 8px;
+  background-color: #111214;
+  border-radius: 6px;
+  padding: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: modal-pop 0.15s ease-out;
+}
+.server-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: #949ba4;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+}
+.server-dropdown-item:hover {
+  background-color: #5865f2;
+  color: #ffffff;
+}
+
+/* --- Modal Completo de Configurações do Servidor --- */
+.server-settings-dialog {
+  display: flex;
+  width: 90vw;
+  max-width: 960px;
+  height: 82vh;
+  max-height: 720px;
+  background-color: #313338;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+  animation: modal-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.server-settings-sidebar {
+  width: 220px;
+  background-color: #2b2d31;
+  padding: 24px 12px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+}
+.server-settings-sidebar-header {
+  padding: 0 10px 16px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 12px;
+}
+.server-settings-server-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f2f3f5;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+.server-settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.server-settings-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #949ba4;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+.server-settings-nav-btn:hover {
+  background-color: #35373c;
+  color: #dbdee1;
+}
+.server-settings-nav-btn.active {
+  background-color: #404249;
+  color: #ffffff;
+  font-weight: 600;
+}
+.server-settings-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 32px 40px;
+  background-color: #313338;
+}
+.server-settings-close-box {
+  position: absolute;
+  top: 24px;
+  right: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.server-settings-close-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #b5bac1;
+  background: transparent;
+  color: #b5bac1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.server-settings-close-circle:hover {
+  border-color: #ffffff;
+  color: #ffffff;
+  transform: scale(1.05);
+}
+.server-settings-esc-hint {
+  font-size: 11px;
+  font-weight: 600;
+  color: #949ba4;
+  text-transform: uppercase;
+}
+
+/* --- Abas de Conteúdo --- */
+.server-tab-title { font-size: 20px; font-weight: 700; color: #f2f3f5; margin: 0 0 4px 0; }
+.server-tab-desc { font-size: 13px; color: #949ba4; margin: 0 0 24px 0; }
+.server-settings-form { display: flex; flex-direction: column; gap: 20px; }
+.server-images-row { display: flex; gap: 24px; align-items: flex-start; }
+.server-image-box { display: flex; flex-direction: column; gap: 8px; }
+.server-field-label { font-size: 12px; font-weight: 700; color: #b5bac1; text-transform: uppercase; letter-spacing: 0.5px; }
+.server-field-help { font-size: 12px; color: #949ba4; margin: -2px 0 8px 0; }
+.server-icon-preview-wrap, .server-banner-preview-wrap { display: flex; flex-direction: column; gap: 10px; }
+.server-icon-preview-placeholder, .server-icon-preview-img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: #5865f2;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+.server-banner-preview-placeholder, .server-banner-preview-img {
+  width: 100%;
+  height: 90px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #2b2d31 0%, #1e1f22 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #949ba4;
+  font-size: 12px;
+  object-fit: cover;
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+}
+.server-upload-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: #4e5058;
+  color: #f2f3f5;
+  border-radius: 4px;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background 0.15s ease;
+}
+.server-upload-btn:hover { background-color: #6d6f78; }
+
+/* --- Aba de Cargos --- */
+.server-roles-container { display: flex; gap: 24px; min-height: 420px; }
+.server-roles-sidebar { width: 200px; display: flex; flex-direction: column; border-right: 1px solid rgba(255, 255, 255, 0.06); padding-right: 16px; flex-shrink: 0; }
+.server-roles-sidebar-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 12px; font-weight: 700; color: #b5bac1; text-transform: uppercase; }
+.server-create-role-btn { display: flex; align-items: center; gap: 4px; background: transparent; border: none; color: #5865f2; font-size: 12px; font-weight: 600; cursor: pointer; }
+.server-create-role-btn:hover { text-decoration: underline; }
+.server-roles-list { display: flex; flex-direction: column; gap: 3px; overflow-y: auto; max-height: 380px; }
+.server-role-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 4px; background: transparent; border: none; color: #dbdee1; font-size: 13px; font-weight: 500; cursor: pointer; text-align: left; width: 100%; transition: background 0.15s; }
+.server-role-item:hover { background-color: #35373c; }
+.server-role-item.active { background-color: #404249; color: #ffffff; }
+.role-color-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.role-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.server-roles-editor { flex: 1; padding-left: 8px; }
+.server-editor-title { font-size: 16px; font-weight: 700; color: #f2f3f5; margin: 0 0 16px 0; }
+.role-color-palette { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.role-color-swatch { width: 28px; height: 28px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s; }
+.role-color-swatch:hover { transform: scale(1.15); }
+.role-color-swatch.selected { border-color: #ffffff; }
+.role-custom-color-wrap { width: 28px; height: 28px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 2px solid #4e5058; }
+.role-custom-color-input { width: 40px; height: 40px; border: none; cursor: pointer; background: transparent; padding: 0; margin: -5px; }
+.role-toggles-section { display: flex; flex-direction: column; gap: 14px; background-color: #2b2d31; padding: 14px 16px; border-radius: 8px; }
+.role-toggle-item { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; }
+.role-toggle-item input[type="checkbox"] { width: 16px; height: 16px; margin-top: 3px; accent-color: #5865f2; cursor: pointer; }
+.role-toggle-label { display: block; font-size: 13px; font-weight: 600; color: #f2f3f5; }
+.role-toggle-desc { display: block; font-size: 12px; color: #949ba4; margin-top: 2px; }
+
+/* --- Aba de Membros --- */
+.server-members-tab-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.server-search-input-wrap { display: flex; align-items: center; gap: 8px; background-color: #1e1f22; border-radius: 4px; padding: 6px 10px; width: 260px; border: 1px solid rgba(255, 255, 255, 0.08); }
+.server-members-list { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; }
+.server-member-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background-color: #2b2d31; border-radius: 6px; }
+.server-member-avatar-box { flex-shrink: 0; }
+.server-member-info { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.server-member-title-row { display: flex; align-items: center; gap: 8px; }
+.server-member-name { font-size: 14px; color: #f2f3f5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.server-member-email { font-size: 12px; color: #949ba4; }
+.server-role-badge { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; border: 1px solid; letter-spacing: 0.5px; }
+.server-role-badge.owner { background: rgba(250, 166, 26, 0.15); border-color: #faa61a; color: #faa61a; }
+.discord-role-select { background-color: #1e1f22; border: 1px solid rgba(255, 255, 255, 0.12); color: #f2f3f5; border-radius: 4px; padding: 6px 10px; font-size: 13px; outline: none; cursor: pointer; min-width: 140px; }
+
+

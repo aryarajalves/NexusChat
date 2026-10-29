@@ -24,9 +24,9 @@ export default function InfrastructureDatabaseTab({ database }) {
         <div
           className="infra-card"
           style={{
-            background: '#ffffff',
+            background: '#2b2d31',
             borderRadius: '12px',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #35373c',
             padding: '22px',
             display: 'flex',
             flexDirection: 'column',
@@ -37,8 +37,8 @@ export default function InfrastructureDatabaseTab({ database }) {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-                <Database size={18} color="#0284c7" />
-                <span style={{ fontSize: '14px', fontWeight: 600, color: '#334155' }}>Conexões em Uso Agora</span>
+                <Database size={18} color="#5865f2" />
+                <span style={{ fontSize: '14px', fontWeight: 600, color: '#f2f3f5' }}>Conexões em Uso Agora</span>
               </div>
               <span
                 style={{
@@ -55,19 +55,19 @@ export default function InfrastructureDatabaseTab({ database }) {
               </span>
             </div>
 
-            <div style={{ fontSize: '25px', fontWeight: 800, color: '#0f172a', marginBottom: '14px' }}>
+            <div style={{ fontSize: '25px', fontWeight: 800, color: '#f2f3f5', marginBottom: '14px' }}>
               {database.active_connections}{' '}
-              <span style={{ fontSize: '15px', color: '#64748b', fontWeight: 500 }}>/ {database.pool_capacity}</span>{' '}
-              <span style={{ fontSize: '16px', color: '#0284c7', fontWeight: 700 }}>({database.occupancy_pct}%)</span>
+              <span style={{ fontSize: '15px', color: '#949ba4', fontWeight: 500 }}>/ {database.pool_capacity}</span>{' '}
+              <span style={{ fontSize: '16px', color: '#5865f2', fontWeight: 700 }}>({database.occupancy_pct}%)</span>
             </div>
 
             {/* Barra de Progresso */}
-            <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '10px', overflow: 'hidden', marginBottom: '14px' }}>
+            <div style={{ width: '100%', height: '8px', background: '#1e1f22', borderRadius: '10px', overflow: 'hidden', marginBottom: '14px' }}>
               <div
                 style={{
                   width: `${Math.min(100, database.occupancy_pct)}%`,
                   height: '100%',
-                  background: 'linear-gradient(90deg, #0284c7, #38bdf8)',
+                  background: 'linear-gradient(90deg, #5865f2, #7983f5)',
                   borderRadius: '10px',
                   transition: 'width 0.4s ease',
                 }}
@@ -75,7 +75,7 @@ export default function InfrastructureDatabaseTab({ database }) {
             </div>
           </div>
 
-          <div style={{ fontSize: '12px', color: '#64748b', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+          <div style={{ fontSize: '12px', color: '#949ba4', borderTop: '1px solid #35373c', paddingTop: '12px' }}>
             <span>{database.idle_connections} conexões ociosas prontas no pool.</span>
           </div>
         </div>
@@ -84,9 +84,9 @@ export default function InfrastructureDatabaseTab({ database }) {
         <div
           className="infra-card"
           style={{
-            background: '#ffffff',
+            background: '#2b2d31',
             borderRadius: '12px',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #35373c',
             padding: '22px',
             display: 'flex',
             flexDirection: 'column',
@@ -98,7 +98,7 @@ export default function InfrastructureDatabaseTab({ database }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
                 <Clock size={18} color="#059669" />
-                <span style={{ fontSize: '14px', fontWeight: 600, color: '#334155' }}>Maior Pico Registrado Hoje</span>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: '#f2f3f5' }}>Maior Pico Registrado Hoje</span>
               </div>
               <span
                 style={{
@@ -115,14 +115,14 @@ export default function InfrastructureDatabaseTab({ database }) {
               </span>
             </div>
 
-            <div style={{ fontSize: '25px', fontWeight: 800, color: '#0f172a', marginBottom: '14px' }}>
+            <div style={{ fontSize: '25px', fontWeight: 800, color: '#f2f3f5', marginBottom: '14px' }}>
               {database.peak_connections_today}{' '}
-              <span style={{ fontSize: '15px', color: '#64748b', fontWeight: 500 }}>/ {database.pool_capacity}</span>{' '}
+              <span style={{ fontSize: '15px', color: '#949ba4', fontWeight: 500 }}>/ {database.pool_capacity}</span>{' '}
               <span style={{ fontSize: '16px', color: '#15803d', fontWeight: 700 }}>({database.peak_pct_today}%)</span>
             </div>
 
             {/* Barra de Progresso */}
-            <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '10px', overflow: 'hidden', marginBottom: '14px' }}>
+            <div style={{ width: '100%', height: '8px', background: '#1e1f22', borderRadius: '10px', overflow: 'hidden', marginBottom: '14px' }}>
               <div
                 style={{
                   width: `${Math.min(100, database.peak_pct_today)}%`,
@@ -135,8 +135,8 @@ export default function InfrastructureDatabaseTab({ database }) {
             </div>
           </div>
 
-          <div style={{ fontSize: '12px', color: '#64748b', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-            <span>Horário do pico: <strong style={{ color: '#0f172a' }}>{database.peak_time_today}</strong></span>
+          <div style={{ fontSize: '12px', color: '#949ba4', borderTop: '1px solid #35373c', paddingTop: '12px' }}>
+            <span>Horário do pico: <strong style={{ color: '#f2f3f5' }}>{database.peak_time_today}</strong></span>
           </div>
         </div>
 
@@ -144,9 +144,9 @@ export default function InfrastructureDatabaseTab({ database }) {
         <div
           className="infra-card"
           style={{
-            background: '#ffffff',
+            background: '#2b2d31',
             borderRadius: '12px',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #35373c',
             padding: '22px',
             display: 'flex',
             flexDirection: 'column',
@@ -156,17 +156,17 @@ export default function InfrastructureDatabaseTab({ database }) {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '9px', marginBottom: '16px' }}>
             <Server size={18} color="#64748b" />
-            <span style={{ fontSize: '14px', fontWeight: 600, color: '#334155' }}>Capacidade do Servidor</span>
+            <span style={{ fontSize: '14px', fontWeight: 600, color: '#f2f3f5' }}>Capacidade do Servidor</span>
           </div>
 
           <div>
-            <div style={{ fontSize: '25px', fontWeight: 800, color: '#0f172a', marginBottom: '10px' }}>
+            <div style={{ fontSize: '25px', fontWeight: 800, color: '#f2f3f5', marginBottom: '10px' }}>
               {database.pool_capacity}{' '}
-              <span style={{ fontSize: '14px', color: '#64748b', fontWeight: 500 }}>conexões simultâneas máx</span>
+              <span style={{ fontSize: '14px', color: '#949ba4', fontWeight: 500 }}>conexões simultâneas máx</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: '#334155' }}>
-              <div>• Pool Base: <strong style={{ color: '#0f172a' }}>{database.pool_base} conexões abertas</strong></div>
-              <div>• Overflow Reserva: <strong style={{ color: '#0f172a' }}>+{database.overflow_reserve} conexões temporárias</strong></div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: '#f2f3f5' }}>
+              <div>• Pool Base: <strong style={{ color: '#f2f3f5' }}>{database.pool_base} conexões abertas</strong></div>
+              <div>• Overflow Reserva: <strong style={{ color: '#f2f3f5' }}>+{database.overflow_reserve} conexões temporárias</strong></div>
             </div>
           </div>
         </div>
@@ -175,19 +175,19 @@ export default function InfrastructureDatabaseTab({ database }) {
       {/* Histórico de Picos por Hora */}
       <div
         style={{
-          background: '#ffffff',
+          background: '#2b2d31',
           borderRadius: '12px',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #35373c',
           padding: '22px',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-            <Clock size={18} color="#0284c7" />
-            <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>Histórico de Picos por Hora (Horário de Brasília)</h4>
+            <Clock size={18} color="#5865f2" />
+            <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#f2f3f5' }}>Histórico de Picos por Hora (Horário de Brasília)</h4>
           </div>
-          <span style={{ background: '#f1f5f9', color: '#64748b', padding: '4px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600 }}>
+          <span style={{ background: '#1e1f22', color: '#949ba4', padding: '4px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600 }}>
             Últimas 24 Horas
           </span>
         </div>
@@ -195,7 +195,7 @@ export default function InfrastructureDatabaseTab({ database }) {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', background: '#f8fafc' }}>
+              <tr style={{ borderBottom: '1px solid #35373c', color: '#949ba4', background: '#1e1f22' }}>
                 <th style={{ padding: '12px 14px', fontWeight: 600 }}>Período / Hora (Brasília)</th>
                 <th style={{ padding: '12px 14px', fontWeight: 600 }}>Pico de Conexões</th>
                 <th style={{ padding: '12px 14px', fontWeight: 600 }}>Ocupação (%)</th>
@@ -205,10 +205,10 @@ export default function InfrastructureDatabaseTab({ database }) {
             <tbody>
               {database.history_24h && database.history_24h.length > 0 ? (
                 database.history_24h.map((item, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9', color: '#0f172a' }}>
+                  <tr key={idx} style={{ borderBottom: '1px solid #35373c', color: '#f2f3f5' }}>
                     <td style={{ padding: '13px 14px', fontWeight: 500 }}>{item.period}</td>
-                    <td style={{ padding: '13px 14px', color: '#475569' }}>{item.peak_connections} ativas</td>
-                    <td style={{ padding: '13px 14px', fontWeight: 700, color: '#0284c7' }}>{item.occupancy_pct}%</td>
+                    <td style={{ padding: '13px 14px', color: '#dbdee1' }}>{item.peak_connections} ativas</td>
+                    <td style={{ padding: '13px 14px', fontWeight: 700, color: '#5865f2' }}>{item.occupancy_pct}%</td>
                     <td style={{ padding: '13px 14px' }}>
                       <span style={{ color: '#15803d', fontWeight: 600, background: '#dcfce7', border: '1px solid #bbf7d0', padding: '3px 10px', borderRadius: '6px', fontSize: '11.5px' }}>
                         {item.status}
@@ -218,7 +218,7 @@ export default function InfrastructureDatabaseTab({ database }) {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
+                  <td colSpan={4} style={{ padding: '24px', textAlign: 'center', color: '#949ba4' }}>
                     Nenhum histórico registrado até o momento.
                   </td>
                 </tr>

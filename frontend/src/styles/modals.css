@@ -1,12 +1,12 @@
 /* =========================================================
-   MODAIS (GERAL, CONVITES & CONFIRMAÇÃO DE DELEÇÃO)
+   MODAIS (GERAL, CONVITES & CONFIRMAÇÃO - TEMA DISCORD DARK)
    ========================================================= */
 
 /* Modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(15, 23, 42, 0.5);
+  background-color: rgba(0, 0, 0, 0.75);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -16,14 +16,16 @@
 }
 
 .modal-content {
-  background: #ffffff;
+  background: #313338;
+  border: 1px solid #3f4147;
   border-radius: 14px;
   width: 100%;
   max-width: 480px;
   max-height: 90vh;
   overflow-y: auto;
   padding: 24px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  color: #f2f3f5;
 }
 
 .modal-header {
@@ -36,15 +38,20 @@
 .modal-header h3 {
   font-size: 18px;
   font-weight: 700;
-  color: #0f172a;
+  color: #f2f3f5;
 }
 
 .close-modal-btn {
   background: transparent;
   border: none;
-  color: #64748b;
+  color: #949ba4;
   cursor: pointer;
   padding: 4px;
+  transition: color 0.15s;
+}
+
+.close-modal-btn:hover {
+  color: #f2f3f5;
 }
 
 .modal-form {
@@ -55,7 +62,7 @@
 
 .help-text {
   font-size: 12px;
-  color: #94a3b8;
+  color: #949ba4;
   margin-top: 2px;
 }
 
@@ -67,8 +74,8 @@
 }
 
 .cancel-btn {
-  background: #f1f5f9;
-  color: #475569;
+  background: #4e5058;
+  color: #f2f3f5;
   border: none;
   border-radius: 8px;
   padding: 10px 16px;
@@ -76,10 +83,11 @@
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
+  transition: background 0.2s;
 }
 
 .cancel-btn:hover {
-  background: #e2e8f0;
+  background: #6d6f78;
 }
 
 /* Invite generated box */
@@ -91,9 +99,9 @@
 
 .invite-success-badge {
   text-align: center;
-  background-color: #ecfdf5;
-  border: 1px solid #a7f3d0;
-  color: #065f46;
+  background-color: rgba(35, 165, 90, 0.15);
+  border: 1px solid rgba(35, 165, 90, 0.3);
+  color: #23a55a;
   padding: 16px;
   border-radius: 10px;
 }
@@ -101,11 +109,12 @@
 .invite-success-badge h4 {
   font-size: 15px;
   margin: 6px 0;
+  color: #f2f3f5;
 }
 
 .invite-success-badge p {
   font-size: 13px;
-  color: #047857;
+  color: #23a55a;
 }
 
 .invite-link-box {
@@ -115,19 +124,19 @@
 
 .invite-link-box input {
   flex: 1;
-  background-color: #f8fafc;
-  border: 1px solid #cbd5e1;
+  background-color: #1e1f22;
+  border: 1px solid #3f4147;
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 13px;
-  color: #334155;
+  color: #f2f3f5;
 }
 
 .copy-btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  background-color: #0f172a;
+  background-color: #5865f2;
   color: white;
   border: none;
   border-radius: 8px;
@@ -135,6 +144,11 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.2s;
+}
+
+.copy-btn:hover {
+  background-color: #4752c4;
 }
 
 .redirect-link-btn {
@@ -147,7 +161,7 @@
   text-align: center;
   padding: 32px 28px 24px 28px;
   animation: confirmModalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
 @keyframes confirmModalFadeIn {
@@ -165,32 +179,32 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background-color: #fef2f2;
-  border: 4px solid #fee2e2;
-  color: #dc2626;
+  background-color: rgba(242, 63, 67, 0.15);
+  border: 4px solid rgba(242, 63, 67, 0.25);
+  color: #f23f43;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 18px auto;
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+  box-shadow: 0 4px 12px rgba(242, 63, 67, 0.2);
 }
 
 .confirm-delete-title {
   font-size: 19px;
   font-weight: 700;
-  color: #0f172a;
+  color: #f2f3f5;
   margin-bottom: 8px;
 }
 
 .confirm-delete-message {
   font-size: 14px;
-  color: #64748b;
+  color: #949ba4;
   line-height: 1.5;
   margin-bottom: 24px;
 }
 
 .confirm-delete-message strong {
-  color: #0f172a;
+  color: #f2f3f5;
 }
 
 .confirm-delete-actions {
@@ -212,7 +226,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background-color: #dc2626;
+  background-color: #da373c;
   color: #ffffff;
   border: none;
   border-radius: 8px;
@@ -221,14 +235,14 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.25);
+  box-shadow: 0 4px 10px rgba(218, 55, 60, 0.3);
 }
 
 .confirm-delete-actions .confirm-danger-btn:hover:not(:disabled) {
-  background-color: #b91c1c;
+  background-color: #a1282c;
 }
 
 .confirm-delete-actions .confirm-danger-btn:disabled {
-  opacity: 0.7;
+  opacity: 0.5;
   cursor: not-allowed;
 }

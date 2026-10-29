@@ -13,12 +13,19 @@ import InfrastructureDatabaseTab from './InfrastructureDatabaseTab';
 import InfrastructureAlertsTab from './InfrastructureAlertsTab';
 
 export default function InfrastructureManagement({ currentUser }) {
-  const [activeSubTab, setActiveSubTab] = useState('resources'); // 'resources' | 'database' | 'alerts'
+  const [activeSubTab, setActiveSubTab] = useState(() => {
+    return localStorage.getItem('active_subtab_infrastructure') || 'resources';
+  });
   const [overview, setOverview] = useState(null);
   const [alertConfig, setAlertConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { addToast } = useToast();
+
+  const handleSelectSubTab = (tab) => {
+    setActiveSubTab(tab);
+    localStorage.setItem('active_subtab_infrastructure', tab);
+  };
 
   const loadData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -78,8 +85,8 @@ export default function InfrastructureManagement({ currentUser }) {
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
           <div
             style={{
-              background: '#e0f2fe',
-              border: '1px solid #bae6fd',
+              background: '#2b2d31',
+              border: '1px solid #35373c',
               borderRadius: '12px',
               padding: '12px',
               display: 'flex',
@@ -87,13 +94,13 @@ export default function InfrastructureManagement({ currentUser }) {
               justifyContent: 'center',
             }}
           >
-            <Server size={24} color="#0284c7" />
+            <Server size={24} color="#5865f2" />
           </div>
           <div>
-            <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 700, color: '#0f172a', letterSpacing: '-0.3px' }}>
+            <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 700, color: '#f2f3f5', letterSpacing: '-0.3px' }}>
               Infraestrutura & Recursos do Servidor
             </h1>
-            <p style={{ margin: '5px 0 0 0', fontSize: '13.5px', color: '#64748b' }}>
+            <p style={{ margin: '5px 0 0 0', fontSize: '13.5px', color: '#949ba4' }}>
               Painel organizado por abas com métricas de RAM, CPU, Conexões do PostgreSQL e Webhooks de notificação (Horário Oficial de Brasília).
             </p>
           </div>
@@ -109,18 +116,18 @@ export default function InfrastructureManagement({ currentUser }) {
             alignItems: 'center',
             gap: '8px',
             padding: '9px 18px',
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
+            background: '#2b2d31',
+            border: '1px solid #35373c',
             borderRadius: '10px',
             fontSize: '13.5px',
             fontWeight: 600,
-            color: '#0f172a',
+            color: '#f2f3f5',
             cursor: refreshing ? 'not-allowed' : 'pointer',
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
             transition: 'all 0.2s ease',
           }}
         >
-          <RefreshCw size={15} color="#0284c7" className={refreshing ? 'spin-icon' : ''} />
+          <RefreshCw size={15} color="#5865f2" className={refreshing ? 'spin-icon' : ''} />
           <span>{refreshing ? 'Atualizando...' : 'Atualizar'}</span>
         </button>
       </div>
@@ -136,17 +143,17 @@ export default function InfrastructureManagement({ currentUser }) {
       >
         <button
           type="button"
-          onClick={() => setActiveSubTab('resources')}
+          onClick={() => handleSelectSubTab('resources')}
           data-testid="subtab-resources"
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
             padding: '11px 20px',
-            background: activeSubTab === 'resources' ? '#e0f2fe' : '#ffffff',
-            border: `1px solid ${activeSubTab === 'resources' ? '#bae6fd' : '#e2e8f0'}`,
+            background: activeSubTab === 'resources' ? '#5865f2' : '#2b2d31',
+            border: `1px solid ${activeSubTab === 'resources' ? '#5865f2' : '#35373c'}`,
             borderRadius: '12px',
-            color: activeSubTab === 'resources' ? '#0284c7' : '#64748b',
+            color: activeSubTab === 'resources' ? '#ffffff' : '#949ba4',
             fontWeight: 700,
             fontSize: '13.5px',
             cursor: 'pointer',
@@ -154,12 +161,12 @@ export default function InfrastructureManagement({ currentUser }) {
             transition: 'all 0.2s ease',
           }}
         >
-          <Cpu size={17} color={activeSubTab === 'resources' ? '#0284c7' : '#64748b'} />
+          <Cpu size={17} color={activeSubTab === 'resources' ? '#ffffff' : '#949ba4'} />
           <span>Recursos do Servidor (RAM & CPU)</span>
           <span
             style={{
-              background: activeSubTab === 'resources' ? '#0284c7' : '#f1f5f9',
-              color: activeSubTab === 'resources' ? '#ffffff' : '#64748b',
+              background: activeSubTab === 'resources' ? 'rgba(255,255,255,0.2)' : '#1e1f22',
+              color: activeSubTab === 'resources' ? '#ffffff' : '#dbdee1',
               fontSize: '11px',
               fontWeight: 700,
               padding: '2px 8px',
@@ -172,17 +179,17 @@ export default function InfrastructureManagement({ currentUser }) {
 
         <button
           type="button"
-          onClick={() => setActiveSubTab('database')}
+          onClick={() => handleSelectSubTab('database')}
           data-testid="subtab-database"
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
             padding: '11px 20px',
-            background: activeSubTab === 'database' ? '#e0f2fe' : '#ffffff',
-            border: `1px solid ${activeSubTab === 'database' ? '#bae6fd' : '#e2e8f0'}`,
+            background: activeSubTab === 'database' ? '#5865f2' : '#2b2d31',
+            border: `1px solid ${activeSubTab === 'database' ? '#5865f2' : '#35373c'}`,
             borderRadius: '12px',
-            color: activeSubTab === 'database' ? '#0284c7' : '#64748b',
+            color: activeSubTab === 'database' ? '#ffffff' : '#949ba4',
             fontWeight: 700,
             fontSize: '13.5px',
             cursor: 'pointer',
@@ -190,12 +197,12 @@ export default function InfrastructureManagement({ currentUser }) {
             transition: 'all 0.2s ease',
           }}
         >
-          <Database size={17} color={activeSubTab === 'database' ? '#0284c7' : '#64748b'} />
+          <Database size={17} color={activeSubTab === 'database' ? '#ffffff' : '#949ba4'} />
           <span>Conexões & Banco (PostgreSQL)</span>
           <span
             style={{
-              background: activeSubTab === 'database' ? '#0284c7' : '#f1f5f9',
-              color: activeSubTab === 'database' ? '#ffffff' : '#64748b',
+              background: activeSubTab === 'database' ? 'rgba(255,255,255,0.2)' : '#1e1f22',
+              color: activeSubTab === 'database' ? '#ffffff' : '#dbdee1',
               fontSize: '11px',
               fontWeight: 700,
               padding: '2px 8px',
@@ -208,17 +215,17 @@ export default function InfrastructureManagement({ currentUser }) {
 
         <button
           type="button"
-          onClick={() => setActiveSubTab('alerts')}
+          onClick={() => handleSelectSubTab('alerts')}
           data-testid="subtab-alerts"
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
             padding: '11px 20px',
-            background: activeSubTab === 'alerts' ? '#e0f2fe' : '#ffffff',
-            border: `1px solid ${activeSubTab === 'alerts' ? '#bae6fd' : '#e2e8f0'}`,
+            background: activeSubTab === 'alerts' ? '#5865f2' : '#2b2d31',
+            border: `1px solid ${activeSubTab === 'alerts' ? '#5865f2' : '#35373c'}`,
             borderRadius: '12px',
-            color: activeSubTab === 'alerts' ? '#0284c7' : '#64748b',
+            color: activeSubTab === 'alerts' ? '#ffffff' : '#949ba4',
             fontWeight: 700,
             fontSize: '13.5px',
             cursor: 'pointer',
@@ -226,7 +233,7 @@ export default function InfrastructureManagement({ currentUser }) {
             transition: 'all 0.2s ease',
           }}
         >
-          <Bell size={17} color={activeSubTab === 'alerts' ? '#0284c7' : '#64748b'} />
+          <Bell size={17} color={activeSubTab === 'alerts' ? '#ffffff' : '#949ba4'} />
           <span>Configurações de Alertas (Webhook)</span>
           <span
             style={{

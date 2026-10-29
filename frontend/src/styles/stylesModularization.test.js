@@ -14,6 +14,19 @@ describe('CSS Modularization and Line Limits', () => {
     'modals.css',
     'welcome.css',
     'backup.css',
+    'discord.css',
+    'discord-chat.css',
+    'discord-voice.css',
+    'discord-messages.css',
+    'discord-modals.css',
+    'discord-search.css',
+    'discord-audio.css',
+    'discord-pins.css',
+    'discord-unreads.css',
+    'discord-emojis.css',
+    'discord-mentions.css',
+    'discord-user-settings.css',
+    'discord-voice-recording.css',
   ];
 
   it('App.css aggregator imports all modular style files', () => {

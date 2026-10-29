@@ -245,12 +245,12 @@ describe('LogManagement Component', () => {
     });
 
     const themeToggleBtn = screen.getByTestId('toggle-terminal-theme-btn');
-    expect(themeToggleBtn).toHaveTextContent('Tema Escuro');
-
-    fireEvent.click(themeToggleBtn);
     expect(themeToggleBtn).toHaveTextContent('Tema Claro');
 
     fireEvent.click(themeToggleBtn);
     expect(themeToggleBtn).toHaveTextContent('Tema Escuro');
+
+    fireEvent.click(themeToggleBtn);
+    expect(themeToggleBtn).toHaveTextContent('Tema Claro');
   });
 });

@@ -1,18 +1,36 @@
 import React from 'react';
-import { Database, Users, LogOut, Terminal, Server } from 'lucide-react';
+import { Database, Users, LogOut, Terminal, Server, MessageSquare } from 'lucide-react';
 
-export default function Sidebar({ activeTab = 'users', onSelectTab, user, onLogout }) {
+export default function Sidebar({ activeTab = 'discord', onSelectTab, user, onLogout }) {
   const isSuperAdmin = user?.role === 'superadmin';
 
-  // Regra: A tela de gestão de usuário, backup e logs só vai aparecer para quem é super admin
-  const menuItems = isSuperAdmin
-    ? [
-        { id: 'backup', label: 'Backup Automático', icon: Database },
-        { id: 'logs', label: 'Gerenciamento de logs', icon: Terminal },
-        { id: 'infrastructure', label: 'Infraestrutura e Recursos', icon: Server },
-        { id: 'users', label: 'Gestão de Usuário', icon: Users },
-      ]
-    : [];
+  // Navegação categorizada (Opção 2: Estilo SaaS / Produto Moderno)
+  const categories = [
+    {
+      title: 'APLICAÇÃO',
+      items: [
+        { id: 'discord', label: 'Comunidades (Discord)', icon: MessageSquare },
+      ],
+    },
+    ...(isSuperAdmin
+      ? [
+          {
+            title: 'GESTÃO',
+            items: [
+              { id: 'users', label: 'Gestão de Usuário', icon: Users },
+            ],
+          },
+          {
+            title: 'INFRAESTRUTURA & DADOS',
+            items: [
+              { id: 'infrastructure', label: 'Infraestrutura e Recursos', icon: Server },
+              { id: 'logs', label: 'Gerenciamento de logs', icon: Terminal },
+              { id: 'backup', label: 'Backup Automático', icon: Database },
+            ],
+          },
+        ]
+      : []),
+  ];
 
   const handleSelect = (id) => {
     if (onSelectTab) {
@@ -34,27 +52,36 @@ export default function Sidebar({ activeTab = 'users', onSelectTab, user, onLogo
               <path d="M8 5v14l11-7z" />
             </svg>
           </div>
-          <span className="logo-text">Projeto Base</span>
+          <span className="logo-text">NexusChat</span>
         </div>
 
-        {/* Navigation Buttons (Removido 'Meus vídeos') */}
+        {/* Navigation Groups by Category */}
         <nav className="nav-menu">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className={`nav-button ${isActive ? 'active' : ''}`}
-                onClick={() => handleSelect(item.id)}
-                data-testid={`nav-item-${item.id}`}
-              >
-                <Icon className="nav-icon" />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
+          {categories.map((category) => (
+            <div
+              key={category.title}
+              className="nav-category-group"
+              data-testid={`category-group-${category.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+            >
+              <div className="nav-category-header">{category.title}</div>
+              {category.items.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`nav-button ${isActive ? 'active' : ''}`}
+                    onClick={() => handleSelect(item.id)}
+                    data-testid={`nav-item-${item.id}`}
+                  >
+                    <Icon className="nav-icon" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </nav>
       </div>
 
@@ -68,9 +95,10 @@ export default function Sidebar({ activeTab = 'users', onSelectTab, user, onLogo
           </div>
           {onLogout && (
             <button
-              onClick={onLogout}
+              type="button"
               className="logout-button"
-              title="Sair"
+              onClick={onLogout}
+              title="Desconectar"
               data-testid="logout-btn"
             >
               <LogOut size={16} />

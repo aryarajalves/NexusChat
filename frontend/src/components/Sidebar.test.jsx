@@ -3,10 +3,18 @@ import { describe, it, expect, vi } from 'vitest';
 import Sidebar from './Sidebar';
 
 describe('Sidebar Component', () => {
-  it('renders "Projeto Base" title and logo', () => {
+  it('renders "NexusChat" title and logo', () => {
     render(<Sidebar />);
-    expect(screen.getByText('Projeto Base')).toBeInTheDocument();
+    expect(screen.getByText('NexusChat')).toBeInTheDocument();
     expect(screen.getByTestId('logo-icon')).toBeInTheDocument();
+  });
+
+  it('renders categories "APLICAÇÃO", "GESTÃO" and "INFRAESTRUTURA & DADOS" for superadmin', () => {
+    const superAdminUser = { name: 'Super Admin', email: 'admin@test.com', role: 'superadmin' };
+    render(<Sidebar user={superAdminUser} />);
+    expect(screen.getByText('APLICAÇÃO')).toBeInTheDocument();
+    expect(screen.getByText('GESTÃO')).toBeInTheDocument();
+    expect(screen.getByText('INFRAESTRUTURA & DADOS')).toBeInTheDocument();
   });
 
   it('renders "Backup Automático", "Gerenciamento de logs" and "Gestão de Usuário" buttons only for superadmin', () => {
@@ -20,9 +28,12 @@ describe('Sidebar Component', () => {
     expect(screen.getByText('Gestão de Usuário')).toBeInTheDocument();
     unmount();
 
-    // Usuário comum NÃO vê os botões
+    // Usuário comum NÃO vê os botões de gestão e infraestrutura
     const regularUser = { name: 'Comum', email: 'comum@test.com', role: 'user' };
     render(<Sidebar user={regularUser} />);
+    expect(screen.getByText('APLICAÇÃO')).toBeInTheDocument();
+    expect(screen.queryByText('GESTÃO')).not.toBeInTheDocument();
+    expect(screen.queryByText('INFRAESTRUTURA & DADOS')).not.toBeInTheDocument();
     expect(screen.queryByText('Backup Automático')).not.toBeInTheDocument();
     expect(screen.queryByText('Gerenciamento de logs')).not.toBeInTheDocument();
     expect(screen.queryByText('Infraestrutura e Recursos')).not.toBeInTheDocument();

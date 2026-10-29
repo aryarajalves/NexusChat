@@ -1,5 +1,5 @@
 /* =========================================================
-   ESTILOS GLOBAIS, LAYOUT PRINCIPAL E TOASTS
+   ESTILOS GLOBAIS, LAYOUT PRINCIPAL E TOASTS (TEMA DISCORD DARK)
    ========================================================= */
 
 /* App container layout */
@@ -7,7 +7,8 @@
   display: flex;
   height: 100vh;
   width: 100vw;
-  background-color: #ffffff;
+  background-color: #313338;
+  color: #dbdee1;
 }
 
 /* Toast Container & Notification Item Styles */
@@ -15,7 +16,7 @@
   position: fixed;
   top: 24px;
   right: 24px;
-  z-index: 9999;
+  z-index: 9999999 !important;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -31,9 +32,9 @@
   gap: 12px;
   padding: 14px 16px;
   border-radius: 10px;
-  background-color: #ffffff;
-  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e2e8f0;
+  background-color: #2b2d31;
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  border: 1px solid #35373c;
   animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transition: all 0.2s ease;
 }
@@ -50,36 +51,36 @@
 }
 
 .toast-success {
-  border-left: 4px solid #10b981;
+  border-left: 4px solid #23a55a;
 }
 
 .toast-success .toast-icon {
-  color: #10b981;
+  color: #23a55a;
   flex-shrink: 0;
 }
 
 .toast-error {
-  border-left: 4px solid #ef4444;
+  border-left: 4px solid #f23f43;
 }
 
 .toast-error .toast-icon {
-  color: #ef4444;
+  color: #f23f43;
   flex-shrink: 0;
 }
 
 .toast-info {
-  border-left: 4px solid #0284c7;
+  border-left: 4px solid #5865f2;
 }
 
 .toast-info .toast-icon {
-  color: #0284c7;
+  color: #5865f2;
   flex-shrink: 0;
 }
 
 .toast-message {
   font-size: 13.5px;
   font-weight: 500;
-  color: #1e293b;
+  color: #dbdee1;
   flex: 1;
   line-height: 1.4;
 }
@@ -87,7 +88,7 @@
 .toast-close-btn {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #949ba4;
   cursor: pointer;
   padding: 4px;
   display: flex;
@@ -98,43 +99,64 @@
 }
 
 .toast-close-btn:hover {
-  color: #475569;
+  color: #f2f3f5;
 }
 
 /* Main Content Area */
 .main-content {
   flex: 1;
   height: 100vh;
-  background-color: #ffffff;
+  background-color: #313338;
+  color: #dbdee1;
   overflow-y: auto;
 }
 
 .empty-white-screen {
   width: 100%;
   height: 100%;
-  background-color: #ffffff;
+  background-color: #313338;
 }
 
 /* Classes utilitárias compartilhadas */
 .font-semibold {
   font-weight: 600;
+  color: #f2f3f5;
 }
 
 .text-secondary {
-  color: #64748b;
+  color: #949ba4;
 }
 
 .text-danger {
-  color: #ef4444;
+  color: #f23f43;
   font-weight: 500;
 }
 
 .text-primary {
-  color: #0284c7;
+  color: #5865f2;
 }
 
 .text-muted {
-  color: #94a3b8;
+  color: #949ba4;
   font-style: italic;
   font-size: 13px;
+}
+
+/* Scrollbars escuros no padrão Discord */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #2b2d31;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1a1b1e;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #111214;
 }

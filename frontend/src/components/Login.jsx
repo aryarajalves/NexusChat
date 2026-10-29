@@ -55,7 +55,7 @@ export default function Login({ onLoginSuccess }) {
                 <path d="M8 5v14l11-7z" />
               </svg>
             </div>
-            <h2>Projeto Base</h2>
+            <h2>NexusChat</h2>
             <p>Informe suas credenciais para acessar o painel</p>
           </div>
 
@@ -130,7 +130,7 @@ export default function Login({ onLoginSuccess }) {
         <div className="image-overlay-card">
           <img
             src={loginBanner}
-            alt="Projeto Base Dashboard"
+            alt="NexusChat Dashboard"
             className="login-feature-img"
             loading="eager"
             fetchPriority="high"

@@ -1,0 +1,136 @@
+/* ==========================================================================
+   DISCORD CLONE - CRIAÇÃO DE SERVIDOR & UPLOAD DE ÍCONE CIRCULAR
+   ========================================================================== */
+
+.server-icon-upload-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 6px 0 14px 0;
+  width: 100%;
+}
+
+.server-icon-preview-circle {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  border: 2px dashed #5865f2;
+  background-color: #2b2d31;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.server-icon-preview-circle:hover {
+  border-color: #7983f5;
+  background-color: #35373c;
+  transform: scale(1.03);
+}
+
+.server-icon-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+.server-icon-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #b5bac1;
+}
+
+.server-icon-placeholder-text {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #949ba4;
+}
+
+.server-icon-initial {
+  font-size: 26px;
+  font-weight: 800;
+  color: #f2f3f5;
+  text-transform: uppercase;
+}
+
+.server-icon-badge-add {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: #5865f2;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #313338;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.server-icon-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.server-icon-choose-btn {
+  background: #35373c;
+  border: 1px solid #4e5058;
+  color: #f2f3f5;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.server-icon-choose-btn:hover {
+  background: #404249;
+  border-color: #5865f2;
+}
+
+.server-icon-remove-btn {
+  background: transparent;
+  border: none;
+  color: #ed4245;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.server-icon-remove-btn:hover {
+  background: rgba(237, 66, 69, 0.12);
+}
+
+.server-icon-hint {
+  font-size: 11px;
+  color: #949ba4;
+  margin: 0;
+  text-align: center;
+}

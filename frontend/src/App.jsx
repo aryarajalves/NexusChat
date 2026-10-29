@@ -6,6 +6,7 @@ import UserManagement from './components/UserManagement';
 import AutomatedBackup from './components/AutomatedBackup';
 import LogManagement from './components/LogManagement';
 import { InfrastructureManagement } from './components/infrastructure';
+import { DiscordApp } from './components/discord';
 import Register from './components/Register';
 import ResetPassword from './components/ResetPassword';
 import LogoutConfirmModal from './components/LogoutConfirmModal';
@@ -19,12 +20,18 @@ function App() {
   const [activeTab, setActiveTab] = useState(() => {
     return localStorage.getItem('active_tab') || 'users';
   });
+  const [isSidebarHidden, setIsSidebarHidden] = useState(() => {
+    return (localStorage.getItem('active_tab') || 'users') === 'discord';
+  });
   const [pathname, setPathname] = useState(window.location.pathname);
   const { addToast } = useToast();
 
   const handleSelectTab = (tabId) => {
     setActiveTab(tabId);
     localStorage.setItem('active_tab', tabId);
+    if (tabId === 'discord') {
+      setIsSidebarHidden(true);
+    }
   };
 
   useEffect(() => {
@@ -69,6 +76,11 @@ function App() {
     localStorage.removeItem('auth_user');
     localStorage.removeItem('active_tab');
     localStorage.removeItem('active_subtab_usermanagement');
+    localStorage.removeItem('active_backup_tab');
+    localStorage.removeItem('active_subtab_infrastructure');
+    localStorage.removeItem('discord_active_server_id');
+    localStorage.removeItem('discord_active_channel_id');
+    localStorage.removeItem('discord_active_dm_id');
     setUser(null);
     setToken(null);
   };
@@ -103,26 +115,39 @@ function App() {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
-  // Se autenticado, exibe a tela inicial com a Sidebar e as funcionalidades
   const isSuperAdmin = user?.role === 'superadmin';
 
   return (
-    <div className="app-container">
-      <Sidebar
-        activeTab={activeTab}
-        onSelectTab={handleSelectTab}
-        user={user}
-        onLogout={handlePromptLogout}
-      />
-      <main className="main-content" aria-label="Conteúdo Principal">
-        {isSuperAdmin ? (
+    <div className={`app-container ${isSidebarHidden ? 'sidebar-hidden' : ''}`}>
+      {!isSidebarHidden && (
+        <Sidebar
+          activeTab={activeTab}
+          onSelectTab={handleSelectTab}
+          user={user}
+          onLogout={handlePromptLogout}
+        />
+      )}
+      <main
+        className="main-content"
+        aria-label="Conteúdo Principal"
+        style={activeTab === 'discord' ? { padding: 0, height: '100vh', overflow: 'hidden' } : undefined}
+      >
+        {activeTab === 'discord' && (
+          <DiscordApp
+            currentUser={user}
+            onToggleAppSidebar={() => setIsSidebarHidden((prev) => !prev)}
+            isAppSidebarHidden={isSidebarHidden}
+          />
+        )}
+        {isSuperAdmin && (
           <>
             {activeTab === 'users' && <UserManagement currentUser={user} />}
             {activeTab === 'backup' && <AutomatedBackup currentUser={user} />}
             {activeTab === 'logs' && <LogManagement currentUser={user} />}
             {activeTab === 'infrastructure' && <InfrastructureManagement currentUser={user} />}
           </>
-        ) : (
+        )}
+        {!isSuperAdmin && activeTab !== 'discord' && (
           <div className="restricted-access-container user-welcome-container" data-testid="restricted-access-screen">
             <div className="restricted-card user-welcome-card">
               <div className="user-welcome-icon-box">
@@ -132,7 +157,7 @@ function App() {
               </div>
               <h2>Olá, {user?.name || 'Usuário'}!</h2>
               <p className="welcome-subtext">
-                Bem-vindo ao <strong>Projeto Base</strong>. Sua conta está ativa e pronta para uso.
+                Bem-vindo ao <strong>NexusChat</strong>. Sua conta está ativa e pronta para uso.
               </p>
 
               <div className="welcome-info-grid">

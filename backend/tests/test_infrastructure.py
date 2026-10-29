@@ -168,4 +168,5 @@ def test_infrastructure_api_endpoints(superadmin_user):
             assert res_test.json()["success"] is True
 
     finally:
-        app.dependency_overrides.clear()
+        app.dependency_overrides.pop(get_current_user, None)
+        app.dependency_overrides.pop(get_db, None)

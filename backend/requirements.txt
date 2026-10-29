@@ -20,4 +20,5 @@ boto3==1.35.30
 apscheduler==3.10.4
 # Suporte a upload de arquivos multipart/form-data no FastAPI
 python-multipart>=0.0.31
-
+# Cliente Redis assíncrono para WebSockets distribuídos (Pub/Sub) e Cache
+redis>=5.0.0

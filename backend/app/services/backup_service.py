@@ -72,7 +72,8 @@ def generate_db_dump() -> bytes:
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            check=True
+            check=True,
+            timeout=15
         )
         # Compacta a saída do pg_dump com gzip (.dump.gz)
         compressed = gzip.compress(proc.stdout)
@@ -99,6 +100,16 @@ def restore_db_dump(file_bytes: bytes) -> bool:
         return True
 
     # Restauração no PostgreSQL via pg_restore
+    try:
+        from app.core.database import engine
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execute(text("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = current_database() AND pid != pg_backend_pid();"))
+            conn.commit()
+        engine.dispose()
+    except Exception as term_err:
+        logger.warning(f"Não foi possível desconectar sessões ativas antes do restore: {term_err}")
+
     env = os.environ.copy()
     env["PGPASSWORD"] = db_info["password"]
     cmd = [
@@ -115,6 +126,7 @@ def restore_db_dump(file_bytes: bytes) -> bool:
         proc = subprocess.run(
             cmd,
             input=raw_data,
+            timeout=30,
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,

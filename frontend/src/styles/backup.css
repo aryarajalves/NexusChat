@@ -1,5 +1,5 @@
 /* =========================================================
-   SISTEMA DE BACKUP AUTOMÁTICO (DESIGN PREMIUM)
+   SISTEMA DE BACKUP AUTOMÁTICO (TEMA DISCORD DARK)
    ========================================================= */
 
 .backup-page-container {
@@ -15,13 +15,13 @@
 .backup-page-header h1 {
   font-size: 22px;
   font-weight: 700;
-  color: #0f172a;
+  color: #f2f3f5;
   margin-bottom: 4px;
 }
 
 .backup-page-header p {
   font-size: 13.5px;
-  color: #64748b;
+  color: #949ba4;
 }
 
 /* 4 Cards de Métricas do Topo */
@@ -33,20 +33,20 @@
 }
 
 .backup-metric-card {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  background-color: #2b2d31;
+  border: 1px solid #35373c;
   border-radius: 12px;
   padding: 16px 20px;
   display: flex;
   align-items: center;
   gap: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   transition: all 0.2s ease;
 }
 
 .backup-metric-card:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border-color: #4e5058;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
 }
 
 .backup-metric-icon {
@@ -60,28 +60,28 @@
 }
 
 .metric-blue {
-  background-color: #e0f2fe;
-  color: #0284c7;
+  background-color: rgba(88, 101, 242, 0.2);
+  color: #5865f2;
 }
 
 .metric-amber {
-  background-color: #fef3c7;
-  color: #d97706;
+  background-color: rgba(240, 178, 50, 0.2);
+  color: #f0b232;
 }
 
 .metric-emerald {
-  background-color: #d1fae5;
-  color: #059669;
+  background-color: rgba(35, 165, 90, 0.2);
+  color: #23a55a;
 }
 
 .metric-green {
-  background-color: #dcfce7;
-  color: #16a34a;
+  background-color: rgba(35, 165, 90, 0.2);
+  color: #23a55a;
 }
 
 .metric-red {
-  background-color: #fee2e2;
-  color: #dc2626;
+  background-color: rgba(242, 63, 67, 0.2);
+  color: #f23f43;
 }
 
 .backup-metric-info {
@@ -93,14 +93,14 @@
 .metric-label {
   font-size: 12px;
   font-weight: 500;
-  color: #64748b;
+  color: #949ba4;
   margin-bottom: 2px;
 }
 
 .metric-value {
   font-size: 16px;
   font-weight: 700;
-  color: #0f172a;
+  color: #f2f3f5;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -108,7 +108,7 @@
 
 .metric-subtext {
   font-size: 11.5px;
-  color: #94a3b8;
+  color: #949ba4;
   margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
@@ -116,24 +116,24 @@
 }
 
 .text-connected {
-  color: #16a34a !important;
+  color: #23a55a !important;
 }
 
 .text-disconnected {
-  color: #dc2626 !important;
+  color: #f23f43 !important;
 }
 
 /* Banner de Execução de Backup Manual */
 .manual-backup-banner {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  background-color: #2b2d31;
+  border: 1px solid #35373c;
   border-radius: 12px;
   padding: 20px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   gap: 20px;
   flex-wrap: wrap;
 }
@@ -151,12 +151,12 @@
   gap: 10px;
   font-size: 16px;
   font-weight: 700;
-  color: #0f172a;
+  color: #f2f3f5;
 }
 
 .manual-backup-desc {
   font-size: 13px;
-  color: #64748b;
+  color: #949ba4;
   line-height: 1.5;
 }
 
@@ -164,7 +164,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  background-color: #0284c7;
+  background-color: #5865f2;
   color: #ffffff;
   border: none;
   border-radius: 8px;
@@ -173,28 +173,28 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.25);
+  box-shadow: 0 4px 10px rgba(88, 101, 242, 0.3);
   white-space: nowrap;
 }
 
 .trigger-backup-btn:hover:not(:disabled) {
-  background-color: #0369a1;
+  background-color: #4752c4;
 }
 
 .trigger-backup-btn:disabled {
-  background-color: #94a3b8;
+  background-color: #4e5058;
   cursor: not-allowed;
   box-shadow: none;
 }
 
 /* Formulário de Agendamento Automático */
 .schedule-settings-card {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  background-color: #2b2d31;
+  border: 1px solid #35373c;
   border-radius: 14px;
   padding: 32px 36px;
   max-width: 720px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 .schedule-settings-header {
@@ -204,19 +204,19 @@
 .schedule-settings-header h3 {
   font-size: 18px;
   font-weight: 700;
-  color: #0f172a;
+  color: #f2f3f5;
   margin-bottom: 4px;
 }
 
 .schedule-settings-header p {
   font-size: 13.5px;
-  color: #64748b;
+  color: #949ba4;
 }
 
 /* Switch Toggle Switch */
 .schedule-toggle-row {
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background-color: #1e1f22;
+  border: 1px solid #35373c;
   border-radius: 10px;
   padding: 16px 20px;
   display: flex;
@@ -234,12 +234,12 @@
 .toggle-main-label {
   font-size: 14px;
   font-weight: 600;
-  color: #0f172a;
+  color: #f2f3f5;
 }
 
 .toggle-sub-label {
   font-size: 12px;
-  color: #64748b;
+  color: #949ba4;
 }
 
 .switch-toggle {
@@ -259,7 +259,7 @@
   position: absolute;
   cursor: pointer;
   inset: 0;
-  background-color: #cbd5e1;
+  background-color: #4e5058;
   transition: 0.3s;
   border-radius: 28px;
 }
@@ -274,11 +274,11 @@
   background-color: white;
   transition: 0.3s;
   border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .switch-toggle input:checked + .switch-slider {
-  background-color: #0284c7;
+  background-color: #5865f2;
 }
 
 .switch-toggle input:checked + .switch-slider:before {
@@ -287,12 +287,12 @@
 
 /* Drag & Drop Upload Zone (Importar Backup Externo) */
 .dropzone-card {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
+  background-color: #2b2d31;
+  border: 1px solid #35373c;
   border-radius: 14px;
   padding: 32px 36px;
   max-width: 720px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 .dropzone-header {
@@ -302,23 +302,23 @@
 .dropzone-header h3 {
   font-size: 18px;
   font-weight: 700;
-  color: #0f172a;
+  color: #f2f3f5;
   margin-bottom: 4px;
 }
 
 .dropzone-header p {
   font-size: 13.5px;
-  color: #64748b;
+  color: #949ba4;
 }
 
 .dropzone-area {
-  border: 2px dashed #cbd5e1;
+  border: 2px dashed #4e5058;
   border-radius: 12px;
   padding: 44px 24px;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  background-color: #f8fafc;
+  background-color: #1e1f22;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -327,16 +327,16 @@
 
 .dropzone-area:hover,
 .dropzone-area.drag-active {
-  border-color: #0284c7;
-  background-color: #f0f9ff;
+  border-color: #5865f2;
+  background-color: rgba(88, 101, 242, 0.1);
 }
 
 .dropzone-icon-circle {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background-color: #e0f2fe;
-  color: #0284c7;
+  background-color: rgba(88, 101, 242, 0.2);
+  color: #5865f2;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -345,18 +345,18 @@
 .dropzone-title {
   font-size: 15px;
   font-weight: 600;
-  color: #0f172a;
+  color: #f2f3f5;
 }
 
 .dropzone-subtitle {
   font-size: 12.5px;
-  color: #64748b;
+  color: #949ba4;
 }
 
 .dropzone-formats-badge {
-  background-color: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  color: #475569;
+  background-color: #35373c;
+  border: 1px solid #4e5058;
+  color: #dbdee1;
   font-size: 11px;
   font-weight: 600;
   padding: 4px 10px;
@@ -366,8 +366,8 @@
 
 .dropzone-notes-card {
   margin-top: 24px;
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background-color: #1e1f22;
+  border: 1px solid #35373c;
   border-radius: 10px;
   padding: 16px 20px;
 }
@@ -375,7 +375,7 @@
 .dropzone-notes-title {
   font-size: 13px;
   font-weight: 600;
-  color: #0f172a;
+  color: #f2f3f5;
   margin-bottom: 8px;
 }
 
@@ -383,60 +383,59 @@
   margin: 0;
   padding-left: 18px;
   font-size: 12.5px;
-  color: #64748b;
+  color: #949ba4;
   line-height: 1.6;
 }
 
 .badge-automatic {
-  background-color: #fef3c7;
-  color: #d97706;
+  background-color: rgba(240, 178, 50, 0.2);
+  color: #f0b232;
 }
 
 .badge-manual {
-  background-color: #e0f2fe;
-  color: #0284c7;
+  background-color: rgba(88, 101, 242, 0.2);
+  color: #5865f2;
 }
 
 .badge-imported {
-  background-color: #f3e8ff;
-  color: #7e22ce;
+  background-color: rgba(124, 58, 237, 0.2);
+  color: #c084fc;
 }
 
-/* Inputs Modernos e Elegantes para Formulários e Agendamento */
+/* Inputs Modernos para Formulários */
 .form-group input,
 .form-control-modern {
   width: 100%;
   padding: 12px 16px;
-  background-color: #ffffff;
-  border: 1.5px solid #e2e8f0;
+  background-color: #1e1f22;
+  border: 1.5px solid #3f4147;
   border-radius: 10px;
   font-size: 14px;
   font-weight: 500;
-  color: #1e293b;
+  color: #f2f3f5;
   outline: none;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .form-group input:hover,
 .form-control-modern:hover {
-  border-color: #cbd5e1;
-  background-color: #fafbfc;
+  border-color: #4e5058;
+  background-color: #232428;
 }
 
 .form-group input:focus,
 .form-control-modern:focus {
-  border-color: #0284c7;
-  background-color: #ffffff;
-  box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.15), 0 2px 4px rgba(0, 0, 0, 0.02);
+  border-color: #5865f2;
+  background-color: #1e1f22;
+  box-shadow: 0 0 0 4px rgba(88, 101, 242, 0.25);
 }
 
 .form-group input::placeholder {
-  color: #94a3b8;
+  color: #949ba4;
   font-weight: 400;
 }
 
-/* Espaçamento interno para inputs que possuem ícone à esquerda e/ou botão à direita */
 .form-group .input-wrapper input,
 .input-wrapper input {
   padding-left: 46px !important;

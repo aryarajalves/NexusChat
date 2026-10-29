@@ -79,9 +79,9 @@ export default function InfrastructureAlertsTab({ config, onUpdated, addToast = 
     <div className="infra-tab-content" data-testid="infra-alerts-tab">
       <div
         style={{
-          background: '#ffffff',
+          background: '#2b2d31',
           borderRadius: '12px',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #35373c',
           padding: '24px',
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
         }}
@@ -90,8 +90,8 @@ export default function InfrastructureAlertsTab({ config, onUpdated, addToast = 
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '26px' }}>
           <div
             style={{
-              background: '#e0f2fe',
-              border: '1px solid #bae6fd',
+              background: '#1e1f22',
+              border: '1px solid #35373c',
               borderRadius: '12px',
               padding: '12px',
               display: 'flex',
@@ -99,11 +99,11 @@ export default function InfrastructureAlertsTab({ config, onUpdated, addToast = 
               justifyContent: 'center',
             }}
           >
-            <Bell size={22} color="#0284c7" />
+            <Bell size={22} color="#5865f2" />
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>Central de Notificações e Webhooks</h3>
-            <p style={{ margin: '5px 0 0 0', fontSize: '13px', color: '#64748b' }}>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#f2f3f5' }}>Central de Notificações e Webhooks</h3>
+            <p style={{ margin: '5px 0 0 0', fontSize: '13px', color: '#949ba4' }}>
               Ajuste as porcentagens de disparo para Conexões, RAM e CPU, e conecte seu Webhook (Discord, n8n, Slack, WhatsApp).
             </p>
           </div>
@@ -112,19 +112,19 @@ export default function InfrastructureAlertsTab({ config, onUpdated, addToast = 
         {/* 3 Controles com Checkbox e Slider */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '26px' }}>
           {/* Controle 1: Alerta Pool Banco */}
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '18px' }}>
+          <div style={{ background: '#1e1f22', border: '1px solid #35373c', borderRadius: '10px', padding: '18px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '9px', cursor: 'pointer', margin: 0, fontWeight: 600, fontSize: '14px', color: '#0f172a' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '9px', cursor: 'pointer', margin: 0, fontWeight: 600, fontSize: '14px', color: '#f2f3f5' }}>
                 <input
                   type="checkbox"
                   checked={poolEnabled}
                   onChange={(e) => setPoolEnabled(e.target.checked)}
                   data-testid="pool-alert-checkbox"
-                  style={{ width: '16px', height: '16px', accentColor: '#0284c7', cursor: 'pointer' }}
+                  style={{ width: '16px', height: '16px', accentColor: '#5865f2', cursor: 'pointer' }}
                 />
                 <span>Alerta Pool Banco</span>
               </label>
-              <span style={{ fontSize: '15px', fontWeight: 800, color: '#0284c7' }}>{poolThreshold}%</span>
+              <span style={{ fontSize: '15px', fontWeight: 800, color: '#5865f2' }}>{poolThreshold}%</span>
             </div>
             <input
               type="range"
@@ -135,9 +135,9 @@ export default function InfrastructureAlertsTab({ config, onUpdated, addToast = 
               onChange={(e) => setPoolThreshold(Number(e.target.value))}
               disabled={!poolEnabled}
               data-testid="pool-alert-slider"
-              style={{ width: '100%', accentColor: '#0284c7', cursor: poolEnabled ? 'pointer' : 'not-allowed', opacity: poolEnabled ? 1 : 0.4 }}
+              style={{ width: '100%', accentColor: '#5865f2', cursor: poolEnabled ? 'pointer' : 'not-allowed', opacity: poolEnabled ? 1 : 0.4 }}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b', marginTop: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#949ba4', marginTop: '8px' }}>
               <span>20% (Sensível)</span>
               <span>60% (Recomendado)</span>
               <span>95% (Crítico)</span>
@@ -145,19 +145,19 @@ export default function InfrastructureAlertsTab({ config, onUpdated, addToast = 
           </div>
 
           {/* Controle 2: Alerta de RAM (VPS) */}
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '18px' }}>
+          <div style={{ background: '#1e1f22', border: '1px solid #35373c', borderRadius: '10px', padding: '18px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '9px', cursor: 'pointer', margin: 0, fontWeight: 600, fontSize: '14px', color: '#0f172a' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '9px', cursor: 'pointer', margin: 0, fontWeight: 600, fontSize: '14px', color: '#f2f3f5' }}>
                 <input
                   type="checkbox"
                   checked={ramEnabled}
                   onChange={(e) => setRamEnabled(e.target.checked)}
                   data-testid="ram-alert-checkbox"
-                  style={{ width: '16px', height: '16px', accentColor: '#0284c7', cursor: 'pointer' }}
+                  style={{ width: '16px', height: '16px', accentColor: '#5865f2', cursor: 'pointer' }}
                 />
                 <span>Alerta de RAM (VPS)</span>
               </label>
-              <span style={{ fontSize: '15px', fontWeight: 800, color: '#0284c7' }}>{ramThreshold}%</span>
+              <span style={{ fontSize: '15px', fontWeight: 800, color: '#5865f2' }}>{ramThreshold}%</span>
             </div>
             <input
               type="range"
@@ -168,9 +168,9 @@ export default function InfrastructureAlertsTab({ config, onUpdated, addToast = 
               onChange={(e) => setRamThreshold(Number(e.target.value))}
               disabled={!ramEnabled}
               data-testid="ram-alert-slider"
-              style={{ width: '100%', accentColor: '#0284c7', cursor: ramEnabled ? 'pointer' : 'not-allowed', opacity: ramEnabled ? 1 : 0.4 }}
+              style={{ width: '100%', accentColor: '#5865f2', cursor: ramEnabled ? 'pointer' : 'not-allowed', opacity: ramEnabled ? 1 : 0.4 }}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b', marginTop: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#949ba4', marginTop: '8px' }}>
               <span>50%</span>
               <span>80% (Recomendado)</span>
               <span>95% (Risco OOM)</span>
@@ -178,19 +178,19 @@ export default function InfrastructureAlertsTab({ config, onUpdated, addToast = 
           </div>
 
           {/* Controle 3: Alerta de CPU */}
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '18px' }}>
+          <div style={{ background: '#1e1f22', border: '1px solid #35373c', borderRadius: '10px', padding: '18px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '9px', cursor: 'pointer', margin: 0, fontWeight: 600, fontSize: '14px', color: '#0f172a' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '9px', cursor: 'pointer', margin: 0, fontWeight: 600, fontSize: '14px', color: '#f2f3f5' }}>
                 <input
                   type="checkbox"
                   checked={cpuEnabled}
                   onChange={(e) => setCpuEnabled(e.target.checked)}
                   data-testid="cpu-alert-checkbox"
-                  style={{ width: '16px', height: '16px', accentColor: '#0284c7', cursor: 'pointer' }}
+                  style={{ width: '16px', height: '16px', accentColor: '#5865f2', cursor: 'pointer' }}
                 />
                 <span>Alerta de CPU</span>
               </label>
-              <span style={{ fontSize: '15px', fontWeight: 800, color: '#0284c7' }}>{cpuThreshold}%</span>
+              <span style={{ fontSize: '15px', fontWeight: 800, color: '#5865f2' }}>{cpuThreshold}%</span>
             </div>
             <input
               type="range"
@@ -201,9 +201,9 @@ export default function InfrastructureAlertsTab({ config, onUpdated, addToast = 
               onChange={(e) => setCpuThreshold(Number(e.target.value))}
               disabled={!cpuEnabled}
               data-testid="cpu-alert-slider"
-              style={{ width: '100%', accentColor: '#0284c7', cursor: cpuEnabled ? 'pointer' : 'not-allowed', opacity: cpuEnabled ? 1 : 0.4 }}
+              style={{ width: '100%', accentColor: '#5865f2', cursor: cpuEnabled ? 'pointer' : 'not-allowed', opacity: cpuEnabled ? 1 : 0.4 }}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#64748b', marginTop: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#949ba4', marginTop: '8px' }}>
               <span>50%</span>
               <span>85% (Recomendado)</span>
               <span>95% (Gargalo)</span>
@@ -213,28 +213,28 @@ export default function InfrastructureAlertsTab({ config, onUpdated, addToast = 
 
         {/* Cooldown Anti-Spam */}
         <div style={{ marginBottom: '22px', maxWidth: '400px' }}>
-          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '8px' }}>
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#dbdee1', marginBottom: '8px' }}>
             Intervalo Anti-Spam (Cooldown)
           </label>
           <select
             value={cooldown}
             onChange={(e) => setCooldown(Number(e.target.value))}
             data-testid="cooldown-select"
-            style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', background: '#ffffff', color: '#0f172a' }}
+            style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #35373c', fontSize: '14px', background: '#1e1f22', color: '#f2f3f5', outline: 'none', cursor: 'pointer' }}
           >
-            <option value="5">5 minutos (Ambientes de teste)</option>
-            <option value="15">15 minutos (Recomendado)</option>
-            <option value="30">30 minutos</option>
-            <option value="60">60 minutos (1 hora)</option>
+            <option value="5" style={{ background: "#1e1f22", color: "#f2f3f5" }}>5 minutos (Ambientes de teste)</option>
+            <option value="15" style={{ background: "#1e1f22", color: "#f2f3f5" }}>15 minutos (Recomendado)</option>
+            <option value="30" style={{ background: "#1e1f22", color: "#f2f3f5" }}>30 minutos</option>
+            <option value="60" style={{ background: "#1e1f22", color: "#f2f3f5" }}>60 minutos (1 hora)</option>
           </select>
-          <small style={{ display: 'block', fontSize: '12px', color: '#64748b', marginTop: '5px' }}>
+          <small style={{ display: 'block', fontSize: '12px', color: '#949ba4', marginTop: '5px' }}>
             Evita flood de alertas caso a alta carga persista por muito tempo.
           </small>
         </div>
 
         {/* URL do Webhook */}
         <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#334155', marginBottom: '8px' }}>
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#dbdee1', marginBottom: '8px' }}>
             URL do Webhook de Notificação
           </label>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -244,16 +244,16 @@ export default function InfrastructureAlertsTab({ config, onUpdated, addToast = 
               value={webhookUrl}
               onChange={(e) => setWebhookUrl(e.target.value)}
               data-testid="webhook-url-input"
-              style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', background: '#ffffff', color: '#0f172a' }}
+              style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', border: '1px solid #35373c', fontSize: '14px', background: '#1e1f22', color: '#f2f3f5', outline: 'none' }}
             />
             <button
               type="button"
               onClick={handleTestWebhook}
               disabled={testing || !webhookUrl.trim()}
               data-testid="test-webhook-btn"
-              style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '10px 18px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', fontWeight: 600, fontSize: '13.5px', color: '#0f172a', cursor: testing ? 'not-allowed' : 'pointer', transition: 'all 0.2s ease' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '7px', padding: '10px 18px', background: '#35373c', border: '1px solid #4e5058', borderRadius: '8px', fontWeight: 600, fontSize: '13.5px', color: '#f2f3f5', cursor: testing || !webhookUrl.trim() ? 'not-allowed' : 'pointer', opacity: testing || !webhookUrl.trim() ? 0.5 : 1, transition: 'all 0.2s ease' }}
             >
-              <Send size={15} color="#0284c7" />
+              <Send size={15} color="#5865f2" />
               <span>{testing ? 'Testando...' : 'Testar Webhook'}</span>
             </button>
           </div>
@@ -261,26 +261,26 @@ export default function InfrastructureAlertsTab({ config, onUpdated, addToast = 
 
         {/* Checkbox Tráfego Normalizado */}
         <div style={{ marginBottom: '26px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '9px', cursor: 'pointer', fontSize: '13px', color: '#334155' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '9px', cursor: 'pointer', fontSize: '13px', color: '#dbdee1' }}>
             <input
               type="checkbox"
               checked={notifyNormalized}
               onChange={(e) => setNotifyNormalized(e.target.checked)}
               data-testid="notify-normalized-checkbox"
-              style={{ width: '16px', height: '16px', accentColor: '#0284c7' }}
+              style={{ width: '16px', height: '16px', accentColor: '#5865f2' }}
             />
             <span>Enviar notificação de <strong>Tráfego Normalizado</strong> quando a carga do pool voltar ao padrão.</span>
           </label>
         </div>
 
         {/* Botão Salvar Configurações */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #f1f5f9', paddingTop: '18px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #35373c', paddingTop: '18px' }}>
           <button
             type="button"
             onClick={handleSave}
             disabled={saving}
             data-testid="save-alert-config-btn"
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 22px', background: '#0284c7', color: '#ffffff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.25)' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 22px', background: '#5865f2', color: '#ffffff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', boxShadow: '0 2px 8px rgba(2, 132, 199, 0.25)' }}
           >
             <Save size={16} />
             <span>{saving ? 'Salvando...' : 'Salvar Configurações'}</span>

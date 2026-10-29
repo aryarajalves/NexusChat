@@ -18,9 +18,33 @@ class UserResponse(BaseModel):
     name: str
     role: str
     is_active: bool
+    avatar_url: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class UserProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    avatar_url: Optional[str] = None
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password_strength(cls, v: str) -> str:
+        if len(v) < 12:
+            raise ValueError("A nova senha deve ter pelo menos 12 caracteres.")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("A nova senha deve conter pelo menos uma letra maiúscula.")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("A nova senha deve conter pelo menos uma letra minúscula.")
+        if not re.search(r"\d", v):
+            raise ValueError("A nova senha deve conter pelo menos um número.")
+        if not re.search(r"[\W_]", v):
+            raise ValueError("A nova senha deve conter pelo menos um caractere especial.")
+        return v
 
 class UserUpdate(BaseModel):
     role: Literal["admin", "user"]

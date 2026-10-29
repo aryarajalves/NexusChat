@@ -32,10 +32,10 @@ export default function LogDateFilter({
         gap: '12px',
         flexWrap: 'wrap',
         padding: '12px 16px',
-        backgroundColor: '#ffffff',
+        backgroundColor: '#2b2d31',
         borderRadius: '10px',
-        border: isActive ? '1px solid #0284c7' : '1px solid #e2e8f0',
-        boxShadow: isActive ? '0 0 0 3px rgba(2, 132, 199, 0.1)' : '0 1px 3px rgba(0, 0, 0, 0.04)',
+        border: isActive ? '1px solid #5865f2' : '1px solid #35373c',
+        boxShadow: isActive ? '0 0 0 3px rgba(88, 101, 242, 0.2)' : '0 2px 6px rgba(0, 0, 0, 0.2)',
         marginBottom: '12px',
         transition: 'all 0.2s ease',
       }}
@@ -43,8 +43,8 @@ export default function LogDateFilter({
     >
       {/* Campo Data */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <Calendar size={16} color="#0284c7" />
-        <label htmlFor="log-date-input" style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+        <Calendar size={16} color="#5865f2" />
+        <label htmlFor="log-date-input" style={{ fontSize: '13px', fontWeight: 600, color: '#949ba4' }}>
           Data:
         </label>
         <input
@@ -55,9 +55,9 @@ export default function LogDateFilter({
           style={{
             padding: '6px 10px',
             borderRadius: '8px',
-            border: '1px solid #cbd5e1',
-            backgroundColor: '#ffffff',
-            color: '#0f172a',
+            border: '1px solid #3f4147',
+            backgroundColor: '#1e1f22',
+            color: '#f2f3f5',
             fontSize: '13px',
             outline: 'none',
           }}
@@ -69,9 +69,9 @@ export default function LogDateFilter({
           style={{
             padding: '6px 10px',
             borderRadius: '8px',
-            backgroundColor: '#e0f2fe',
-            color: '#0284c7',
-            border: '1px solid #bae6fd',
+            backgroundColor: '#35373c',
+            color: '#dbdee1',
+            border: '1px solid #4e5058',
             fontSize: '12px',
             fontWeight: 600,
             cursor: 'pointer',
@@ -86,8 +86,8 @@ export default function LogDateFilter({
 
       {/* Horário Inicial */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <Clock size={16} color="#64748b" />
-        <label htmlFor="log-start-time" style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+        <Clock size={16} color="#949ba4" />
+        <label htmlFor="log-start-time" style={{ fontSize: '13px', fontWeight: 600, color: '#949ba4' }}>
           De:
         </label>
         <input
@@ -98,9 +98,9 @@ export default function LogDateFilter({
           style={{
             padding: '6px 10px',
             borderRadius: '8px',
-            border: '1px solid #cbd5e1',
-            backgroundColor: '#ffffff',
-            color: '#0f172a',
+            border: '1px solid #3f4147',
+            backgroundColor: '#1e1f22',
+            color: '#f2f3f5',
             fontSize: '13px',
             outline: 'none',
           }}
@@ -110,7 +110,7 @@ export default function LogDateFilter({
 
       {/* Horário Final */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <label htmlFor="log-end-time" style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+        <label htmlFor="log-end-time" style={{ fontSize: '13px', fontWeight: 600, color: '#949ba4' }}>
           Até:
         </label>
         <input
@@ -121,9 +121,9 @@ export default function LogDateFilter({
           style={{
             padding: '6px 10px',
             borderRadius: '8px',
-            border: '1px solid #cbd5e1',
-            backgroundColor: '#ffffff',
-            color: '#0f172a',
+            border: '1px solid #3f4147',
+            backgroundColor: '#1e1f22',
+            color: '#f2f3f5',
             fontSize: '13px',
             outline: 'none',
           }}
@@ -142,13 +142,13 @@ export default function LogDateFilter({
             gap: '6px',
             padding: '7px 14px',
             borderRadius: '8px',
-            backgroundColor: '#0284c7',
+            backgroundColor: '#5865f2',
             color: '#ffffff',
             fontSize: '13px',
             fontWeight: 600,
             border: 'none',
             cursor: 'pointer',
-            boxShadow: '0 2px 6px rgba(2, 132, 199, 0.2)',
+            boxShadow: '0 2px 6px rgba(88, 101, 242, 0.3)',
             transition: 'all 0.15s ease',
           }}
           data-testid="apply-date-filter-btn"
@@ -167,9 +167,9 @@ export default function LogDateFilter({
               gap: '4px',
               padding: '7px 12px',
               borderRadius: '8px',
-              backgroundColor: '#fef2f2',
-              border: '1px solid #fecaca',
-              color: '#dc2626',
+              backgroundColor: 'rgba(242, 63, 67, 0.15)',
+              border: '1px solid rgba(242, 63, 67, 0.35)',
+              color: '#f23f43',
               fontSize: '13px',
               fontWeight: 600,
               cursor: 'pointer',

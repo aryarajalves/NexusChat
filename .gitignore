@@ -58,3 +58,8 @@ modal_saved_*.png
 Thumbs.db
 *.swp
 *.swo
+
+# Uploads locais de mídia e anexos
+uploads/
+backend/uploads/
+backend/app/uploads/
