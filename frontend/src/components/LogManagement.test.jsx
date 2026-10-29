@@ -12,12 +12,12 @@ describe('LogManagement Component', () => {
 
   const mockLogsBackend = {
     service: 'backend',
-    container: 'projeto_base_backend',
+    container: 'nexus_chat_backend',
     available: true,
     logs: [
-      '[INFO] [projeto_base]: Servidor iniciado com sucesso.',
-      '[WARNING] [projeto_base]: Conexão lenta detectada.',
-      '[ERROR] [projeto_base]: Falha simulada para teste de log.',
+      '[INFO] [nexus_chat]: Servidor iniciado com sucesso.',
+      '[WARNING] [nexus_chat]: Conexão lenta detectada.',
+      '[ERROR] [nexus_chat]: Falha simulada para teste de log.',
     ],
     total_lines: 3,
     error: null,
@@ -25,7 +25,7 @@ describe('LogManagement Component', () => {
 
   const mockLogsFrontend = {
     service: 'frontend',
-    container: 'projeto_base_frontend',
+    container: 'nexus_chat_frontend',
     available: true,
     logs: [
       '172.31.0.1 - - [29/Sep/2026:17:59:35 +0000] "GET /assets/index.js HTTP/1.1" 200 450',

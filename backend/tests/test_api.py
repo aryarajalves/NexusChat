@@ -19,7 +19,7 @@ def test_health_and_root():
 
     res_root = client.get("/")
     assert res_root.status_code == 200
-    assert "NexusChat" in res_root.json()["message"]
+    assert "Nexus Chat" in res_root.json()["message"]
 
 def test_login_superadmin_success():
     login_payload = {

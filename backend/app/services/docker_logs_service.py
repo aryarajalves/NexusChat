@@ -15,8 +15,8 @@ BR_TIMEZONE = ZoneInfo("America/Sao_Paulo")
 
 # Contêineres monitorados do projeto (apenas backend e frontend)
 CONTAINER_SERVICES = {
-    "backend": "projeto_base_backend",
-    "frontend": "projeto_base_frontend",
+    "backend": "nexus_chat_backend",
+    "frontend": "nexus_chat_frontend",
 }
 
 # 1. Regex para timestamp oficial do Docker no início da linha: 2026-09-29T18:04:29.123456789Z

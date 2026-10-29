@@ -1,9 +1,9 @@
-name: projeto-base
+name: nexus-chat
 
 services:
   db:
     image: postgres:16-alpine
-    container_name: projeto_base_db
+    container_name: nexus_chat_db
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
@@ -13,7 +13,7 @@ services:
     ports:
       - "5731:5432"
     volumes:
-      - projeto_base_pg_data:/var/lib/postgresql/data
+      - nexus_chat_pg_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -22,13 +22,13 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: projeto_base_redis
+    container_name: nexus_chat_redis
     restart: unless-stopped
     command: redis-server --appendonly yes
     ports:
       - "6379:6379"
     volumes:
-      - projeto_base_redis_data:/data
+      - nexus_chat_redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -36,8 +36,9 @@ services:
       retries: 5
 
   pgbouncer:
-    image: edoburu/pgbouncer:v1.22.1
-    container_name: projeto_base_pgbouncer
+    image: edoburu/pgbouncer:latest
+    container_name: nexus_chat_pgbouncer
+    profiles: ["scale"]
     restart: unless-stopped
     depends_on:
       db:
@@ -57,8 +58,9 @@ services:
       - "6432:5432"
 
   livekit:
-    image: livekit/livekit-server:v1.7.2
-    container_name: projeto_base_livekit
+    image: livekit/livekit-server:latest
+    container_name: nexus_chat_livekit
+    profiles: ["scale"]
     restart: unless-stopped
     command: --config /etc/livekit.yaml
     ports:
@@ -68,13 +70,13 @@ services:
     volumes:
       - ./livekit.yaml:/etc/livekit.yaml:ro
     environment:
-      - LIVEKIT_KEYS=devkey: secret_livekit_key_2026_discord_clone
+      LIVEKIT_KEYS: "devkey: secret_livekit_key_2026_discord_clone"
 
   backend:
     build:
       context: ../backend
       dockerfile: Dockerfile
-    container_name: projeto_base_backend
+    container_name: nexus_chat_backend
     restart: unless-stopped
     depends_on:
       db:
@@ -93,7 +95,7 @@ services:
     build:
       context: ../frontend
       dockerfile: Dockerfile
-    container_name: projeto_base_frontend
+    container_name: nexus_chat_frontend
     restart: unless-stopped
     depends_on:
       - backend
@@ -101,5 +103,7 @@ services:
       - "3005:80"
 
 volumes:
-  projeto_base_pg_data:
-  projeto_base_redis_data:
+  nexus_chat_pg_data:
+    external: true
+    name: projeto-base_projeto_base_pg_data
+  nexus_chat_redis_data:

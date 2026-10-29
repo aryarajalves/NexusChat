@@ -2,7 +2,7 @@ import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "NexusChat" if not os.getenv("PROJECT_NAME") or "Projeto Base" in os.getenv("PROJECT_NAME") else os.getenv("PROJECT_NAME")
+    PROJECT_NAME: str = "Nexus Chat" if not os.getenv("PROJECT_NAME") or "Projeto Base" in os.getenv("PROJECT_NAME") else os.getenv("PROJECT_NAME")
     API_V1_STR: str = "/api/v1"
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./app.db")
     DB_POOL_SIZE: int = int(os.getenv("DB_POOL_SIZE", "20"))
@@ -54,4 +54,4 @@ class Settings(BaseSettings):
 
 settings = Settings()
 if not settings.PROJECT_NAME or "Projeto Base" in settings.PROJECT_NAME:
-    settings.PROJECT_NAME = "NexusChat"
+    settings.PROJECT_NAME = "Nexus Chat"
