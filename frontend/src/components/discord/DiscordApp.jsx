@@ -444,6 +444,7 @@ export default function DiscordApp({ currentUser, onUserUpdated, onToggleAppSide
           onToggleMembers={() => setShowMembers((prev) => !prev)}
           isMinimized={activeChannel?.type !== 'VOICE'}
           onReturnToVoice={() => setActiveChannelId(connectedVoiceChannel.id)}
+          token={token}
         />
       )}
 

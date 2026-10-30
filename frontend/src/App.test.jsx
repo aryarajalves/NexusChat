@@ -184,6 +184,50 @@ describe('App Component', () => {
     expect(screen.queryByRole('complementary', { name: /menu lateral/i })).not.toBeInTheDocument();
     expect(screen.getByText('Sua sessão expirou. Por favor, faça login novamente.')).toBeInTheDocument();
   });
+
+  it('clears active tab and unselects community when opening system sidebar from discord', async () => {
+    localStorage.setItem('auth_token', 'mock_token');
+    localStorage.setItem(
+      'auth_user',
+      JSON.stringify({
+        id: 1,
+        name: 'Super Admin',
+        email: 'admin@test.com',
+        role: 'superadmin',
+      })
+    );
+    localStorage.setItem('active_tab', 'discord');
+
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (typeof url === 'string' && url.includes('/servers')) {
+        return Promise.resolve({ ok: true, json: async () => [] });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(
+      <ToastProvider>
+        <App />
+      </ToastProvider>
+    );
+
+    // Inicialmente no Discord, sidebar do sistema escondida
+    expect(screen.queryByRole('complementary', { name: /menu lateral/i })).not.toBeInTheDocument();
+
+    // Clica no botão do menu para exibir a barra lateral
+    const toggleBtn = screen.getByTestId('toggle-app-sidebar-btn');
+    fireEvent.click(toggleBtn);
+
+    // Agora o menu lateral aparece
+    expect(screen.getByRole('complementary', { name: /menu lateral/i })).toBeInTheDocument();
+
+    // A tela preta vazia é renderizada
+    expect(screen.getByTestId('empty-dashboard-screen')).toBeInTheDocument();
+
+    // O botão comunidade NÃO está selecionado
+    const communityBtn = screen.getByTestId('nav-item-discord');
+    expect(communityBtn).not.toHaveClass('active');
+  });
 });
 
 

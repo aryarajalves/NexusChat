@@ -21,8 +21,19 @@ export function useLiveKitVoice(channelId, authToken) {
     async function fetchVoiceCredentials() {
       try {
         setSfuStatus('connecting');
-        const storedToken = authToken || localStorage.getItem('access_token');
-        const headers = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
+        const storedToken =
+          authToken ||
+          localStorage.getItem('auth_token') ||
+          localStorage.getItem('access_token');
+
+        if (!storedToken) {
+          if (isMounted) {
+            setSfuStatus('fallback');
+          }
+          return;
+        }
+
+        const headers = { Authorization: `Bearer ${storedToken}` };
 
         const res = await fetch(`/api/v1/discord/channels/${channelId}/voice-token`, {
           method: 'POST',

@@ -77,7 +77,7 @@ services:
   # SERVIÇO FRONTEND (React SPA + Nginx - Nexus Chat Web)
   # ==========================================
   nexus-chat-frontend:
-    image: ${IMAGE_FRONTEND:-aryalvesfernandes/nexus-chat:frontend-1.0.1}
+    image: ${IMAGE_FRONTEND:-aryalvesfernandes/nexus-chat:frontend-1.0.2}
     hostname: "{{.Service.Name}}.{{.Task.Slot}}"
     networks:
       - network_swarm_public

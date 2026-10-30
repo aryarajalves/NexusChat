@@ -34,6 +34,12 @@ function App() {
     }
   };
 
+  const handleToggleAppSidebarFromDiscord = () => {
+    setIsSidebarHidden(false);
+    setActiveTab('');
+    localStorage.removeItem('active_tab');
+  };
+
   useEffect(() => {
     // Check local storage for existing session
     const savedToken = localStorage.getItem('auth_token');
@@ -151,13 +157,26 @@ function App() {
       <main
         className="main-content"
         aria-label="Conteúdo Principal"
-        style={activeTab === 'discord' ? { padding: 0, height: '100vh', overflow: 'hidden' } : undefined}
+        style={
+          activeTab === 'discord'
+            ? { padding: 0, height: '100vh', overflow: 'hidden' }
+            : !activeTab
+            ? { padding: 0, height: '100vh', backgroundColor: '#0f1012', overflow: 'hidden' }
+            : undefined
+        }
       >
+        {!activeTab && (
+          <div
+            className="empty-dashboard-screen"
+            data-testid="empty-dashboard-screen"
+            style={{ width: '100%', height: '100%', backgroundColor: '#0f1012' }}
+          />
+        )}
         {activeTab === 'discord' && (
           <DiscordApp
             currentUser={user}
             onUserUpdated={handleUserUpdated}
-            onToggleAppSidebar={() => setIsSidebarHidden((prev) => !prev)}
+            onToggleAppSidebar={handleToggleAppSidebarFromDiscord}
             isAppSidebarHidden={isSidebarHidden}
           />
         )}
@@ -169,7 +188,7 @@ function App() {
             {activeTab === 'infrastructure' && <InfrastructureManagement currentUser={user} />}
           </>
         )}
-        {!isSuperAdmin && activeTab !== 'discord' && (
+        {!isSuperAdmin && activeTab && activeTab !== 'discord' && (
           <div className="restricted-access-container user-welcome-container" data-testid="restricted-access-screen">
             <div className="restricted-card user-welcome-card">
               <div className="user-welcome-icon-box">

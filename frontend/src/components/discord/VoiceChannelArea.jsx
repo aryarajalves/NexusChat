@@ -17,13 +17,14 @@ export default function VoiceChannelArea({
   onToggleMembers,
   isMinimized = false,
   onReturnToVoice,
+  token,
 }) {
   const [isMuted, setIsMuted] = useState(false);
   const [isDeafened, setIsDeafened] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isCameraOn, setIsCameraOn] = useState(false);
-  const { isSfuActive } = useLiveKitVoice(channel?.id);
+  const { isSfuActive } = useLiveKitVoice(channel?.id, token);
 
   const { addToast } = useToast();
   const streamRef = useRef(null);
