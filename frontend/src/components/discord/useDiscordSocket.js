@@ -4,7 +4,16 @@ import { useState, useEffect, useRef, useCallback } from 'react';
  * Hook customizado para gerenciar a conexão WebSocket em tempo real de um canal do Discord.
  * Trata reconexão resiliente, presença de usuários, digitação e sincronização de voz.
  */
-export function useDiscordSocket({ channelId, token, onMessageNew, onMessageDelete, onMessageEdit, onMessageReaction, onMessagePin, onUnreadUpdate }) {
+export function useDiscordSocket({
+  channelId,
+  token,
+  onMessageNew,
+  onMessageDelete,
+  onMessageEdit,
+  onMessageReaction,
+  onMessagePin,
+  onUnreadUpdate,
+}) {
   const [connectionStatus, setConnectionStatus] = useState('disconnected'); // 'connected' | 'connecting' | 'disconnected'
   const [typingUsers, setTypingUsers] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
@@ -12,6 +21,8 @@ export function useDiscordSocket({ channelId, token, onMessageNew, onMessageDele
 
   const socketRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
+  const heartbeatIntervalRef = useRef(null);
+  const intentionalCloseRef = useRef(false);
   const typingTimeoutsRef = useRef({});
   const isMountedRef = useRef(true);
 
@@ -37,6 +48,7 @@ export function useDiscordSocket({ channelId, token, onMessageNew, onMessageDele
     return () => {
       isMountedRef.current = false;
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+      if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
       Object.values(typingTimeoutsRef.current).forEach(clearTimeout);
     };
   }, []);
@@ -47,8 +59,17 @@ export function useDiscordSocket({ channelId, token, onMessageNew, onMessageDele
       return;
     }
 
+    // Limpa estado e timeouts anteriores
+    if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+    if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+    intentionalCloseRef.current = false;
+
     if (socketRef.current) {
-      socketRef.current.close();
+      try {
+        socketRef.current.close();
+      } catch {
+        // Ignora erro de fechamento prévio
+      }
       socketRef.current = null;
     }
 
@@ -64,6 +85,17 @@ export function useDiscordSocket({ channelId, token, onMessageNew, onMessageDele
       ws.onopen = () => {
         if (isMountedRef.current) {
           setConnectionStatus('connected');
+          // Heartbeat periódico (ping a cada 25s para manter a conexão aberta no Nginx e Traefik)
+          if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+          heartbeatIntervalRef.current = setInterval(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+              try {
+                ws.send(JSON.stringify({ event: 'ping' }));
+              } catch {
+                // Falha silenciosa no envio do heartbeat
+              }
+            }
+          }, 25000);
         }
       };
 
@@ -71,6 +103,9 @@ export function useDiscordSocket({ channelId, token, onMessageNew, onMessageDele
         try {
           const payload = JSON.parse(event.data);
           if (!payload || !payload.event) return;
+
+          // Ignora respostas de heartbeat pong
+          if (payload.event === 'pong') return;
 
           switch (payload.event) {
             case 'message:new':
@@ -154,22 +189,40 @@ export function useDiscordSocket({ channelId, token, onMessageNew, onMessageDele
         }
       };
 
-      ws.onclose = () => {
+      const handleDisconnection = () => {
+        if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+
         if (isMountedRef.current) {
-          setConnectionStatus('disconnected');
+          if (!intentionalCloseRef.current) {
+            // Auto-reconexão resiliente a cada 3.5s
+            setConnectionStatus('connecting');
+            if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+            reconnectTimeoutRef.current = setTimeout(() => {
+              if (isMountedRef.current && channelId && token && !intentionalCloseRef.current) {
+                connect();
+              }
+            }, 3500);
+          } else {
+            setConnectionStatus('disconnected');
+          }
         }
       };
 
+      ws.onclose = handleDisconnection;
       ws.onerror = (err) => {
         console.warn('[WebSocket] Erro na conexão:', err);
-        if (isMountedRef.current) {
-          setConnectionStatus('disconnected');
-        }
+        handleDisconnection();
       };
     } catch (err) {
       console.warn('[WebSocket] Falha ao inicializar socket:', err);
       if (isMountedRef.current) {
-        setConnectionStatus('disconnected');
+        setConnectionStatus('connecting');
+        if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = setTimeout(() => {
+          if (isMountedRef.current && channelId && token && !intentionalCloseRef.current) {
+            connect();
+          }
+        }, 3500);
       }
     }
   }, [channelId, token]);
@@ -178,6 +231,9 @@ export function useDiscordSocket({ channelId, token, onMessageNew, onMessageDele
     connect();
 
     return () => {
+      intentionalCloseRef.current = true;
+      if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
       if (socketRef.current) {
         socketRef.current.close();
         socketRef.current = null;

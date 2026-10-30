@@ -425,7 +425,8 @@ async def toggle_dm_message_reaction(
 async def dm_websocket_endpoint(
     websocket: WebSocket,
     conversation_id: int,
-    token: str = Query(...)
+    token: str = Query(...),
+    db: Session = Depends(get_db)
 ):
     """Endpoint WebSocket para troca de mensagens e digitação em tempo real na DM."""
     payload = decode_access_token(token)
@@ -433,30 +434,33 @@ async def dm_websocket_endpoint(
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
-    email = payload.get("sub")
-    db = SessionLocal()
-    try:
-        user = db.query(User).filter(User.email == email, User.is_active == True).first()
-        if not user:
-            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-            return
+    sub = payload.get("sub")
+    user = db.query(User).filter(
+        or_(User.email == str(sub), User.id == (int(sub) if str(sub).isdigit() else -1)),
+        User.is_active == True
+    ).first()
+    if not user:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
 
-        conv = db.query(DMConversation).filter(DMConversation.id == conversation_id).first()
-        if not conv or user.id not in (conv.user1_id, conv.user2_id):
-            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-            return
+    conv = db.query(DMConversation).filter(DMConversation.id == conversation_id).first()
+    if not conv or user.id not in (conv.user1_id, conv.user2_id):
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
 
-        user_id = user.id
-        user_name = user.name
-    finally:
-        db.close()
+    user_id = user.id
+    user_name = user.name
 
     await socket_manager.connect_dm(conversation_id, user_id, user_name, websocket)
 
     try:
         while True:
             data = await websocket.receive_json()
-            event_type = data.get("type")
+            event_type = data.get("type") or data.get("event")
+
+            if event_type == "ping":
+                await websocket.send_json({"type": "pong", "event": "pong"})
+                continue
 
             if event_type == "typing":
                 await socket_manager.broadcast_to_dm(

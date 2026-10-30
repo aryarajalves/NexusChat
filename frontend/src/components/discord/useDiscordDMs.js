@@ -13,6 +13,9 @@ export function useDiscordDMs({ token, currentUser, activeServerId, onMessagePin
   const [dmConnectionStatus, setDmConnectionStatus] = useState('connected');
   const dmWsRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const dmHeartbeatIntervalRef = useRef(null);
+  const dmReconnectTimeoutRef = useRef(null);
+  const dmIntentionalCloseRef = useRef(false);
   const onMessagePinRef = useRef(onMessagePin);
   const onUnreadUpdateRef = useRef(onUnreadUpdate);
   const { addToast } = useToast();
@@ -85,9 +88,12 @@ export function useDiscordDMs({ token, currentUser, activeServerId, onMessagePin
     }
   }, [token, addToast]);
 
-  // 3. WebSocket dedicado para a conversa de DM ativa
+  // 3. WebSocket dedicado para a conversa de DM ativa com auto-reconexão e heartbeat
   useEffect(() => {
     if (activeServerId !== null || !activeDMId || !token) {
+      dmIntentionalCloseRef.current = true;
+      if (dmHeartbeatIntervalRef.current) clearInterval(dmHeartbeatIntervalRef.current);
+      if (dmReconnectTimeoutRef.current) clearTimeout(dmReconnectTimeoutRef.current);
       if (dmWsRef.current) {
         dmWsRef.current.close();
         dmWsRef.current = null;
@@ -95,63 +101,108 @@ export function useDiscordDMs({ token, currentUser, activeServerId, onMessagePin
       return;
     }
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/api/v1/discord/dms/ws/${activeDMId}?token=${encodeURIComponent(token)}`;
+    dmIntentionalCloseRef.current = false;
+    let ws = null;
 
-    setDmConnectionStatus('connecting');
-    const ws = new WebSocket(wsUrl);
-    dmWsRef.current = ws;
+    const connectDM = () => {
+      if (dmIntentionalCloseRef.current) return;
+      if (dmHeartbeatIntervalRef.current) clearInterval(dmHeartbeatIntervalRef.current);
 
-    ws.onopen = () => {
-      setDmConnectionStatus('connected');
-    };
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      const wsUrl = `${protocol}//${host}/api/v1/discord/dms/ws/${activeDMId}?token=${encodeURIComponent(token)}`;
 
-    ws.onclose = () => {
-      setDmConnectionStatus('disconnected');
-    };
-
-    ws.onerror = () => {
-      setDmConnectionStatus('disconnected');
-    };
-
-    ws.onmessage = (event) => {
+      setDmConnectionStatus('connecting');
       try {
-        const payload = JSON.parse(event.data);
-        if (payload.type === 'user_typing') {
-          const { user_name, is_typing, user_id } = payload.data;
-          if (user_id === currentUser?.id) return;
+        ws = new WebSocket(wsUrl);
+        dmWsRef.current = ws;
 
-          setDmTypingUsers((prev) => {
-            if (is_typing) {
-              return prev.includes(user_name) ? prev : [...prev, user_name];
-            } else {
-              return prev.filter((name) => name !== user_name);
+        ws.onopen = () => {
+          setDmConnectionStatus('connected');
+          // Inicia heartbeat a cada 25s
+          if (dmHeartbeatIntervalRef.current) clearInterval(dmHeartbeatIntervalRef.current);
+          dmHeartbeatIntervalRef.current = setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+              try {
+                ws.send(JSON.stringify({ type: 'ping', event: 'ping' }));
+              } catch {
+                // Silencioso
+              }
             }
-          });
+          }, 25000);
+        };
 
-          if (is_typing) {
-            setTimeout(() => {
-              setDmTypingUsers((prev) => prev.filter((name) => name !== user_name));
-            }, 3000);
+        const handleDMDisconnect = () => {
+          if (dmHeartbeatIntervalRef.current) clearInterval(dmHeartbeatIntervalRef.current);
+          if (!dmIntentionalCloseRef.current) {
+            setDmConnectionStatus('connecting');
+            if (dmReconnectTimeoutRef.current) clearTimeout(dmReconnectTimeoutRef.current);
+            dmReconnectTimeoutRef.current = setTimeout(() => {
+              if (!dmIntentionalCloseRef.current && activeServerId === null && activeDMId && token) {
+                connectDM();
+              }
+            }, 3500);
+          } else {
+            setDmConnectionStatus('disconnected');
           }
-        } else if (payload.type === 'message_pin' || payload.event === 'message:pin') {
-          const pinData = payload.data || payload.message;
-          if (onMessagePinRef.current && pinData) {
-            onMessagePinRef.current(pinData);
+        };
+
+        ws.onclose = handleDMDisconnect;
+        ws.onerror = handleDMDisconnect;
+
+        ws.onmessage = (event) => {
+          try {
+            const payload = JSON.parse(event.data);
+            if (payload.type === 'pong' || payload.event === 'pong') return;
+
+            if (payload.type === 'user_typing') {
+              const { user_name, is_typing, user_id } = payload.data;
+              if (user_id === currentUser?.id) return;
+
+              setDmTypingUsers((prev) => {
+                if (is_typing) {
+                  return prev.includes(user_name) ? prev : [...prev, user_name];
+                } else {
+                  return prev.filter((name) => name !== user_name);
+                }
+              });
+
+              if (is_typing) {
+                setTimeout(() => {
+                  setDmTypingUsers((prev) => prev.filter((name) => name !== user_name));
+                }, 3000);
+              }
+            } else if (payload.type === 'message_pin' || payload.event === 'message:pin') {
+              const pinData = payload.data || payload.message;
+              if (onMessagePinRef.current && pinData) {
+                onMessagePinRef.current(pinData);
+              }
+            } else if (payload.event === 'unread:update' || payload.type === 'unread_update') {
+              if (onUnreadUpdateRef.current) {
+                onUnreadUpdateRef.current(payload);
+              }
+            }
+          } catch (err) {
+            console.error('Erro ao processar mensagem do WebSocket DM:', err);
           }
-        } else if (payload.event === 'unread:update' || payload.type === 'unread_update') {
-          if (onUnreadUpdateRef.current) {
-            onUnreadUpdateRef.current(payload);
-          }
-        }
+        };
       } catch (err) {
-        console.error('Erro ao processar mensagem do WebSocket DM:', err);
+        console.warn('Erro ao conectar WebSocket DM:', err);
+        setDmConnectionStatus('connecting');
+        if (dmReconnectTimeoutRef.current) clearTimeout(dmReconnectTimeoutRef.current);
+        dmReconnectTimeoutRef.current = setTimeout(connectDM, 3500);
       }
     };
 
+    connectDM();
+
     return () => {
-      ws.close();
+      dmIntentionalCloseRef.current = true;
+      if (dmHeartbeatIntervalRef.current) clearInterval(dmHeartbeatIntervalRef.current);
+      if (dmReconnectTimeoutRef.current) clearTimeout(dmReconnectTimeoutRef.current);
+      if (ws) {
+        ws.close();
+      }
       dmWsRef.current = null;
     };
   }, [activeServerId, activeDMId, token, currentUser?.id]);

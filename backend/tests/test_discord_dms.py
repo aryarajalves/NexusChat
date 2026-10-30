@@ -188,3 +188,18 @@ def test_dm_forbidden_access_to_unrelated_user():
         headers=headers3
     )
     assert spy_send.status_code == 403
+
+
+def test_dm_websocket_heartbeat_ping():
+    """Valida que o WebSocket de DMs responde a requisições de heartbeat ping com pong."""
+    headers1 = get_auth_headers()
+    u2_id = create_user("amigo_hb@teste.com", "Amigo Heartbeat")
+    conv_res = client.post("/api/v1/discord/dms/conversations", json={"target_user_id": u2_id}, headers=headers1)
+    conv_id = conv_res.json()["id"]
+
+    token = headers1["Authorization"].split(" ")[1]
+    with client.websocket_connect(f"/api/v1/discord/dms/ws/{conv_id}?token={token}") as ws:
+        ws.send_json({"type": "ping"})
+        response = ws.receive_json()
+        assert response.get("type") == "pong" or response.get("event") == "pong"
+

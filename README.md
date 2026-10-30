@@ -38,6 +38,7 @@ Plataforma completa de comunicação e colaboração em tempo real inspirada no 
 
 ### ⚡ 2. Arquitetura de Alta Escala
 - **Redis Pub/Sub:** Barramento distribuído para WebSockets conectando múltiplos workers/containers Uvicorn em alta disponibilidade;
+- **WebSockets Resilientes:** Sistema com heartbeat periódico (*ping/pong* a cada 25s) e auto-reconexão inteligente para manter canais e DMs conectados sem quedas por inatividade;
 - **LiveKit SFU:** Servidor SFU dedicado para áudio, vídeo e compartilhamento de tela de altíssima escala;
 - **PgBouncer (Connection Pooling):** Pooler de conexões PostgreSQL para suportar milhares de conexões simultâneas com baixo consumo de memória;
 - **Particionamento Declarativo de Mensagens:** Suporte arquitetural a particionamento de tabelas de mensagens por data;
