@@ -10,6 +10,7 @@ Plataforma completa de comunicação e colaboração em tempo real inspirada no 
 - **Servidores e Canais:**
   - Criação de servidores com upload de ícone/avatar customizado (PNG, JPG, WEBP e GIF até 10 MB) e prévia interativa nativa;
   - Canais de Texto (`TEXT`) com mensagens instantâneas e canais de Voz (`VOICE`) com sinalização WebRTC;
+  - Canais Públicos e Privados com controle granular de acesso por cargos específicos do servidor e bloqueio automático de acesso não autorizado;
   - Gestão de Cargos e Permissões do Servidor (Dono e Administradores) com cores customizadas e agrupamento de membros (`hoist`).
 - **Mensagens e Interações no Chat:**
   - Suporte a envio de texto (até 2.000 caracteres), links e anexos de mídia de até 50 MB;
@@ -22,6 +23,8 @@ Plataforma completa de comunicação e colaboração em tempo real inspirada no 
   - Busca global e filtragem de mensagens por texto e por arquivos anexados (`has_attachment`).
 - **Mensagens Diretas Bilaterais (DMs 1x1):**
   - Conversas privadas entre quaisquer usuários cadastrados com sincronização em tempo real e compartilhamento de mídias;
+  - Paginação eficiente de contatos (20 contatos por página) tanto na barra lateral de DMs quanto no modal de nova conversa privada;
+  - Suporte completo a avatares e fotos de perfil dos contatos;
   - Contadores visuais e badges de mensagens não lidas (*Unreads*) sincronizados via WebSockets em servidores, canais e DMs.
 - **Voz, Vídeo & Gravação com Webcam PiP:**
   - Canais de voz em grupo com controle de mudo e ensurdecer;

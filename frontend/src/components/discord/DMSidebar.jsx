@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { MessageSquare, Plus, Search, Mic, Headphones, VolumeX, Settings, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MessageSquare, Plus, Search, Mic, Headphones, VolumeX, Settings, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function DMSidebar({
   conversations = [],
@@ -20,6 +20,18 @@ export default function DMSidebar({
     const term = filterText.toLowerCase().trim();
     return name.includes(term) || email.includes(term);
   });
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 20;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterText]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * PAGE_SIZE;
+  const paginatedConversations = filtered.slice(startIndex, startIndex + PAGE_SIZE);
 
   const userInitial = (currentUser?.name || 'U').charAt(0).toUpperCase();
 
@@ -87,8 +99,15 @@ export default function DMSidebar({
 
       {/* Lista de Conversas Diretas */}
       <div className="channels-scroll" style={{ flex: 1, overflowY: 'auto', padding: '6px 8px' }}>
-        <div className="channel-category-header" style={{ padding: '6px 8px' }}>
+        <div className="channel-category-header" style={{ padding: '6px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span className="category-name">Conversas Diretas</span>
+          {filtered.length > 0 && (
+            <span style={{ fontSize: '10.5px', color: '#949ba4', fontWeight: 600 }} data-testid="dm-contacts-count">
+              {filtered.length > PAGE_SIZE
+                ? `${startIndex + 1}-${Math.min(filtered.length, startIndex + PAGE_SIZE)} de ${filtered.length}`
+                : `${filtered.length}`}
+            </span>
+          )}
         </div>
 
         {conversations.length === 0 ? (
@@ -110,7 +129,7 @@ export default function DMSidebar({
             Nenhuma conversa encontrada.
           </div>
         ) : (
-          filtered.map((conv) => {
+          paginatedConversations.map((conv) => {
             const isActive = activeConversationId === conv.id;
             const unreadCount = (dmUnreads && dmUnreads[conv.id]) || 0;
             const isUnread = unreadCount > 0 && !isActive;
@@ -139,7 +158,15 @@ export default function DMSidebar({
                   <div className="channel-unread-dot" data-testid={`dm-unread-dot-${conv.id}`} />
                 )}
                 <div className="discord-avatar-wrapper" style={{ width: '32px', height: '32px', fontSize: '13px', flexShrink: 0 }}>
-                  {initial}
+                  {conv.other_user?.avatar_url ? (
+                    <img
+                      src={conv.other_user.avatar_url}
+                      alt={friendName}
+                      style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    initial
+                  )}
                   <span className="discord-online-badge" />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
@@ -159,23 +186,108 @@ export default function DMSidebar({
             );
           })
         )}
+
+        {/* Controles de Paginação (20 contatos por página) */}
+        {totalPages > 1 && (
+          <div
+            className="dm-pagination-bar"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '6px 8px',
+              marginTop: '8px',
+              marginBottom: '4px',
+              background: '#2b2d31',
+              borderRadius: '6px',
+              border: '1px solid rgba(255, 255, 255, 0.05)',
+              fontSize: '11.5px',
+              color: '#949ba4',
+            }}
+            data-testid="dm-pagination-controls"
+          >
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '2px',
+                background: safePage <= 1 ? 'transparent' : '#35373c',
+                color: safePage <= 1 ? '#4e5058' : '#f2f3f5',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '3px 8px',
+                cursor: safePage <= 1 ? 'not-allowed' : 'pointer',
+                fontSize: '11px',
+                fontWeight: 600,
+              }}
+              data-testid="dm-pagination-prev"
+            >
+              <ChevronLeft size={13} />
+              Anterior
+            </button>
+
+            <span data-testid="dm-pagination-info" style={{ fontWeight: 600, color: '#dbdee1' }}>
+              {safePage} / {totalPages}
+            </span>
+
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '2px',
+                background: safePage >= totalPages ? 'transparent' : '#35373c',
+                color: safePage >= totalPages ? '#4e5058' : '#f2f3f5',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '3px 8px',
+                cursor: safePage >= totalPages ? 'not-allowed' : 'pointer',
+                fontSize: '11px',
+                fontWeight: 600,
+              }}
+              data-testid="dm-pagination-next"
+            >
+              Próxima
+              <ChevronRight size={13} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Barra de Perfil do Usuário Logado */}
-      <div className="user-profile-bar" data-testid="dm-user-profile-bar">
-        <div className="user-avatar-wrap">
-          <div className="discord-avatar-wrapper" style={{ width: '32px', height: '32px', fontSize: '13px' }}>
-            {userInitial}
+      <div className="discord-user-bar" data-testid="dm-user-profile-bar">
+        <div
+          className="discord-user-info"
+          onClick={onOpenUserSettings}
+          role="button"
+          tabIndex={0}
+          title="Abrir Configurações de Usuário"
+        >
+          <div className="discord-avatar-wrapper">
+            {currentUser?.avatar_url ? (
+              <img
+                src={currentUser.avatar_url}
+                alt={currentUser.name}
+                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+              />
+            ) : (
+              userInitial
+            )}
             <span className="discord-online-badge" />
           </div>
-          <div className="user-text-info">
-            <span className="user-display-name">{currentUser?.name || 'Usuário'}</span>
-            <span className="user-sub-tag">Online</span>
+          <div className="discord-user-names">
+            <span className="discord-name-text">{currentUser?.name || 'Usuário'}</span>
+            <span className="discord-status-text">Online</span>
           </div>
         </div>
-        <div className="user-controls-btns">
+        <div className="discord-user-controls">
           <button type="button" className="control-icon-btn" title="Microfone" data-testid="dm-mic-btn">
-            <Mic size={18} />
+            <Mic size={16} />
           </button>
           <button
             type="button"
@@ -184,7 +296,7 @@ export default function DMSidebar({
             title={isSoundMuted ? 'Ativar Efeitos Sonoros' : 'Silenciar Efeitos Sonoros'}
             data-testid="dm-headphones-btn"
           >
-            {isSoundMuted ? <VolumeX size={18} /> : <Headphones size={18} />}
+            {isSoundMuted ? <VolumeX size={16} /> : <Headphones size={16} />}
           </button>
           <button
             type="button"
@@ -193,7 +305,7 @@ export default function DMSidebar({
             title="Configurações do Usuário"
             data-testid="dm-settings-btn"
           >
-            <Settings size={18} />
+            <Settings size={16} />
           </button>
         </div>
       </div>

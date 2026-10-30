@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Plus, MessageSquare, Menu } from 'lucide-react';
 
 export default function ServerListBar({
@@ -11,6 +11,7 @@ export default function ServerListBar({
   totalDMUnreads = 0,
   serverUnreads = {},
 }) {
+  const [failedIcons, setFailedIcons] = useState({});
   return (
     <nav className="discord-server-list" aria-label="Servidores">
       {/* Botão para alternar exibição do menu geral do sistema */}
@@ -68,11 +69,12 @@ export default function ServerListBar({
             {hasUnread && (
               <div className="server-unread-pill-indicator" data-testid={`server-unread-indicator-${server.id}`} />
             )}
-            {server.icon_url ? (
+            {server.icon_url && !failedIcons[server.id] ? (
               <img
                 src={server.icon_url}
                 alt={server.name}
                 style={{ width: '100%', height: '100%', borderRadius: 'inherit', objectFit: 'cover' }}
+                onError={() => setFailedIcons(prev => ({ ...prev, [server.id]: true }))}
               />
             ) : (
               initial

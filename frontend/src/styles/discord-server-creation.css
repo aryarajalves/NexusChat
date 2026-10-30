@@ -35,7 +35,7 @@
   transform: scale(1.03);
 }
 
-.server-icon-preview-img {
+.server-icon-preview-circle .server-icon-preview-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -133,4 +133,179 @@
   color: #949ba4;
   margin: 0;
   text-align: center;
+}
+
+/* --- Canal Privado e Permissões por Cargo --- */
+.channel-private-toggle-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background-color: #2b2d31;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.channel-private-toggle-box:hover {
+  background-color: #313338;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.channel-private-toggle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.channel-private-toggle-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f2f3f5;
+}
+
+.channel-private-toggle-desc {
+  font-size: 12px;
+  color: #949ba4;
+  line-height: 1.3;
+}
+
+.channel-toggle-switch {
+  width: 42px;
+  height: 24px;
+  background-color: #4e5058;
+  border-radius: 12px;
+  position: relative;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.channel-toggle-switch.active {
+  background-color: #23a55a;
+}
+
+.channel-toggle-handle {
+  width: 18px;
+  height: 18px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.2s ease;
+}
+
+.channel-toggle-switch.active .channel-toggle-handle {
+  transform: translateX(18px);
+}
+
+.channel-roles-permission-box {
+  margin-top: 12px;
+  padding: 14px;
+  background-color: #1e1f22;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+
+.channel-roles-header {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.channel-roles-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #b5bac1;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.channel-roles-subtitle {
+  font-size: 11px;
+  color: #949ba4;
+}
+
+.channel-roles-empty {
+  font-size: 12px;
+  color: #949ba4;
+  font-style: italic;
+  padding: 8px 0;
+}
+
+.channel-roles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.channel-role-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: #2b2d31;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.channel-role-item:hover {
+  background-color: #35373c;
+}
+
+.channel-role-item.selected {
+  background-color: rgba(88, 101, 242, 0.15);
+  border-color: #5865f2;
+}
+
+.channel-role-item-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.channel-role-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.channel-role-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.channel-role-admin-badge {
+  font-size: 10px;
+  font-weight: 700;
+  background-color: rgba(235, 69, 158, 0.2);
+  color: #eb459e;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.channel-role-checkbox {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid #4e5058;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #1e1f22;
+  transition: all 0.15s ease;
+}
+
+.channel-role-checkbox.checked {
+  background-color: #5865f2;
+  border-color: #5865f2;
 }

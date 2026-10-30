@@ -45,6 +45,19 @@ function App() {
       } catch {
         // ignore error
       }
+
+      // Sincronizar dados frescos do perfil (avatar_url, nome, role)
+      fetch('/api/v1/auth/me', {
+        headers: { Authorization: 'Bearer ' + savedToken },
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((freshUser) => {
+          if (freshUser) {
+            setUser(freshUser);
+            localStorage.setItem('auth_user', JSON.stringify(freshUser));
+          }
+        })
+        .catch(() => {});
     }
 
     // Ouvinte para logout automático quando o token expirar
@@ -60,6 +73,14 @@ function App() {
       window.removeEventListener(AUTH_EXPIRED_EVENT, handleExpired);
     };
   }, [addToast]);
+
+  const handleUserUpdated = (updatedUser) => {
+    setUser((prev) => {
+      const merged = { ...prev, ...updatedUser };
+      localStorage.setItem('auth_user', JSON.stringify(merged));
+      return merged;
+    });
+  };
 
   const handleLoginSuccess = (loggedInUser, userToken) => {
     setUser(loggedInUser);
@@ -135,6 +156,7 @@ function App() {
         {activeTab === 'discord' && (
           <DiscordApp
             currentUser={user}
+            onUserUpdated={handleUserUpdated}
             onToggleAppSidebar={() => setIsSidebarHidden((prev) => !prev)}
             isAppSidebarHidden={isSidebarHidden}
           />

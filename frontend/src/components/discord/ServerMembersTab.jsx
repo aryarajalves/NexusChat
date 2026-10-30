@@ -100,7 +100,7 @@ export default function ServerMembersTab({
               >
                 <div className="server-member-avatar-box">
                   <div className="discord-avatar-wrapper" style={{ width: '36px', height: '36px' }}>
-                    {initial}
+                    {member.avatar_url ? <img src={member.avatar_url} alt={member.name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : initial}
                     <span className="discord-online-badge" />
                   </div>
                 </div>

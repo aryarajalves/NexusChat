@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Hash,
   Volume2,
+  Lock,
   Plus,
   UserPlus,
   Mic,
@@ -194,7 +195,11 @@ export default function ChannelSidebar({
                     <div className="channel-unread-dot" data-testid={`channel-unread-dot-${ch.id}`} />
                   )}
                   <div className="channel-item-left">
-                    <Hash size={16} className={`channel-icon ${isUnread ? 'channel-icon-unread' : ''}`} />
+                    {ch.is_private ? (
+                      <Lock size={16} className={`channel-icon ${isUnread ? 'channel-icon-unread' : ''}`} data-testid={`channel-lock-${ch.id}`} />
+                    ) : (
+                      <Hash size={16} className={`channel-icon ${isUnread ? 'channel-icon-unread' : ''}`} />
+                    )}
                     <span className={isUnread ? 'channel-name-unread' : ''}>{ch.name}</span>
                   </div>
                   {isUnread && (
@@ -237,7 +242,11 @@ export default function ChannelSidebar({
                     tabIndex={0}
                   >
                     <div className="channel-item-left">
-                      <Volume2 size={16} className={`channel-icon ${isConnected ? 'voice-active-icon' : ''}`} />
+                      {ch.is_private ? (
+                        <Lock size={16} className={`channel-icon ${isConnected ? 'voice-active-icon' : ''}`} data-testid={`channel-lock-${ch.id}`} />
+                      ) : (
+                        <Volume2 size={16} className={`channel-icon ${isConnected ? 'voice-active-icon' : ''}`} />
+                      )}
                       <span>{ch.name}</span>
                     </div>
                   </div>
@@ -302,9 +311,17 @@ export default function ChannelSidebar({
 
       {/* Card do Usuário Logado no Rodapé */}
       <div className="discord-user-bar">
-        <div className="discord-user-info" data-testid="user-profile-bar">
+        <div className="discord-user-info" data-testid="user-profile-bar" onClick={onOpenUserSettings} title="Abrir Configurações de Usuário">
           <div className="discord-avatar-wrapper">
-            {userInitial}
+            {currentUser?.avatar_url ? (
+              <img
+                src={currentUser.avatar_url}
+                alt={currentUser.name}
+                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+              />
+            ) : (
+              userInitial
+            )}
             <span className="discord-online-badge" />
           </div>
           <div className="discord-user-names">

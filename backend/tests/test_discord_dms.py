@@ -33,7 +33,7 @@ def get_auth_headers(email: str = settings.SUPERADMIN_EMAIL, password: str = set
 
 
 def test_dm_users_list():
-    """Valida a listagem de usuários elegíveis para iniciar conversa privada."""
+    """Valida a listagem de usuários elegíveis para iniciar conversa privada e campo avatar_url."""
     u2_id = create_user("amigo1@teste.com", "Amigo Um")
     headers = get_auth_headers()
 
@@ -42,6 +42,8 @@ def test_dm_users_list():
     users = res.json()
     assert isinstance(users, list)
     assert any(u["id"] == u2_id for u in users)
+    # Verifica presença do campo avatar_url no schema
+    assert "avatar_url" in users[0]
 
 
 def test_dm_conversation_creation_and_deduplication():

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Search, X, Loader2 } from 'lucide-react';
+import { MessageSquare, Search, X, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 
 export default function NewDMModal({
@@ -12,7 +12,13 @@ export default function NewDMModal({
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [startingUserId, setStartingUserId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 20;
   const { addToast } = useToast();
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -45,6 +51,11 @@ export default function NewDMModal({
     const timer = setTimeout(fetchUsers, search ? 300 : 0);
     return () => clearTimeout(timer);
   }, [isOpen, search, token, addToast]);
+
+  const totalPages = Math.max(1, Math.ceil(users.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * PAGE_SIZE;
+  const paginatedUsers = users.slice(startIndex, startIndex + PAGE_SIZE);
 
   if (!isOpen) return null;
 
@@ -115,7 +126,7 @@ export default function NewDMModal({
                 Nenhum usuário encontrado.
               </div>
             ) : (
-              users.map((u) => {
+              paginatedUsers.map((u) => {
                 const initial = (u.name || 'U').charAt(0).toUpperCase();
                 const isStarting = startingUserId === u.id;
 
@@ -136,7 +147,15 @@ export default function NewDMModal({
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <div className="discord-avatar-wrapper" style={{ width: '32px', height: '32px', fontSize: '13px' }}>
-                        {initial}
+                        {u.avatar_url ? (
+                          <img
+                            src={u.avatar_url}
+                            alt={u.name}
+                            style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          initial
+                        )}
                         <span className="discord-online-badge" />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -157,6 +176,76 @@ export default function NewDMModal({
                   </div>
                 );
               })
+            )}
+
+            {/* Controles de Paginação no Modal (20 contatos por página) */}
+            {totalPages > 1 && (
+              <div
+                className="dm-modal-pagination-bar"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px 12px',
+                  marginTop: '10px',
+                  background: '#1e1f22',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(255, 255, 255, 0.05)',
+                  fontSize: '11.5px',
+                  color: '#949ba4',
+                }}
+                data-testid="new-dm-pagination"
+              >
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage <= 1}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: safePage <= 1 ? 'transparent' : '#2b2d31',
+                    color: safePage <= 1 ? '#4e5058' : '#f2f3f5',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '4px 8px',
+                    cursor: safePage <= 1 ? 'not-allowed' : 'pointer',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                  }}
+                  data-testid="new-dm-pagination-prev"
+                >
+                  <ChevronLeft size={13} />
+                  Anterior
+                </button>
+
+                <span style={{ fontWeight: 600, color: '#dbdee1' }} data-testid="new-dm-pagination-info">
+                  Página {safePage} de {totalPages} ({users.length} contatos)
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safePage >= totalPages}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: safePage >= totalPages ? 'transparent' : '#2b2d31',
+                    color: safePage >= totalPages ? '#4e5058' : '#f2f3f5',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '4px 8px',
+                    cursor: safePage >= totalPages ? 'not-allowed' : 'pointer',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                  }}
+                  data-testid="new-dm-pagination-next"
+                >
+                  Próxima
+                  <ChevronRight size={13} />
+                </button>
+              </div>
             )}
           </div>
         </div>

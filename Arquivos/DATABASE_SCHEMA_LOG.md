@@ -101,6 +101,19 @@ Registro de migrações e atualizações estruturais do banco de dados (PostgreS
 
 ---
 
+### [30/10/2026] - Sistema de Canais Privados e Restrições por Cargo (Role-Based Channel Permissions)
+- **Colunas Adicionadas:**
+  - `channels.is_private`: Campo booleano (`BOOLEAN NOT NULL DEFAULT FALSE`) indicando se o canal é restrito a cargos específicos.
+- **Tabelas Criadas:**
+  - `channel_role_permissions`: Tabela de associação de permissões (`id`, `channel_id`, `role_id`, `created_at`) com chave única `uq_channel_role` e chaves estrangeiras com `ON DELETE CASCADE`.
+- **Índices Criados:**
+  - `idx_channel_role_channel_id`: Índice para busca rápida de cargos permitidos por canal.
+  - `idx_channel_role_role_id`: Índice para consulta reversa de canais acessíveis por cargo.
+- **Script de Migração:** `backend/scripts/migrate_private_channels.py`
+
+
+---
+
 ### [29/10/2026] - Fase 3 (Discord-Scale): Particionamento Declarativo de Mensagens
 - **Tabelas e Partições Criadas:**
   - `messages_partitioned`: Tabela com particionamento nativo por `RANGE (created_at)` no PostgreSQL.

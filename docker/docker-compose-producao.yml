@@ -1,0 +1,177 @@
+version: "3.8"
+
+services:
+  # ==========================================
+  # SERVIÇO BACKEND (FastAPI - Nexus Chat API)
+  # ==========================================
+  nexus-chat-backend:
+    image: ${IMAGE_BACKEND:-aryalvesfernandes/nexus-chat:backend-latest}
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    networks:
+      network_swarm_public:
+        aliases:
+          - backend
+          - nexus-chat-backend
+          - nexus_chat_backend
+
+    volumes:
+      - nexus_chat_uploads:/app/uploads
+      - nexus_chat_logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    environment:
+      - PORT=${PORT:-8000}
+      - TZ=${TZ:-America/Sao_Paulo}
+      - PROJECT_NAME=${PROJECT_NAME:-Nexus Chat}
+      - API_V1_STR=${API_V1_STR:-/api/v1}
+      - ENABLE_SCHEDULER=${ENABLE_SCHEDULER:-true} # Apenas a API gerencia o agendamento de backups
+      - DATABASE_URL=${DATABASE_URL}
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-20}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-30}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - SECRET_KEY=${SECRET_KEY}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+      - PASSWORD_PEPPER=${PASSWORD_PEPPER:-}
+      - SECURITY_PASSWORD_PEPPER=${SECURITY_PASSWORD_PEPPER:-}
+      - SUPERADMIN_NAME=${SUPERADMIN_NAME:-Super Admin}
+      - SUPERADMIN_EMAIL=${SUPERADMIN_EMAIL:-aryarajmarketing@gmail.com}
+      - SUPERADMIN_PASSWORD=${SUPERADMIN_PASSWORD:-SuperAdmin@2026!}
+      - VITE_API_URL=${VITE_API_URL:-}
+      - VITE_WS_URL=${VITE_WS_URL:-}
+      - CORS_ORIGINS=${CORS_ORIGINS:-}
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
+      - BREVO_API_KEY=${BREVO_API_KEY:-}
+      - BREVO_SENDER_EMAIL=${BREVO_SENDER_EMAIL:-}
+      - BREVO_SENDER_NAME=${BREVO_SENDER_NAME:-Nexus Chat}
+      - LIVEKIT_URL=${LIVEKIT_URL:-}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY:-devkey}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-secret_livekit_key_2026_discord_clone}
+      # === Storage S3 / MinIO ===
+      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:-}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-}
+      - S3_REGION=${S3_REGION:-us-east-1}
+      - S3_PUBLIC_URL=${S3_PUBLIC_URL:-}
+      # === Backblaze B2 (Storage Primário / Backup) ===
+      - BACKBLAZE_ENDPOINT_URL=${BACKBLAZE_ENDPOINT_URL:-https://s3.us-west-004.backblazeb2.com}
+      - BACKBLAZE_KEY_ID=${BACKBLAZE_KEY_ID:-}
+      - BACKBLAZE_APPLICATION_KEY=${BACKBLAZE_APPLICATION_KEY:-}
+      - BACKBLAZE_BUCKET_NAME=${BACKBLAZE_BUCKET_NAME:-}
+      - BACKBLAZE_CDN_URL=${BACKBLAZE_CDN_URL:-}
+      - BACKBLAZE_S3_ENDPOINT_URL=${BACKBLAZE_S3_ENDPOINT_URL:-https://s3.us-west-004.backblazeb2.com}
+      - BACKBLAZE_S3_ACCESS_KEY=${BACKBLAZE_S3_ACCESS_KEY:-}
+      - BACKBLAZE_S3_SECRET_KEY=${BACKBLAZE_S3_SECRET_KEY:-}
+      - BACKBLAZE_S3_BUCKET_NAME=${BACKBLAZE_S3_BUCKET_NAME:-}
+      - BACKBLAZE_S3_REGION=${BACKBLAZE_S3_REGION:-us-west-004}
+      - BACKBLAZE_S3_PUBLIC_URL=${BACKBLAZE_S3_PUBLIC_URL:-}
+      - B2_FOLDER=${B2_FOLDER:-nexuschat/backups/}
+      - B2_MEDIA_FOLDER=${B2_MEDIA_FOLDER:-discord_media/}
+      - B2_RETENTION_MAX=${B2_RETENTION_MAX:-30}
+
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=network_swarm_public
+        - traefik.http.routers.nexus-chat-backend.rule=(Host(`${DOMAIN:-seu-dominio.com}`) && (PathPrefix(`/api`) || PathPrefix(`/docs`) || PathPrefix(`/openapi.json`))) || Host(`${API_DOMAIN:-api.${DOMAIN:-seu-dominio.com}}`)
+        - traefik.http.routers.nexus-chat-backend.entrypoints=websecure
+        - traefik.http.routers.nexus-chat-backend.tls=true
+        - traefik.http.routers.nexus-chat-backend.tls.certresolver=letsencryptresolver
+        - traefik.http.services.nexus-chat-backend.loadbalancer.server.port=8000
+
+  # ==========================================
+  # SERVIÇO FRONTEND (React SPA + Nginx - Nexus Chat Web)
+  # ==========================================
+  nexus-chat-frontend:
+    image: ${IMAGE_FRONTEND:-aryalvesfernandes/nexus-chat:frontend-latest}
+    hostname: "{{.Service.Name}}.{{.Task.Slot}}"
+    networks:
+      - network_swarm_public
+
+    volumes:
+      - nexus_chat_logs:/var/log/nginx
+    environment:
+      - PORT=${PORT:-8000}
+      - TZ=${TZ:-America/Sao_Paulo}
+      - PROJECT_NAME=${PROJECT_NAME:-Nexus Chat}
+      - API_V1_STR=${API_V1_STR:-/api/v1}
+      - ENABLE_SCHEDULER=${ENABLE_SCHEDULER:-true}
+      - DATABASE_URL=${DATABASE_URL}
+      - DB_POOL_SIZE=${DB_POOL_SIZE:-20}
+      - DB_MAX_OVERFLOW=${DB_MAX_OVERFLOW:-30}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - SECRET_KEY=${SECRET_KEY}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+      - PASSWORD_PEPPER=${PASSWORD_PEPPER:-}
+      - SECURITY_PASSWORD_PEPPER=${SECURITY_PASSWORD_PEPPER:-}
+      - SUPERADMIN_NAME=${SUPERADMIN_NAME:-Super Admin}
+      - SUPERADMIN_EMAIL=${SUPERADMIN_EMAIL:-aryarajmarketing@gmail.com}
+      - SUPERADMIN_PASSWORD=${SUPERADMIN_PASSWORD:-SuperAdmin@2026!}
+      - VITE_API_URL=${VITE_API_URL:-}
+      - VITE_WS_URL=${VITE_WS_URL:-}
+      - CORS_ORIGINS=${CORS_ORIGINS:-}
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
+      - BREVO_API_KEY=${BREVO_API_KEY:-}
+      - BREVO_SENDER_EMAIL=${BREVO_SENDER_EMAIL:-}
+      - BREVO_SENDER_NAME=${BREVO_SENDER_NAME:-Nexus Chat}
+      - LIVEKIT_URL=${LIVEKIT_URL:-}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY:-devkey}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-secret_livekit_key_2026_discord_clone}
+      # === Storage S3 / MinIO ===
+      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY:-}
+      - S3_SECRET_KEY=${S3_SECRET_KEY:-}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-}
+      - S3_REGION=${S3_REGION:-us-east-1}
+      - S3_PUBLIC_URL=${S3_PUBLIC_URL:-}
+      # === Backblaze B2 (Storage Primário / Backup) ===
+      - BACKBLAZE_ENDPOINT_URL=${BACKBLAZE_ENDPOINT_URL:-https://s3.us-west-004.backblazeb2.com}
+      - BACKBLAZE_KEY_ID=${BACKBLAZE_KEY_ID:-}
+      - BACKBLAZE_APPLICATION_KEY=${BACKBLAZE_APPLICATION_KEY:-}
+      - BACKBLAZE_BUCKET_NAME=${BACKBLAZE_BUCKET_NAME:-}
+      - BACKBLAZE_CDN_URL=${BACKBLAZE_CDN_URL:-}
+      - BACKBLAZE_S3_ENDPOINT_URL=${BACKBLAZE_S3_ENDPOINT_URL:-https://s3.us-west-004.backblazeb2.com}
+      - BACKBLAZE_S3_ACCESS_KEY=${BACKBLAZE_S3_ACCESS_KEY:-}
+      - BACKBLAZE_S3_SECRET_KEY=${BACKBLAZE_S3_SECRET_KEY:-}
+      - BACKBLAZE_S3_BUCKET_NAME=${BACKBLAZE_S3_BUCKET_NAME:-}
+      - BACKBLAZE_S3_REGION=${BACKBLAZE_S3_REGION:-us-west-004}
+      - BACKBLAZE_S3_PUBLIC_URL=${BACKBLAZE_S3_PUBLIC_URL:-}
+      - B2_FOLDER=${B2_FOLDER:-nexuschat/backups/}
+      - B2_MEDIA_FOLDER=${B2_MEDIA_FOLDER:-discord_media/}
+      - B2_RETENTION_MAX=${B2_RETENTION_MAX:-30}
+
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=network_swarm_public
+        - traefik.http.routers.nexus-chat-frontend.rule=Host(`${DOMAIN:-seu-dominio.com}`)
+        - traefik.http.routers.nexus-chat-frontend.entrypoints=websecure
+        - traefik.http.routers.nexus-chat-frontend.tls=true
+        - traefik.http.routers.nexus-chat-frontend.tls.certresolver=letsencryptresolver
+        - traefik.http.services.nexus-chat-frontend.loadbalancer.server.port=80
+
+# ==========================================
+# VOLUMES E REDES
+# ==========================================
+volumes:
+  nexus_chat_uploads:
+    name: nexus_chat_uploads
+  nexus_chat_logs:
+    name: nexus_chat_logs
+
+networks:
+  network_swarm_public:
+    name: network_swarm_public
+    external: true

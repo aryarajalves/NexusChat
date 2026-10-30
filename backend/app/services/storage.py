@@ -228,6 +228,12 @@ def get_discord_media_file_path(filename: str) -> Optional[str]:
     if os.path.exists(local_path):
         return local_path
 
+    # Fallback para diretório legado se existir
+    legacy_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads", "discord")
+    legacy_path = os.path.join(legacy_dir, safe_filename)
+    if os.path.exists(legacy_path):
+        return legacy_path
+
     s3 = get_s3_client()
     if s3 and settings.B2_BUCKET_NAME:
         target_folder = settings.B2_MEDIA_FOLDER or "discord_media/"

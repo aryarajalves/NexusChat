@@ -33,10 +33,30 @@ class Channel(Base):
     type = Column(String(20), default="TEXT", nullable=False)  # "TEXT", "VOICE"
     category = Column(String(100), default="Canais de Texto", nullable=False)
     position = Column(Integer, default=0, nullable=False)
+    is_private = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=utc_now)
 
     server = relationship("Server", back_populates="channels")
     messages = relationship("Message", back_populates="channel", cascade="all, delete-orphan", order_by="Message.id")
+    allowed_roles = relationship("ChannelRolePermission", back_populates="channel", cascade="all, delete-orphan")
+
+
+class ChannelRolePermission(Base):
+    __tablename__ = "channel_role_permissions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    channel_id = Column(Integer, ForeignKey("channels.id", ondelete="CASCADE"), nullable=False, index=True)
+    role_id = Column(Integer, ForeignKey("server_roles.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime, default=utc_now)
+
+    __table_args__ = (
+        UniqueConstraint("channel_id", "role_id", name="uq_channel_role"),
+        Index("idx_channel_role_channel_id", "channel_id"),
+        Index("idx_channel_role_role_id", "role_id"),
+    )
+
+    channel = relationship("Channel", back_populates="allowed_roles")
+    role = relationship("ServerRole", back_populates="channel_permissions")
 
 
 class ServerRole(Base):
@@ -53,6 +73,7 @@ class ServerRole(Base):
 
     server = relationship("Server", back_populates="roles")
     members = relationship("ServerMember", back_populates="custom_role")
+    channel_permissions = relationship("ChannelRolePermission", back_populates="role", cascade="all, delete-orphan")
 
 
 class ServerMember(Base):

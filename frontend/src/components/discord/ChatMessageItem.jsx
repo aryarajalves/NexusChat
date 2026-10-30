@@ -159,7 +159,7 @@ export default function ChatMessageItem({
       )}
 
       <div className="chat-message-main-content">
-        <div className="chat-author-avatar">{initial}</div>
+        <div className="chat-author-avatar">{msg.author_avatar_url ? <img src={msg.author_avatar_url} alt={msg.author_name} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : initial}</div>
         <div className="chat-message-body">
           <div className="chat-message-meta">
             <span

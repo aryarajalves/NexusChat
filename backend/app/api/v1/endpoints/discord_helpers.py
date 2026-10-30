@@ -73,12 +73,14 @@ def build_message_response(
     """Monta o schema Pydantic MessageResponse a partir do modelo SQLAlchemy Message."""
     author_name = author.name if author else (msg.author.name if msg.author else "Usuário")
     author_email = author.email if author else (msg.author.email if msg.author else "")
+    author_avatar_url = author.avatar_url if author else (msg.author.avatar_url if msg.author else None)
     return MessageResponse(
         id=msg.id,
         channel_id=msg.channel_id,
         author_id=msg.author_id,
         author_name=author_name,
         author_email=author_email,
+        author_avatar_url=author_avatar_url,
         content=msg.content,
         attachment_url=msg.attachment_url,
         attachment_type=msg.attachment_type,

@@ -19,7 +19,15 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
 - **Limite de Servidores:** Definido no perfil/convite do usuário (pode ser ilimitado ou com teto numérico, ex: 100 servidores).
 - **Limites de Mensagem:** Máximo de 2.000 caracteres por mensagem de texto e anexos de mídia de até 50 MB.
 - **Retenção de Mensagens:** Histórico de mensagens é persistido de forma permanente no banco de dados.
-- **Visibilidade de Canais:** Todos os membros participantes de um servidor têm visibilidade e acesso a todos os canais daquele servidor.
+- **Visibilidade e Permissões de Canais (Canais Públicos e Privados):**
+  - Canais podem ser **Públicos** (`is_private = False`) ou **Privados** (`is_private = True`), aplicável tanto para canais de texto quanto de voz.
+  - Em canais públicos, todos os membros participantes do servidor têm acesso.
+  - Em canais privados:
+    - O Dono do servidor (`owner_id`) e Administradores (`role in ['OWNER', 'ADMIN']` ou cargo com `is_admin = True`) sempre têm acesso total automático.
+    - Membros comuns só têm visibilidade e acesso se possuírem um cargo explicitamente incluído nas permissões do canal (`channel_role_permissions`).
+    - Membros sem permissão não visualizam o canal na lista e têm qualquer tentativa de leitura, envio de mensagens, conexão WebSocket ou token de voz LiveKit bloqueada com `403 Forbidden`.
+    - Canais privados exibem um ícone de cadeado (`🔒`) na barra lateral de canais.
+    - O modal de criação de canal conta com o interruptor 'Canal Privado' e a checklist interativa de cargos do servidor com suas respectivas cores.
 - **Formatação de Horário:** As mensagens no chat exibem a data e o horário no fuso Horário de Brasília (`America/Sao_Paulo`), no padrão `DD/MM/YYYY, HH:mm`.
 - **Ações em Mensagens:** No hover da mensagem são disponibilizadas opções de reagir com emoji, responder mensagem específica, encaminhar para outro canal via modal, copiar texto e editar o texto (exclusivo para o autor, marcando `(editado)`).
 - **Respostas a Mensagens (Reply):** No hover de qualquer mensagem, o menu de 3 pontinhos ('Mais opções') e o botão direto permitem responder à mensagem específica. O input exibe um banner indicando o autor e prévia do texto original com opção de cancelar. Ao enviar, a mensagem é vinculada via `reply_to_id`, exibindo no feed a indicação visual em curva (spine), autor de referência e atalho que rola e destaca a mensagem original.
@@ -28,6 +36,8 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
   - O acesso às DMs é feito através do botão inicial no topo da barra de servidores ou diretamente clicando em um membro na lista de membros de um servidor.
   - Cada conversa é única entre os dois participantes (`user1_id` e `user2_id`).
   - As mensagens diretas herdam os mesmos recursos dos canais (tempo real via WebSocket, anexos de até 50 MB, legendas, reações, respostas a mensagens, edição e exclusão pelo autor).
+  - **Paginação de Contatos (20 por vez):** Tanto na barra lateral de conversas diretas (`DMSidebar`) quanto no modal de busca de novos contatos para DM (`NewDMModal`), a listagem exibe no máximo 20 contatos por página com controles interativos de navegação ("Anterior" / "Próxima") e indicador numérico de página (`Página X de Y`).
+
 - **Busca de Mensagens (Search Bar):**
   - Disponível no cabeçalho superior de canais de texto e de mensagens diretas (DMs).
   - Permite pesquisar por termos de texto (busca case-insensitive) e filtrar rapidamente mensagens que contenham anexos/arquivos (`has_attachment`).
@@ -116,7 +126,7 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
   - **Resposta:** Limite rígido de 2.000 caracteres por mensagem e upload de mídia de até 50 MB.
 - [x] O histórico de mensagens de canais de texto deve ser armazenado indefinidamente ou deve possuir expurgo/retenção automática?
   - **Resposta:** O armazenamento é permanente.
-- [x] Na Fase 1, todo canal criado dentro de um servidor será visível para todos os membros ou já precisaremos de canais privados por permissão/cargo?
-  - **Resposta:** Por enquanto todos os membros enxergam todos os canais do servidor.
+- [x] Os canais de texto e de voz podem ser privados e restritos por cargos específicos?
+  - **Resposta:** Sim. O sistema permite criar canais de texto e de voz privados vinculados a cargos específicos, garantindo acesso exclusivo aos cargos autorizados, além de acesso total ao Dono e Administradores.
 - [x] O sistema deve implementar subsistema de API Keys, Bots externos e Webhooks neste momento?
   - **Resposta:** Não. O sistema ainda não possui bots nem webhooks e essa funcionalidade não é desejada no momento. Toda a autenticação permanece centralizada via sessão JWT para os usuários da aplicação.

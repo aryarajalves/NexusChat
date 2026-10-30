@@ -10,7 +10,7 @@ from app.core.database import get_db, SessionLocal
 from app.core.security import decode_access_token
 from app.core.logger import logger
 from app.models.user import User
-from app.models.discord import Server, Channel, ServerMember, Message, ServerInvite, MessageReaction
+from app.models.discord import Server, Channel, ServerMember, Message, ServerInvite, MessageReaction, ChannelRolePermission
 from app.schemas.discord import (
     ServerCreate,
     ServerUpdate,
@@ -38,6 +38,12 @@ from .discord_helpers import (
     format_message_reactions,
     format_bulk_message_reactions,
     build_message_response
+)
+from app.services.discord_permissions import (
+    can_user_access_channel,
+    ensure_channel_access,
+    get_accessible_channel_recipients,
+    build_channel_response
 )
 
 router = APIRouter(prefix="/discord", tags=["Discord Clone"])
@@ -232,12 +238,57 @@ def create_channel(
         name=payload.name,
         type=payload.type,
         category=payload.category,
-        position=pos
+        position=pos,
+        is_private=bool(payload.is_private)
     )
     db.add(channel)
     db.commit()
     db.refresh(channel)
-    return channel
+
+    if payload.is_private and payload.allowed_role_ids:
+        for r_id in payload.allowed_role_ids:
+            perm = ChannelRolePermission(channel_id=channel.id, role_id=r_id)
+            db.add(perm)
+        db.commit()
+        db.refresh(channel)
+
+    return build_channel_response(channel)
+
+@router.patch("/servers/{server_id}/channels/{channel_id}", response_model=ChannelResponse)
+def update_channel(
+    server_id: int,
+    channel_id: int,
+    payload: ChannelUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    ensure_admin_or_owner(server_id, current_user, db)
+    channel = db.query(Channel).filter(
+        Channel.id == channel_id,
+        Channel.server_id == server_id
+    ).first()
+    if not channel:
+        raise HTTPException(status_code=404, detail="Canal não encontrado")
+
+    if payload.name is not None:
+        channel.name = payload.name
+    if payload.category is not None:
+        channel.category = payload.category
+    if payload.position is not None:
+        channel.position = payload.position
+    if payload.is_private is not None:
+        channel.is_private = payload.is_private
+
+    if payload.allowed_role_ids is not None:
+        db.query(ChannelRolePermission).filter(ChannelRolePermission.channel_id == channel.id).delete()
+        if channel.is_private:
+            for r_id in payload.allowed_role_ids:
+                perm = ChannelRolePermission(channel_id=channel.id, role_id=r_id)
+                db.add(perm)
+
+    db.commit()
+    db.refresh(channel)
+    return build_channel_response(channel)
 
 @router.get("/servers/{server_id}/channels", response_model=List[ChannelResponse])
 def list_server_channels(
@@ -247,7 +298,8 @@ def list_server_channels(
 ):
     ensure_member(server_id, current_user, db)
     channels = db.query(Channel).filter(Channel.server_id == server_id).order_by(Channel.position).all()
-    return channels
+    accessible = [ch for ch in channels if can_user_access_channel(ch, current_user.id, db)]
+    return [build_channel_response(ch) for ch in accessible]
 
 @router.delete("/servers/{server_id}/channels/{channel_id}")
 def delete_channel(
@@ -301,6 +353,7 @@ def list_server_members(
             user_id=m.user_id,
             name=m.user.name if m.user else "Usuário Desconhecido",
             email=m.user.email if m.user else "",
+            avatar_url=m.user.avatar_url if m.user else None,
             nickname=m.nickname,
             role=m.role,
             role_id=m.role_id,
@@ -416,11 +469,7 @@ def list_channel_messages(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    channel = db.query(Channel).filter(Channel.id == channel_id).first()
-    if not channel:
-        raise HTTPException(status_code=404, detail="Canal não encontrado")
-
-    ensure_member(channel.server_id, current_user, db)
+    channel = ensure_channel_access(channel_id, current_user, db)
 
     query = db.query(Message).filter(Message.channel_id == channel_id)
     if before_id:
@@ -445,17 +494,13 @@ async def send_channel_message(
         window_seconds=3,
         error_detail="Você está enviando mensagens rápido demais. Aguarde 3 segundos."
     )
-    channel = db.query(Channel).filter(Channel.id == channel_id).first()
-    if not channel:
-        raise HTTPException(status_code=404, detail="Canal não encontrado")
+    channel = ensure_channel_access(channel_id, current_user, db)
 
     if channel.type != "TEXT":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Não é possível enviar mensagens de texto em canais de voz"
         )
-
-    ensure_member(channel.server_id, current_user, db)
 
     content = (payload.content or "").strip()
     if not content and not payload.attachment_url:
@@ -494,9 +539,9 @@ async def send_channel_message(
         }
     )
 
-    # Notifica os membros do servidor sobre a nova mensagem não lida
-    member_ids = [m.user_id for m in db.query(ServerMember.user_id).filter(ServerMember.server_id == channel.server_id).all()]
-    await notify_channel_unread(channel_id, channel.server_id, msg.id, current_user.id, member_ids)
+    # Notifica os membros autorizados do canal sobre a nova mensagem não lida
+    accessible_ids = get_accessible_channel_recipients(channel, db)
+    await notify_channel_unread(channel_id, channel.server_id, msg.id, current_user.id, accessible_ids)
 
     return resp
 
@@ -514,11 +559,7 @@ async def upload_channel_attachment(
         window_seconds=60,
         error_detail="Limite de uploads excedido. Aguarde 1 minuto."
     )
-    channel = db.query(Channel).filter(Channel.id == channel_id).first()
-    if not channel:
-        raise HTTPException(status_code=404, detail="Canal não encontrado")
-
-    ensure_member(channel.server_id, current_user, db)
+    channel = ensure_channel_access(channel_id, current_user, db)
 
     file_bytes = await file.read()
     val_res = validate_uploaded_file(file.filename or "", file_bytes, max_size_bytes=MAX_FILE_SIZE_BYTES)
@@ -789,9 +830,8 @@ async def channel_websocket_endpoint(
         await websocket.close(code=status.WS_1003_UNSUPPORTED_DATA)
         return
 
-    # Garante que o usuário participa do servidor do canal
-    member = get_server_member(channel.server_id, user.id, db)
-    if not member:
+    # Garante que o usuário participa do servidor e tem permissão de acesso ao canal (inclusive canais privados)
+    if not can_user_access_channel(channel, user.id, db):
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 

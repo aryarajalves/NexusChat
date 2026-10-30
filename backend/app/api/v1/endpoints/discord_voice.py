@@ -7,33 +7,18 @@ from app.models.discord import Channel, ServerMember
 from app.api.v1.endpoints.users import get_current_user
 from app.services.livekit_service import get_livekit_voice_credentials
 from app.services.socket_manager import socket_manager
+from app.services.discord_permissions import ensure_channel_access
 
 router = APIRouter(prefix="/discord/channels", tags=["discord-voice"])
 
 def ensure_voice_channel_access(channel_id: int, user: User, db: Session) -> Channel:
-    """Valida se o canal existe, é do tipo VOICE e se o usuário é membro do servidor."""
-    channel = db.query(Channel).filter(Channel.id == channel_id).first()
-    if not channel:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Canal não encontrado."
-        )
+    """Valida se o canal existe, se o usuário tem permissão de acesso e se é do tipo VOICE."""
+    channel = ensure_channel_access(channel_id, user, db)
 
     if channel.type != "VOICE":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Este endpoint é exclusivo para canais de voz e transmissão."
-        )
-
-    member = db.query(ServerMember).filter(
-        ServerMember.server_id == channel.server_id,
-        ServerMember.user_id == user.id
-    ).first()
-
-    if not member:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Você não tem permissão para ingressar neste canal de voz."
         )
 
     return channel

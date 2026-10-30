@@ -8,19 +8,26 @@
   border-radius: 14px !important;
   width: 100% !important;
   max-width: 480px !important;
+  max-height: min(640px, calc(100vh - 48px)) !important;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  overflow: hidden;
+  overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
   animation: modal-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   margin: auto !important;
 }
 
-@keyframes modal-pop {
-  from { opacity: 0; transform: scale(0.92); }
-  to { opacity: 1; transform: scale(1); }
+.discord-modal-card form,
+.modal-backdrop .modal-content form {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
 }
+
+@keyframes modal-pop { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
 
 .modal-header,
 .discord-modal-header {
@@ -29,13 +36,22 @@
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  flex-shrink: 0 !important;
 }
 .discord-modal-title,
 .modal-header h3 { font-size: 20px; font-weight: 700; color: #f2f3f5; margin: 0; }
 .discord-modal-subtitle { font-size: 13px; color: #949ba4; margin: 4px 0 0 0; }
 
 .modal-body,
-.discord-modal-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+.discord-modal-body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
 
 .modal-footer,
 .discord-modal-footer {
@@ -46,6 +62,7 @@
   justify-content: flex-end;
   gap: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
+  flex-shrink: 0 !important;
 }
 
 .form-group { display: flex; flex-direction: column; gap: 6px; width: 100%; }
@@ -379,11 +396,18 @@
 .server-image-box { display: flex; flex-direction: column; gap: 8px; }
 .server-field-label { font-size: 12px; font-weight: 700; color: #b5bac1; text-transform: uppercase; letter-spacing: 0.5px; }
 .server-field-help { font-size: 12px; color: #949ba4; margin: -2px 0 8px 0; }
-.server-icon-preview-wrap, .server-banner-preview-wrap { display: flex; flex-direction: column; gap: 10px; }
-.server-icon-preview-placeholder, .server-icon-preview-img {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
+.server-icon-preview-wrap { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; width: fit-content; }
+.server-banner-preview-wrap { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.server-icon-preview-placeholder, .server-icon-preview-img, .server-icon-preview-wrap .server-icon-preview-img {
+  width: 80px !important;
+  height: 80px !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
+  min-height: 80px !important;
+  max-height: 80px !important;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
+  border-radius: 50% !important;
   background-color: #5865f2;
   color: #ffffff;
   display: flex;
@@ -391,8 +415,9 @@
   justify-content: center;
   font-size: 32px;
   font-weight: 700;
-  object-fit: cover;
+  object-fit: cover !important;
   border: 2px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
 }
 .server-banner-preview-placeholder, .server-banner-preview-img {
   width: 100%;
@@ -409,21 +434,7 @@
   object-fit: cover;
   border: 1px dashed rgba(255, 255, 255, 0.15);
 }
-.server-upload-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background-color: #4e5058;
-  color: #f2f3f5;
-  border-radius: 4px;
-  border: none;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  align-self: flex-start;
-  transition: background 0.15s ease;
-}
+.server-upload-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background-color: #4e5058; color: #f2f3f5; border-radius: 4px; border: none; font-size: 12px; font-weight: 600; cursor: pointer; align-self: flex-start; transition: background 0.15s ease; }
 .server-upload-btn:hover { background-color: #6d6f78; }
 
 /* --- Aba de Cargos --- */

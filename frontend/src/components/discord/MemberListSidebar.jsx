@@ -16,7 +16,7 @@ export default function MemberListSidebar({
     return (
       <div key={member.id} className="member-row" data-testid={`member-row-${member.id}`}>
         <div className="discord-avatar-wrapper" style={{ width: '28px', height: '28px', fontSize: '12px', flexShrink: 0 }}>
-          {initial}
+          {member.avatar_url ? <img src={member.avatar_url} alt={member.name} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : initial}
           <span className="discord-online-badge" />
         </div>
         <span

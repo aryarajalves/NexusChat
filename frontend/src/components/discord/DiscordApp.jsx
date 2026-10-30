@@ -19,7 +19,7 @@ import { useDiscordNavigation } from './useDiscordNavigation';
 import { useToast } from '../../context/ToastContext';
 import { isSoundMuted, toggleSoundMuted, playDiscordSound } from './discordSounds';
 
-export default function DiscordApp({ currentUser, onToggleAppSidebar, isAppSidebarHidden }) {
+export default function DiscordApp({ currentUser, onUserUpdated, onToggleAppSidebar, isAppSidebarHidden }) {
   const [servers, setServers] = useState([]);
   const [channels, setChannels] = useState([]);
   const [members, setMembers] = useState([]);
@@ -461,10 +461,10 @@ export default function DiscordApp({ currentUser, onToggleAppSidebar, isAppSideb
 
       {/* Modais de Ação */}
       <CreateServerModal isOpen={isCreateServerOpen} onClose={() => setIsCreateServerOpen(false)} onCreateServer={handleCreateServer} />
-      <CreateChannelModal isOpen={isCreateChannelOpen} onClose={() => setIsCreateChannelOpen(false)} onCreateChannel={handleCreateChannel} />
+      <CreateChannelModal isOpen={isCreateChannelOpen} onClose={() => setIsCreateChannelOpen(false)} onCreateChannel={handleCreateChannel} serverId={activeServerId} token={token} />
       <ServerInviteModal isOpen={isInviteOpen} onClose={() => setIsInviteOpen(false)} server={activeServer} onCreateInvite={handleCreateInvite} />
       <ServerSettingsModal isOpen={isServerSettingsOpen} onClose={() => setIsServerSettingsOpen(false)} server={activeServer} onServerUpdated={(upd) => setServers((prev) => prev.map((s) => (s.id === upd.id ? { ...s, ...upd } : s)))} currentUser={currentUser} members={members} onMembersUpdated={(upd) => setMembers(upd)} />
-      <UserSettingsModal isOpen={isUserSettingsOpen} onClose={() => setIsUserSettingsOpen(false)} currentUser={currentUser} onUserUpdated={(upd) => {}} />
+      <UserSettingsModal isOpen={isUserSettingsOpen} onClose={() => setIsUserSettingsOpen(false)} currentUser={currentUser} onUserUpdated={onUserUpdated} />
       <DeleteMessageModal isOpen={isDeleteModalOpen} message={messageToDelete} onClose={() => { setIsDeleteModalOpen(false); setMessageToDelete(null); }} onConfirmDelete={handleGeneralConfirmDelete} />
       <NewDMModal isOpen={isNewDMOpen} onClose={() => setIsNewDMOpen(false)} token={token} onSelectUser={async (userId) => { await startOrSelectDM(userId); handleSelectServer(null); }} />
     </div>

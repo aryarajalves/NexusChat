@@ -23,6 +23,8 @@ class ChannelResponse(BaseModel):
     type: str  # TEXT ou VOICE
     category: str
     position: int
+    is_private: bool = False
+    allowed_role_ids: List[int] = []
     created_at: datetime
 
 class ServerResponse(BaseModel):
@@ -44,6 +46,8 @@ class ChannelCreate(BaseModel):
     type: str = Field("TEXT", pattern="^(TEXT|VOICE)$")
     category: str = Field("Canais de Texto", max_length=100)
     position: Optional[int] = 0
+    is_private: Optional[bool] = False
+    allowed_role_ids: Optional[List[int]] = []
 
     @field_validator("name")
     @classmethod
@@ -55,6 +59,8 @@ class ChannelUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     category: Optional[str] = Field(None, max_length=100)
     position: Optional[int] = None
+    is_private: Optional[bool] = None
+    allowed_role_ids: Optional[List[int]] = None
 
 # --- Mensagens ---
 MAX_MESSAGE_CONTENT_LENGTH = 2000
@@ -90,6 +96,7 @@ class MessageResponse(BaseModel):
     author_id: int
     author_name: str
     author_email: str
+    author_avatar_url: Optional[str] = None
     content: Optional[str] = ""
     attachment_url: Optional[str] = None
     attachment_type: Optional[str] = None
@@ -145,6 +152,7 @@ class ServerMemberResponse(BaseModel):
     user_id: int
     name: str
     email: str
+    avatar_url: Optional[str] = None
     nickname: Optional[str] = None
     role: str  # OWNER, ADMIN, MEMBER
     role_id: Optional[int] = None
@@ -181,6 +189,7 @@ class DMUserSummary(BaseModel):
     id: int
     name: str
     email: str
+    avatar_url: Optional[str] = None
     is_active: bool
 
 

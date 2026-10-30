@@ -97,12 +97,13 @@ def list_available_users_for_dm(
         term = f"%{search.strip()}%"
         query = query.filter(or_(User.name.ilike(term), User.email.ilike(term)))
     
-    users = query.order_by(User.name.asc()).limit(50).all()
+    users = query.order_by(User.name.asc()).limit(200).all()
     return [
         DMUserSummary(
             id=u.id,
             name=u.name,
             email=u.email,
+            avatar_url=u.avatar_url,
             is_active=u.is_active
         )
         for u in users
@@ -140,6 +141,7 @@ def list_dm_conversations(
                     id=other_user.id,
                     name=other_user.name,
                     email=other_user.email,
+                    avatar_url=other_user.avatar_url,
                     is_active=other_user.is_active
                 ),
                 last_message=last_msg_response,

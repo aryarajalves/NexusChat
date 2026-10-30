@@ -7,6 +7,8 @@ export default function ServerGeneralTab({ server, onServerUpdated, token }) {
   const [description, setDescription] = useState(server?.description || '');
   const [iconUrl, setIconUrl] = useState(server?.icon_url || '');
   const [bannerUrl, setBannerUrl] = useState(server?.banner_url || '');
+  const [iconError, setIconError] = useState(false);
+  const [bannerError, setBannerError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingIcon, setUploadingIcon] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
@@ -75,6 +77,7 @@ export default function ServerGeneralTab({ server, onServerUpdated, token }) {
 
       const data = await res.json();
       setIconUrl(data.icon_url);
+      setIconError(false);
       onServerUpdated && onServerUpdated({ ...server, icon_url: data.icon_url });
       addToast('Ícone do servidor atualizado!', 'success');
     } catch (err) {
@@ -106,6 +109,7 @@ export default function ServerGeneralTab({ server, onServerUpdated, token }) {
 
       const data = await res.json();
       setBannerUrl(data.banner_url);
+      setBannerError(false);
       onServerUpdated && onServerUpdated({ ...server, banner_url: data.banner_url });
       addToast('Banner do servidor atualizado!', 'success');
     } catch (err) {
@@ -129,13 +133,57 @@ export default function ServerGeneralTab({ server, onServerUpdated, token }) {
           <div className="server-image-box">
             <span className="server-field-label">Ícone do Servidor</span>
             <div className="server-icon-preview-wrap">
-              {iconUrl ? (
-                <img src={iconUrl} alt="Ícone do servidor" className="server-icon-preview-img" data-testid="server-icon-preview" />
-              ) : (
-                <div className="server-icon-preview-placeholder" data-testid="server-icon-placeholder">
-                  {serverInitial}
-                </div>
-              )}
+              <div
+                className="server-icon-preview-box"
+                style={{
+                  width: '80px',
+                  height: '80px',
+                  minWidth: '80px',
+                  maxWidth: '80px',
+                  minHeight: '80px',
+                  maxHeight: '80px',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  backgroundColor: '#5865f2',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                  border: '2px solid rgba(255, 255, 255, 0.1)',
+                }}
+              >
+                {iconUrl && !iconError ? (
+                  <img
+                    src={iconUrl}
+                    alt={name || "Ícone do servidor"}
+                    className="server-icon-preview-img"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      borderRadius: '50%',
+                      display: 'block',
+                    }}
+                    data-testid="server-icon-preview"
+                    onError={() => setIconError(true)}
+                  />
+                ) : (
+                  <div
+                    className="server-icon-preview-placeholder"
+                    data-testid="server-icon-placeholder"
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {serverInitial}
+                  </div>
+                )}
+              </div>
               <button
                 type="button"
                 className="server-upload-btn"
@@ -161,8 +209,14 @@ export default function ServerGeneralTab({ server, onServerUpdated, token }) {
           <div className="server-image-box" style={{ flex: 1 }}>
             <span className="server-field-label">Banner do Servidor</span>
             <div className="server-banner-preview-wrap">
-              {bannerUrl ? (
-                <img src={bannerUrl} alt="Banner do servidor" className="server-banner-preview-img" data-testid="server-banner-preview" />
+              {bannerUrl && !bannerError ? (
+                <img
+                  src={bannerUrl}
+                  alt={name || "Banner do servidor"}
+                  className="server-banner-preview-img"
+                  data-testid="server-banner-preview"
+                  onError={() => setBannerError(true)}
+                />
               ) : (
                 <div className="server-banner-preview-placeholder" data-testid="server-banner-placeholder">
                   <ImageIcon size={28} opacity={0.6} />

@@ -194,4 +194,98 @@ describe('Discord Direct Messages (DMs)', () => {
     // Botão de alternar membros não é renderizado em DMs
     expect(screen.queryByTestId('toggle-members-btn')).not.toBeInTheDocument();
   });
+
+  it('paginates conversations in DMSidebar (20 per page)', () => {
+    // Cria 25 conversas simuladas
+    const manyConversations = Array.from({ length: 25 }, (_, i) => ({
+      id: 200 + i,
+      other_user: { id: 1000 + i, name: `Amigo Extra ${i + 1}`, email: `user${i + 1}@teste.com`, is_active: true },
+      last_message: { id: 500 + i, content: `Mensagem ${i + 1}`, attachment_url: null },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }));
+
+    renderWithToast(
+      <DMSidebar
+        conversations={manyConversations}
+        activeConversationId={200}
+        onSelectConversation={vi.fn()}
+        onOpenNewDM={vi.fn()}
+        currentUser={mockCurrentUser}
+      />
+    );
+
+    // Controles de paginação presentes
+    expect(screen.getByTestId('dm-pagination-controls')).toBeInTheDocument();
+    expect(screen.getByTestId('dm-pagination-info')).toHaveTextContent('1 / 2');
+
+    // Primeira página tem o Amigo Extra 1 e Amigo Extra 20, mas não o 21
+    expect(screen.getByText('Amigo Extra 1')).toBeInTheDocument();
+    expect(screen.getByText('Amigo Extra 20')).toBeInTheDocument();
+    expect(screen.queryByText('Amigo Extra 21')).not.toBeInTheDocument();
+
+    const prevBtn = screen.getByTestId('dm-pagination-prev');
+    const nextBtn = screen.getByTestId('dm-pagination-next');
+    expect(prevBtn).toBeDisabled();
+    expect(nextBtn).not.toBeDisabled();
+
+    // Clica em próxima página
+    fireEvent.click(nextBtn);
+    expect(screen.getByTestId('dm-pagination-info')).toHaveTextContent('2 / 2');
+    expect(screen.queryByText('Amigo Extra 1')).not.toBeInTheDocument();
+    expect(screen.getByText('Amigo Extra 21')).toBeInTheDocument();
+    expect(screen.getByText('Amigo Extra 25')).toBeInTheDocument();
+    expect(nextBtn).toBeDisabled();
+    expect(prevBtn).not.toBeDisabled();
+  });
+
+  it('paginates available contacts in NewDMModal (20 per page)', async () => {
+    // 25 usuários simulados retornados da API
+    const manyUsers = Array.from({ length: 25 }, (_, i) => ({
+      id: 5000 + i,
+      name: `Contato Global ${i + 1}`,
+      email: `contato${i + 1}@teste.com`,
+      is_active: true,
+      avatar_url: null,
+    }));
+
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      json: async () => manyUsers,
+    });
+
+    renderWithToast(
+      <NewDMModal
+        isOpen={true}
+        onClose={vi.fn()}
+        token="fake-token"
+        onSelectUser={vi.fn()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Contato Global 1')).toBeInTheDocument();
+    });
+
+    // Controles de paginação no modal
+    expect(screen.getByTestId('new-dm-pagination')).toBeInTheDocument();
+    expect(screen.getByTestId('new-dm-pagination-info')).toHaveTextContent('Página 1 de 2');
+
+    // Primeira página tem 1 e 20, não 21
+    expect(screen.getByText('Contato Global 20')).toBeInTheDocument();
+    expect(screen.queryByText('Contato Global 21')).not.toBeInTheDocument();
+
+    const nextBtn = screen.getByTestId('new-dm-pagination-next');
+    const prevBtn = screen.getByTestId('new-dm-pagination-prev');
+    expect(prevBtn).toBeDisabled();
+    expect(nextBtn).not.toBeDisabled();
+
+    // Avança para página 2
+    fireEvent.click(nextBtn);
+    expect(screen.getByTestId('new-dm-pagination-info')).toHaveTextContent('Página 2 de 2');
+    expect(screen.queryByText('Contato Global 1')).not.toBeInTheDocument();
+    expect(screen.getByText('Contato Global 21')).toBeInTheDocument();
+    expect(screen.getByText('Contato Global 25')).toBeInTheDocument();
+    expect(nextBtn).toBeDisabled();
+  });
 });
