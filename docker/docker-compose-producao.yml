@@ -5,7 +5,7 @@ services:
   # SERVIÇO BACKEND (FastAPI - Nexus Chat API)
   # ==========================================
   nexus-chat-backend:
-    image: ${IMAGE_BACKEND:-aryalvesfernandes/nexus-chat:backend-1.0.0}
+    image: ${IMAGE_BACKEND:-aryalvesfernandes/nexus-chat:backend-1.0.1}
     hostname: "{{.Service.Name}}.{{.Task.Slot}}"
     networks:
       network_swarm_public:
@@ -47,7 +47,7 @@ services:
       - LIVEKIT_URL=
       - LIVEKIT_API_KEY=
       - LIVEKIT_API_SECRET=
-      - LIVEKIT_KEYS=
+      - "LIVEKIT_KEYS="
       # === Backblaze B2 (Armazenamento de Mídias e Backups) ===
       - BACKBLAZE_ENDPOINT_URL=
       - BACKBLAZE_KEY_ID=
@@ -77,7 +77,7 @@ services:
   # SERVIÇO FRONTEND (React SPA + Nginx - Nexus Chat Web)
   # ==========================================
   nexus-chat-frontend:
-    image: ${IMAGE_FRONTEND:-aryalvesfernandes/nexus-chat:frontend-1.0.0}
+    image: ${IMAGE_FRONTEND:-aryalvesfernandes/nexus-chat:frontend-1.0.1}
     hostname: "{{.Service.Name}}.{{.Task.Slot}}"
     networks:
       - network_swarm_public
@@ -112,7 +112,7 @@ services:
       - LIVEKIT_URL=
       - LIVEKIT_API_KEY=
       - LIVEKIT_API_SECRET=
-      - LIVEKIT_KEYS=
+      - "LIVEKIT_KEYS="
       # === Backblaze B2 (Armazenamento de Mídias e Backups) ===
       - BACKBLAZE_ENDPOINT_URL=
       - BACKBLAZE_KEY_ID=
@@ -142,7 +142,7 @@ services:
   # SERVIÇO LIVEKIT SFU (Canais de Voz e Vídeo)
   # ==========================================
   nexus-chat-livekit:
-    image: ${IMAGE_LIVEKIT:-livekit/livekit-server:latest}
+    image: ${IMAGE_LIVEKIT:-livekit/livekit-server:v1.8.3}
     hostname: "{{.Service.Name}}.{{.Task.Slot}}"
     networks:
       network_swarm_public:
@@ -152,9 +152,10 @@ services:
           - nexus_chat_livekit
 
     volumes:
-      - nexus_chat_livekit_config:/etc/livekit
       - nexus_chat_logs:/var/log/livekit
-    command: --config /etc/livekit.yaml
+    command:
+      - --keys
+      - "d638936d-59ce-45b1-9ca9-560e7ce0cb6e: f0cfc601-c6da-473b-b817-7ec76542f856"
     ports:
       - target: 7880
         published: 7880
@@ -168,44 +169,6 @@ services:
         published: 7882
         protocol: udp
         mode: host
-    environment:
-      - PORT=
-      - TZ=
-      - PROJECT_NAME=
-      - API_V1_STR=
-      - ENABLE_SCHEDULER=
-      - DATABASE_URL=
-      - DB_POOL_SIZE=
-      - DB_MAX_OVERFLOW=
-      - REDIS_URL=
-      - SECRET_KEY=
-      - ACCESS_TOKEN_EXPIRE_MINUTES=
-      - ENCRYPTION_KEY=
-      - PASSWORD_PEPPER=
-      - SECURITY_PASSWORD_PEPPER=
-      - SUPERADMIN_NAME=
-      - SUPERADMIN_EMAIL=
-      - SUPERADMIN_PASSWORD=
-      - VITE_API_URL=
-      - VITE_WS_URL=
-      - CORS_ORIGINS=
-      - RATE_LIMIT_ENABLED=
-      - BREVO_API_KEY=
-      - BREVO_SENDER_EMAIL=
-      - BREVO_SENDER_NAME=
-      - LIVEKIT_URL=
-      - LIVEKIT_API_KEY=
-      - LIVEKIT_API_SECRET=
-      - LIVEKIT_KEYS=
-      # === Backblaze B2 (Armazenamento de Mídias e Backups) ===
-      - BACKBLAZE_ENDPOINT_URL=
-      - BACKBLAZE_KEY_ID=
-      - BACKBLAZE_APPLICATION_KEY=
-      - BACKBLAZE_BUCKET_NAME=
-      - BACKBLAZE_CDN_URL=
-      - B2_FOLDER=
-      - B2_MEDIA_FOLDER=
-      - B2_RETENTION_MAX=
 
     deploy:
       mode: replicated
@@ -230,8 +193,6 @@ volumes:
     name: nexus_chat_uploads
   nexus_chat_logs:
     name: nexus_chat_logs
-  nexus_chat_livekit_config:
-    name: nexus_chat_livekit_config
 
 networks:
   network_swarm_public:

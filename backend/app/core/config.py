@@ -55,3 +55,5 @@ class Settings(BaseSettings):
 settings = Settings()
 if not settings.PROJECT_NAME or "Projeto Base" in settings.PROJECT_NAME:
     settings.PROJECT_NAME = "Nexus Chat"
+if not settings.API_V1_STR:
+    settings.API_V1_STR = "/api/v1"

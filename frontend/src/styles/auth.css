@@ -204,10 +204,25 @@
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   font-size: 14px;
-  color: #1e293b;
+  color: #1e293b !important;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
-  background-color: #ffffff;
+  background-color: #ffffff !important;
+}
+
+.input-wrapper input:hover,
+.form-group .input-wrapper input:hover {
+  border-color: #94a3b8 !important;
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+}
+
+.input-wrapper input:focus,
+.form-group .input-wrapper input:focus {
+  border-color: #4f46e5 !important;
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15) !important;
 }
 
 .form-group select {
