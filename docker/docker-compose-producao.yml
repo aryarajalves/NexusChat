@@ -67,7 +67,7 @@ services:
       labels:
         - traefik.enable=true
         - traefik.docker.network=network_swarm_public
-        - traefik.http.routers.nexus-chat-backend.rule=(Host(`${DOMAIN:-seu-dominio.com}`) && (PathPrefix(`/api`) || PathPrefix(`/docs`) || PathPrefix(`/openapi.json`))) || Host(`${API_DOMAIN:-api.${DOMAIN:-seu-dominio.com}}`)
+        - traefik.http.routers.nexus-chat-backend.rule=Host(`${API_DOMAIN:-api.seu-dominio.com}`)
         - traefik.http.routers.nexus-chat-backend.entrypoints=websecure
         - traefik.http.routers.nexus-chat-backend.tls=true
         - traefik.http.routers.nexus-chat-backend.tls.certresolver=letsencryptresolver
