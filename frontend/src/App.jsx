@@ -10,6 +10,7 @@ import { DiscordApp } from './components/discord';
 import Register from './components/Register';
 import ResetPassword from './components/ResetPassword';
 import LogoutConfirmModal from './components/LogoutConfirmModal';
+import DashboardWelcome from './components/DashboardWelcome';
 import { useToast } from './context/ToastContext';
 import { AUTH_EXPIRED_EVENT } from './services/authInterceptor';
 
@@ -166,10 +167,9 @@ function App() {
         }
       >
         {!activeTab && (
-          <div
-            className="empty-dashboard-screen"
-            data-testid="empty-dashboard-screen"
-            style={{ width: '100%', height: '100%', backgroundColor: '#0f1012' }}
+          <DashboardWelcome
+            user={user}
+            onSelectTab={handleSelectTab}
           />
         )}
         {activeTab === 'discord' && (

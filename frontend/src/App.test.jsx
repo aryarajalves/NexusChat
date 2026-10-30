@@ -221,8 +221,9 @@ describe('App Component', () => {
     // Agora o menu lateral aparece
     expect(screen.getByRole('complementary', { name: /menu lateral/i })).toBeInTheDocument();
 
-    // A tela preta vazia é renderizada
-    expect(screen.getByTestId('empty-dashboard-screen')).toBeInTheDocument();
+    // A tela de boas-vindas sofisticada é renderizada no lugar da tela vazia
+    expect(screen.getByTestId('dashboard-welcome-container')).toBeInTheDocument();
+    expect(screen.getByTestId('welcome-enter-discord-btn')).toBeInTheDocument();
 
     // O botão comunidade NÃO está selecionado
     const communityBtn = screen.getByTestId('nav-item-discord');
