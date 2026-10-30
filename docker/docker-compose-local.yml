@@ -90,6 +90,11 @@ services:
     volumes:
       - ../backend:/app
       - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      default:
+        aliases:
+          - nexus-chat-backend
+          - backend
 
   frontend:
     build:
