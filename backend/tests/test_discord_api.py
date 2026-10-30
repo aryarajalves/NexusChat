@@ -282,4 +282,34 @@ def test_create_server_invite_without_body():
     assert len(data["code"]) > 0
     assert data["current_uses"] == 0
 
+def test_delete_server_success_by_owner_or_superadmin():
+    """Valida a exclusão de um servidor pelo dono ou superadmin, com cascade de canais."""
+    headers = get_auth_headers()
+    srv_res = client.post("/api/v1/discord/servers", json={"name": "Servidor Para Deletar"}, headers=headers)
+    assert srv_res.status_code == 201
+    server_id = srv_res.json()["id"]
+
+    # Deleta servidor
+    del_res = client.delete(f"/api/v1/discord/servers/{server_id}", headers=headers)
+    assert del_res.status_code == 200
+    assert "excluído com sucesso" in del_res.json()["detail"]
+
+    # Valida que o servidor não existe mais
+    get_res = client.get(f"/api/v1/discord/servers/{server_id}", headers=headers)
+    assert get_res.status_code == 404
+
+def test_delete_server_forbidden_for_non_owner(member_user):
+    """Valida que membros comuns não têm permissão para deletar o servidor."""
+    # Superadmin cria servidor
+    admin_headers = get_auth_headers()
+    srv_res = client.post("/api/v1/discord/servers", json={"name": "Servidor Protegido"}, headers=admin_headers)
+    server_id = srv_res.json()["id"]
+
+    # Membro comum tenta deletar
+    member_headers = get_auth_headers(email=member_user, password="Senha@Forte1234!")
+    del_res = client.delete(f"/api/v1/discord/servers/{server_id}", headers=member_headers)
+    assert del_res.status_code == 403
+    assert "pode excluí-lo" in del_res.json()["detail"]
+
+
 

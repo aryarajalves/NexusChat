@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Shield, Users, X } from 'lucide-react';
+import { Settings, Shield, Users, X, Trash2 } from 'lucide-react';
 import ServerGeneralTab from './ServerGeneralTab';
 import ServerRolesTab from './ServerRolesTab';
 import ServerMembersTab from './ServerMembersTab';
@@ -12,12 +12,14 @@ export default function ServerSettingsModal({
   currentUser,
   members = [],
   onMembersUpdated,
+  onOpenDeleteServer,
 }) {
   const [activeTab, setActiveTab] = useState('general'); // 'general' | 'roles' | 'members'
   const [roles, setRoles] = useState([]);
   const [loadingRoles, setLoadingRoles] = useState(false);
 
   const token = localStorage.getItem('auth_token');
+  const isOwner = currentUser?.role === 'superadmin' || server?.owner_id === currentUser?.id;
 
   const fetchRoles = async () => {
     if (!server?.id || !token) return;
@@ -91,6 +93,22 @@ export default function ServerSettingsModal({
             >
               <Users size={16} /> Membros ({members.length})
             </button>
+            {isOwner && onOpenDeleteServer && (
+              <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <button
+                  type="button"
+                  className="server-settings-nav-btn"
+                  style={{ color: '#f87171' }}
+                  onClick={() => {
+                    onClose();
+                    onOpenDeleteServer(server);
+                  }}
+                  data-testid="sidebar-delete-server-btn"
+                >
+                  <Trash2 size={16} /> Excluir Servidor
+                </button>
+              </div>
+            )}
           </nav>
         </aside>
 
@@ -101,6 +119,11 @@ export default function ServerSettingsModal({
               server={server}
               onServerUpdated={onServerUpdated}
               token={token}
+              isOwner={isOwner}
+              onOpenDeleteServer={onOpenDeleteServer ? () => {
+                onClose();
+                onOpenDeleteServer(server);
+              } : undefined}
             />
           )}
 

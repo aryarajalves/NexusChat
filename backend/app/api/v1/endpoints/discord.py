@@ -158,10 +158,10 @@ def get_server_details(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    ensure_member(server_id, current_user, db)
     server = db.query(Server).filter(Server.id == server_id).first()
     if not server:
         raise HTTPException(status_code=404, detail="Servidor não encontrado")
+    ensure_member(server_id, current_user, db)
 
     res = ServerResponse.model_validate(server)
     res.members_count = len(server.members)
@@ -205,14 +205,16 @@ def delete_server(
     if not server:
         raise HTTPException(status_code=404, detail="Servidor não encontrado")
 
-    if server.owner_id != current_user.id:
+    if server.owner_id != current_user.id and current_user.role != "superadmin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Apenas o criador do servidor pode excluí-lo"
+            detail="Apenas o criador do servidor ou superadmin pode excluí-lo"
         )
 
+    server_name = server.name
     db.delete(server)
     db.commit()
+    logger.info(f"Servidor '{server_name}' (ID {server_id}) excluído por '{current_user.email}'.")
     return {"detail": "Servidor excluído com sucesso"}
 
 # ==========================================

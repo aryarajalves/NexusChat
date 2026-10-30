@@ -61,7 +61,28 @@ describe('Server Settings & Roles Management (Item 3)', () => {
       expect(onOpenSettings).toHaveBeenCalledTimes(1);
     });
 
-    it('does not display Server Settings menu item for normal members', () => {
+    it('shows Excluir Servidor in dropdown menu for owner and calls onOpenDeleteServer', () => {
+      const onOpenDeleteServer = vi.fn();
+      render(
+        <ChannelSidebar
+          server={mockServer}
+          channels={[{ id: 1, name: 'geral', type: 'TEXT' }]}
+          currentUser={mockCurrentUser}
+          currentUserRole="OWNER"
+          onOpenDeleteServer={onOpenDeleteServer}
+        />
+      );
+
+      fireEvent.click(screen.getByTestId('server-header'));
+      const deleteBtn = screen.getByTestId('server-delete-menu-item');
+      expect(deleteBtn).toBeInTheDocument();
+      expect(deleteBtn).toHaveTextContent('Excluir Servidor');
+
+      fireEvent.click(deleteBtn);
+      expect(onOpenDeleteServer).toHaveBeenCalledWith(mockServer);
+    });
+
+    it('does not display Server Settings menu item or Excluir Servidor for normal members', () => {
       render(
         <ChannelSidebar
           server={{ ...mockServer, owner_id: 999 }}
@@ -73,6 +94,7 @@ describe('Server Settings & Roles Management (Item 3)', () => {
 
       fireEvent.click(screen.getByTestId('server-header'));
       expect(screen.queryByTestId('server-settings-menu-item')).toBeNull();
+      expect(screen.queryByTestId('server-delete-menu-item')).toBeNull();
       expect(screen.getByTestId('server-create-channel-menu-item')).toBeInTheDocument();
     });
   });
@@ -110,6 +132,30 @@ describe('Server Settings & Roles Management (Item 3)', () => {
           expect.objectContaining({ name: 'Novo Nome Servidor' })
         );
       });
+    });
+
+    it('renders Danger Zone for owner and triggers onOpenDeleteServer', () => {
+      const onOpenDeleteServer = vi.fn();
+      render(
+        <ToastProvider>
+          <ServerGeneralTab
+            server={mockServer}
+            onServerUpdated={vi.fn()}
+            token="test-token"
+            isOwner={true}
+            onOpenDeleteServer={onOpenDeleteServer}
+          />
+        </ToastProvider>
+      );
+
+      const dangerZone = screen.getByTestId('danger-zone-section');
+      expect(dangerZone).toBeInTheDocument();
+
+      const deleteBtn = screen.getByTestId('danger-zone-delete-btn');
+      expect(deleteBtn).toHaveTextContent('Excluir Servidor');
+
+      fireEvent.click(deleteBtn);
+      expect(onOpenDeleteServer).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -282,6 +328,32 @@ describe('Server Settings & Roles Management (Item 3)', () => {
 
       fireEvent.click(screen.getByTestId('close-server-settings-btn'));
       expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders delete server button in sidebar for owner and triggers onOpenDeleteServer', () => {
+      const onOpenDeleteServer = vi.fn();
+      const onClose = vi.fn();
+
+      render(
+        <ToastProvider>
+          <ServerSettingsModal
+            isOpen={true}
+            onClose={onClose}
+            server={mockServer}
+            currentUser={mockCurrentUser}
+            members={mockMembers}
+            onOpenDeleteServer={onOpenDeleteServer}
+          />
+        </ToastProvider>
+      );
+
+      const deleteBtn = screen.getByTestId('sidebar-delete-server-btn');
+      expect(deleteBtn).toBeInTheDocument();
+      expect(deleteBtn).toHaveTextContent('Excluir Servidor');
+
+      fireEvent.click(deleteBtn);
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(onOpenDeleteServer).toHaveBeenCalledWith(mockServer);
     });
   });
 });

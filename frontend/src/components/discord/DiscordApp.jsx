@@ -9,6 +9,7 @@ import CreateServerModal from './CreateServerModal';
 import CreateChannelModal from './CreateChannelModal';
 import ServerInviteModal from './ServerInviteModal';
 import DeleteMessageModal from './DeleteMessageModal';
+import DeleteServerModal from './DeleteServerModal';
 import NewDMModal from './NewDMModal';
 import ServerSettingsModal from './ServerSettingsModal';
 import UserSettingsModal from './UserSettingsModal';
@@ -41,6 +42,8 @@ export default function DiscordApp({ currentUser, onUserUpdated, onToggleAppSide
   const [isUserSettingsOpen, setIsUserSettingsOpen] = useState(false);
   const [messageToDelete, setMessageToDelete] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [serverToDelete, setServerToDelete] = useState(null);
+  const [isDeleteServerOpen, setIsDeleteServerOpen] = useState(false);
 
   const { addToast } = useToast();
   const token = localStorage.getItem('auth_token');
@@ -133,7 +136,7 @@ export default function DiscordApp({ currentUser, onUserUpdated, onToggleAppSide
   const {
     handleSendMessage, handleEditMessage, handleToggleReaction,
     handleForwardMessage, handleUploadAttachment, handleConfirmDeleteMessage,
-    handleCreateServer, handleCreateChannel, handleCreateInvite, handleTogglePin,
+    handleCreateServer, handleCreateChannel, handleCreateInvite, handleTogglePin, handleDeleteServer,
   } = useDiscordActions({
     token, activeServerId, activeChannelId, setMessages, setServers,
     setActiveServerId, setChannels, setActiveChannelId, sendMessage,
@@ -315,6 +318,17 @@ export default function DiscordApp({ currentUser, onUserUpdated, onToggleAppSide
     if (updated) handlePinUpdate(updated);
   };
 
+  const handleOpenDeleteServer = (srv) => {
+    setServerToDelete(srv || activeServer);
+    setIsDeleteServerOpen(true);
+  };
+
+  const handleConfirmDeleteServer = async (srvId) => {
+    await handleDeleteServer(srvId);
+    setIsDeleteServerOpen(false);
+    setServerToDelete(null);
+  };
+
   const handleDisconnectVoice = () => {
     setConnectedVoiceChannelId(null);
     playDiscordSound('voice_leave');
@@ -368,6 +382,7 @@ export default function DiscordApp({ currentUser, onUserUpdated, onToggleAppSide
           isSoundMuted={soundMuted}
           onToggleSoundMute={handleToggleSoundMute}
           onOpenUserSettings={() => setIsUserSettingsOpen(true)}
+          onOpenDeleteServer={handleOpenDeleteServer}
         />
       ) : (
         <ChannelSidebar
@@ -392,6 +407,7 @@ export default function DiscordApp({ currentUser, onUserUpdated, onToggleAppSide
           onToggleSoundMute={handleToggleSoundMute}
           onOpenServerSettings={() => setIsServerSettingsOpen(true)}
           onOpenUserSettings={() => setIsUserSettingsOpen(true)}
+          onOpenDeleteServer={handleOpenDeleteServer}
         />
       )}
 
@@ -464,10 +480,11 @@ export default function DiscordApp({ currentUser, onUserUpdated, onToggleAppSide
       <CreateServerModal isOpen={isCreateServerOpen} onClose={() => setIsCreateServerOpen(false)} onCreateServer={handleCreateServer} />
       <CreateChannelModal isOpen={isCreateChannelOpen} onClose={() => setIsCreateChannelOpen(false)} onCreateChannel={handleCreateChannel} serverId={activeServerId} token={token} />
       <ServerInviteModal isOpen={isInviteOpen} onClose={() => setIsInviteOpen(false)} server={activeServer} onCreateInvite={handleCreateInvite} />
-      <ServerSettingsModal isOpen={isServerSettingsOpen} onClose={() => setIsServerSettingsOpen(false)} server={activeServer} onServerUpdated={(upd) => setServers((prev) => prev.map((s) => (s.id === upd.id ? { ...s, ...upd } : s)))} currentUser={currentUser} members={members} onMembersUpdated={(upd) => setMembers(upd)} />
+      <ServerSettingsModal isOpen={isServerSettingsOpen} onClose={() => setIsServerSettingsOpen(false)} server={activeServer} onServerUpdated={(upd) => setServers((prev) => prev.map((s) => (s.id === upd.id ? { ...s, ...upd } : s)))} currentUser={currentUser} members={members} onMembersUpdated={(upd) => setMembers(upd)} onOpenDeleteServer={handleOpenDeleteServer} />
       <UserSettingsModal isOpen={isUserSettingsOpen} onClose={() => setIsUserSettingsOpen(false)} currentUser={currentUser} onUserUpdated={onUserUpdated} />
       <DeleteMessageModal isOpen={isDeleteModalOpen} message={messageToDelete} onClose={() => { setIsDeleteModalOpen(false); setMessageToDelete(null); }} onConfirmDelete={handleGeneralConfirmDelete} />
       <NewDMModal isOpen={isNewDMOpen} onClose={() => setIsNewDMOpen(false)} token={token} onSelectUser={async (userId) => { await startOrSelectDM(userId); handleSelectServer(null); }} />
+      <DeleteServerModal isOpen={isDeleteServerOpen} server={serverToDelete} onClose={() => { setIsDeleteServerOpen(false); setServerToDelete(null); }} onConfirmDelete={handleConfirmDeleteServer} />
     </div>
   );
 }

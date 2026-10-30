@@ -261,6 +261,38 @@ export function useDiscordActions({
     }
   };
 
+  const handleDeleteServer = async (serverId) => {
+    const sId = serverId || activeServerId;
+    if (!sId) return false;
+
+    try {
+      const res = await fetch(`/api/v1/discord/servers/${sId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (res.ok) {
+        setServers((prev) => prev.filter((s) => s.id !== sId));
+        if (activeServerId === sId) {
+          setActiveServerId(null);
+          localStorage.setItem('discord_active_server_id', 'dms');
+        }
+        addToast('Servidor excluído com sucesso!', 'success');
+        return true;
+      } else {
+        const err = await res.json().catch(() => ({}));
+        const msg = err.detail || 'Falha ao excluir servidor.';
+        addToast(msg, 'error');
+        throw new Error(msg);
+      }
+    } catch (err) {
+      addToast(err.message || 'Falha ao excluir servidor.', 'error');
+      throw err;
+    }
+  };
+
   return {
     handleSendMessage,
     handleEditMessage,
@@ -272,5 +304,6 @@ export function useDiscordActions({
     handleCreateChannel,
     handleCreateInvite,
     handleTogglePin,
+    handleDeleteServer,
   };
 }

@@ -9,6 +9,7 @@ Plataforma completa de comunicação e colaboração em tempo real inspirada no 
 ### 🎮 1. Ecossistema Discord (Comunicação em Tempo Real)
 - **Servidores e Canais:**
   - Criação de servidores com upload de ícone/avatar customizado (PNG, JPG, WEBP e GIF até 10 MB) e prévia interativa nativa;
+  - Exclusão segura de servidores pelo proprietário ou superadministrador com modal de confirmação dedicado e remoção em cascata (canais, mensagens, membros e cargos);
   - Canais de Texto (`TEXT`) com mensagens instantâneas e canais de Voz (`VOICE`) com sinalização WebRTC;
   - Canais Públicos e Privados com controle granular de acesso por cargos específicos do servidor e bloqueio automático de acesso não autorizado;
   - Gestão de Cargos e Permissões do Servidor (Dono e Administradores) com cores customizadas e agrupamento de membros (`hoist`).

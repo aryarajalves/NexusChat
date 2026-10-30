@@ -7,6 +7,7 @@ export { default as CreateServerModal } from './CreateServerModal';
 export { default as CreateChannelModal } from './CreateChannelModal';
 export { default as ServerInviteModal } from './ServerInviteModal';
 export { default as DeleteMessageModal } from './DeleteMessageModal';
+export { default as DeleteServerModal } from './DeleteServerModal';
 export { default as VoiceChannelArea } from './VoiceChannelArea';
 export { default as VoicePipPlayer } from './VoicePipPlayer';
 export { default as DMSidebar } from './DMSidebar';

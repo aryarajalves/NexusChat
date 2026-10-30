@@ -12,6 +12,7 @@ import {
   MicOff,
   ChevronDown,
   Settings,
+  Trash2,
 } from 'lucide-react';
 
 export default function ChannelSidebar({
@@ -31,6 +32,7 @@ export default function ChannelSidebar({
   onToggleSoundMute,
   onOpenServerSettings,
   onOpenUserSettings,
+  onOpenDeleteServer,
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -39,6 +41,11 @@ export default function ChannelSidebar({
     currentUserRole === 'OWNER' ||
     currentUserRole === 'ADMIN' ||
     server?.owner_id === currentUser?.id;
+
+  const isOwner =
+    currentUserRole === 'OWNER' ||
+    server?.owner_id === currentUser?.id ||
+    currentUser?.role === 'superadmin';
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -155,6 +162,24 @@ export default function ChannelSidebar({
               <span>Convidar Pessoas</span>
               <UserPlus size={16} />
             </button>
+            {isOwner && (
+              <>
+                <div style={{ height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.08)', margin: '4px 0' }} />
+                <button
+                  type="button"
+                  className="server-dropdown-item"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    onOpenDeleteServer && onOpenDeleteServer(server);
+                  }}
+                  data-testid="server-delete-menu-item"
+                  style={{ color: '#f87171' }}
+                >
+                  <span>Excluir Servidor</span>
+                  <Trash2 size={16} />
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>

@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { Upload, Image as ImageIcon, Save, Loader2 } from 'lucide-react';
+import { Upload, Image as ImageIcon, Save, Loader2, Trash2 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 
-export default function ServerGeneralTab({ server, onServerUpdated, token }) {
+export default function ServerGeneralTab({ server, onServerUpdated, token, isOwner, onOpenDeleteServer }) {
   const [name, setName] = useState(server?.name || '');
   const [description, setDescription] = useState(server?.description || '');
   const [iconUrl, setIconUrl] = useState(server?.icon_url || '');
@@ -286,6 +286,53 @@ export default function ServerGeneralTab({ server, onServerUpdated, token }) {
             {saving ? 'Salvando...' : 'Salvar Alterações'}
           </button>
         </div>
+
+        {isOwner && onOpenDeleteServer && (
+          <div
+            style={{
+              marginTop: '32px',
+              padding: '16px',
+              borderRadius: '8px',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              backgroundColor: 'rgba(239, 68, 68, 0.05)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '16px',
+            }}
+            data-testid="danger-zone-section"
+          >
+            <div>
+              <div style={{ color: '#ef4444', fontWeight: 600, fontSize: '14px', marginBottom: '4px' }}>
+                Zona de Perigo
+              </div>
+              <div style={{ color: '#94a3b8', fontSize: '12px' }}>
+                Excluir este servidor apagará permanentemente todos os canais, mensagens e dados.
+              </div>
+            </div>
+            <button
+              type="button"
+              style={{
+                backgroundColor: '#dc2626',
+                color: '#ffffff',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '13px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap',
+              }}
+              onClick={onOpenDeleteServer}
+              data-testid="danger-zone-delete-btn"
+            >
+              <Trash2 size={15} /> Excluir Servidor
+            </button>
+          </div>
+        )}
       </form>
     </div>
   );
