@@ -26,6 +26,8 @@ export default function ChannelSidebar({
   currentUser,
   currentUserRole = 'MEMBER',
   voiceStates = {},
+  onlineUsers = [],
+  voiceChannelUsers = {},
   onDisconnectVoice,
   channelUnreads = {},
   isSoundMuted = false,
@@ -257,6 +259,34 @@ export default function ChannelSidebar({
               const isActive = activeChannelId === ch.id;
               const isConnected = connectedVoiceChannelId === ch.id;
 
+              // Obtém participantes deste canal de voz
+              const channelUsers = voiceChannelUsers[ch.id] || [];
+              let displayUsers = [];
+
+              if (isConnected) {
+                // Combina usuários em tempo real do socket com os participantes da sala
+                const sourceList = (onlineUsers && onlineUsers.length > 0) ? onlineUsers : channelUsers;
+                const merged = [...sourceList];
+                if (currentUser && !merged.some((u) => (u.user_id || u.id) === currentUser.id)) {
+                  merged.push({ user_id: currentUser.id, user_name: currentUser.name });
+                }
+                const seen = new Set();
+                displayUsers = merged.filter((u) => {
+                  const uid = u.user_id || u.id;
+                  if (!uid || seen.has(uid)) return false;
+                  seen.add(uid);
+                  return true;
+                });
+              } else {
+                const seen = new Set();
+                displayUsers = channelUsers.filter((u) => {
+                  const uid = u.user_id || u.id;
+                  if (!uid || seen.has(uid)) return false;
+                  seen.add(uid);
+                  return true;
+                });
+              }
+
               return (
                 <div key={ch.id} className="voice-channel-wrapper">
                   <div
@@ -276,25 +306,36 @@ export default function ChannelSidebar({
                     </div>
                   </div>
 
-                  {/* Usuários Conectados no Canal de Voz (Bolinha do Perfil) */}
-                  {isConnected && currentUser && (
+                  {/* Usuários Conectados no Canal de Voz */}
+                  {displayUsers.length > 0 && (
                     <div className="voice-channel-users-list" data-testid={`voice-channel-users-${ch.id}`}>
-                      <div
-                        className={`voice-user-item ${voiceStates[currentUser.id]?.is_speaking ? 'speaking' : ''}`}
-                        data-testid={`voice-user-item-${currentUser.id}`}
-                      >
-                        <div
-                          className={`voice-user-avatar ${
-                            voiceStates[currentUser.id]?.is_speaking ? 'speaking-halo' : ''
-                          }`}
-                        >
-                          {userInitial}
-                        </div>
-                        <span className="voice-user-name">{currentUser.name || 'Super Admin'}</span>
-                        {voiceStates[currentUser.id]?.is_muted && (
-                          <MicOff size={13} className="voice-user-muted-icon" />
-                        )}
-                      </div>
+                      {displayUsers.map((u) => {
+                        const uid = u.user_id || u.id;
+                        const uname = u.user_name || u.name || (uid === currentUser?.id ? (currentUser?.name || 'Super Admin') : 'Membro');
+                        const isSpeaking = voiceStates[uid]?.is_speaking;
+                        const isMuted = voiceStates[uid]?.is_muted;
+                        const initial = (uname || 'U').trim().charAt(0).toUpperCase();
+
+                        return (
+                          <div
+                            key={uid}
+                            className={`voice-user-item ${isSpeaking ? 'speaking' : ''}`}
+                            data-testid={`voice-user-item-${uid}`}
+                          >
+                            <div
+                              className={`voice-user-avatar ${
+                                isSpeaking ? 'speaking-halo' : ''
+                              }`}
+                            >
+                              {initial}
+                            </div>
+                            <span className="voice-user-name">{uname}</span>
+                            {isMuted && (
+                              <MicOff size={13} className="voice-user-muted-icon" />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

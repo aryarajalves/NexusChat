@@ -11,6 +11,7 @@ import Register from './components/Register';
 import ResetPassword from './components/ResetPassword';
 import LogoutConfirmModal from './components/LogoutConfirmModal';
 import DashboardWelcome from './components/DashboardWelcome';
+import InviteLanding from './components/discord/InviteLanding';
 import { useToast } from './context/ToastContext';
 import { AUTH_EXPIRED_EVENT } from './services/authInterceptor';
 
@@ -89,9 +90,37 @@ function App() {
     });
   };
 
-  const handleLoginSuccess = (loggedInUser, userToken) => {
+  const handleLoginSuccess = async (loggedInUser, userToken) => {
     setUser(loggedInUser);
     setToken(userToken);
+
+    // Se houver convite de servidor pendente pós-login
+    const pendingInvite = sessionStorage.getItem('pending_server_invite');
+    if (pendingInvite) {
+      sessionStorage.removeItem('pending_server_invite');
+      try {
+        const res = await fetch(`/api/v1/discord/invites/${pendingInvite}/join`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        if (res.ok) {
+          const joinedServer = await res.json();
+          addToast(`Você entrou em ${joinedServer.name}!`, 'success');
+          localStorage.setItem('active_tab', 'discord');
+          localStorage.setItem('discord_active_server_id', String(joinedServer.id));
+          setActiveTab('discord');
+          setIsSidebarHidden(true);
+          window.history.replaceState({}, '', '/');
+          setPathname('/');
+          return;
+        }
+      } catch {
+        // Segue fluxo normal se falhar
+      }
+    }
   };
 
   const handlePromptLogout = () => {
@@ -133,6 +162,33 @@ function App() {
       <Register
         onRegisterSuccess={() => {
           window.location.href = '/';
+        }}
+      />
+    );
+  }
+
+  // Se o caminho for de convite para servidor do Discord (/invite/:code)
+  const inviteCodeMatch = pathname.match(/\/invite\/([a-zA-Z0-9_-]+)/);
+  const inviteCode = inviteCodeMatch ? inviteCodeMatch[1] : null;
+
+  if (inviteCode) {
+    return (
+      <InviteLanding
+        inviteCode={inviteCode}
+        currentUser={user}
+        token={token}
+        onJoinSuccess={(server) => {
+          localStorage.setItem('active_tab', 'discord');
+          localStorage.setItem('discord_active_server_id', String(server.id));
+          setActiveTab('discord');
+          setIsSidebarHidden(true);
+          window.history.replaceState({}, '', '/');
+          setPathname('/');
+        }}
+        onNavigateLogin={() => {
+          sessionStorage.setItem('pending_server_invite', inviteCode);
+          window.history.replaceState({}, '', '/');
+          setPathname('/');
         }}
       />
     );

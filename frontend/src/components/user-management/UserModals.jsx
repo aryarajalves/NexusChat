@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, ShieldCheck, Check, Copy, KeyRound } from 'lucide-react';
+import { X, ShieldCheck, Check, Copy, KeyRound, Mail, UserCog } from 'lucide-react';
 
 export function CreateInviteModal({
   isOpen,
@@ -22,7 +22,17 @@ export function CreateInviteModal({
     <div className="modal-overlay" role="dialog" aria-modal="true">
       <div className="modal-content">
         <div className="modal-header">
-          <h3>Gerar Link de Convite</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="modal-header-badge">
+              <Mail size={20} />
+            </div>
+            <div>
+              <h3>Gerar Link de Convite</h3>
+              <p style={{ fontSize: '12.5px', color: '#949ba4', margin: '2px 0 0 0' }}>
+                Crie um convite seguro com perfil e tempo de expiração definidos.
+              </p>
+            </div>
+          </div>
           <button
             type="button"
             className="close-modal-btn"
@@ -155,7 +165,17 @@ export function EditUserRoleModal({
     <div className="modal-overlay" role="dialog" aria-modal="true">
       <div className="modal-content">
         <div className="modal-header">
-          <h3>Alterar Perfil de Acesso</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="modal-header-badge">
+              <UserCog size={20} />
+            </div>
+            <div>
+              <h3>Alterar Perfil de Acesso</h3>
+              <p style={{ fontSize: '12.5px', color: '#949ba4', margin: '2px 0 0 0' }}>
+                Modifique as permissões de acesso deste usuário.
+              </p>
+            </div>
+          </div>
           <button
             type="button"
             className="close-modal-btn"
@@ -224,7 +244,17 @@ export function ResetPasswordModal({
     <div className="modal-overlay" role="dialog" aria-modal="true">
       <div className="modal-content">
         <div className="modal-header">
-          <h3>Link de Redefinição de Senha</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="modal-header-badge">
+              <KeyRound size={20} />
+            </div>
+            <div>
+              <h3>Link de Redefinição de Senha</h3>
+              <p style={{ fontSize: '12.5px', color: '#949ba4', margin: '2px 0 0 0' }}>
+                Envie este link seguro para o usuário redefinir sua senha.
+              </p>
+            </div>
+          </div>
           <button
             type="button"
             className="close-modal-btn"

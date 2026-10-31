@@ -4,7 +4,8 @@
   position: absolute;
   width: 350px;
   height: 430px;
-  max-width: 92vw;
+  max-height: min(430px, calc(100vh - 40px));
+  max-width: min(350px, 92vw);
   background: #2b2d31;
   border: 1px solid #1e1f22;
   border-radius: 10px;

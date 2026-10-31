@@ -17,20 +17,23 @@ Plataforma completa de comunicação e colaboração em tempo real inspirada no 
   - Suporte a envio de texto (até 2.000 caracteres), links e anexos de mídia de até 50 MB;
   - Respostas a mensagens específicas (*Reply*) com citação visual e atalho de rolagem;
   - Edição e exclusão de mensagens pelo próprio autor em tempo real;
-  - Reações com emojis em mensagens e seletor completo de emojis organizado em categorias e histórico recente;
+  - Reações com emojis em mensagens e seletor inteligente de emojis com prevenção de transbordamento de tela e histórico recente;
   - Sistema de menções inteligentes (`@nome`, `@everyone`, `@here`) com menu suspenso de autocompletar e destaque visual;
-  - Mensagens fixadas (*Pinned Messages*) com gaveta lateral e atalhos rápidos;
+  - Mensagens fixadas (*Pinned Messages*) com renderização direta de mídias (áudio, vídeo e imagem) e paginação de 20 mensagens por página;
   - Gravação e envio de notas de voz nativas no chat com equalizador de ondas sonoras;
   - Busca global e filtragem de mensagens por texto e por arquivos anexados (`has_attachment`).
 - **Mensagens Diretas Bilaterais (DMs 1x1):**
   - Conversas privadas entre quaisquer usuários cadastrados com sincronização em tempo real e compartilhamento de mídias;
+  - WebSocket unificado de eventos do usuário (`/ws/me`) transmitindo em tempo real novas DMs, edições, remoções e reações;
+  - Badges verdes com brilho neon indicando mensagens não lidas em servidores, canais e avatares de contatos;
   - Paginação eficiente de contatos (20 contatos por página) tanto na barra lateral de DMs quanto no modal de nova conversa privada;
   - Suporte completo a avatares e fotos de perfil dos contatos;
-  - Contadores visuais e badges de mensagens não lidas (*Unreads*) sincronizados via WebSockets em servidores, canais e DMs.
 - **Voz, Vídeo & Gravação com Webcam PiP:**
   - Canais de voz em grupo com controle de mudo e ensurdecer;
+  - Player flutuante Picture-in-Picture (PiP) totalmente arrastável (Drag & Drop) com persistência de coordenadas e limitação na viewport;
+  - Presença em tempo real de múltiplos participantes conectados nos canais de voz;
   - Gravação de áudio e vídeo da transmissão via `MediaRecorder`;
-  - Gravação com webcam sobreposta em *Picture-in-Picture* (PiP) móvel via Drag & Drop;
+  - Gravação com webcam sobreposta em *Picture-in-Picture* (PiP) móvel;
   - Efeitos sonoros característicos sintetizados via Web Audio API (mensagens, menções, conexão e desconexão de voz);
   - Modal completo de configurações de usuário (perfil, microfone/alto-falante, volume de efeitos e aparência visual).
 
@@ -55,7 +58,7 @@ Plataforma completa de comunicação e colaboração em tempo real inspirada no 
 ---
 
 ### 💾 4. Gestão, Backups e Monitoramento
-- **Gestão de Usuários & Convites:** Cadastro manual direto pelo Super Admin ou via links de convite com tempo de expiração e códigos OTP via e-mail;
+- **Gestão de Usuários & Convites:** Cadastro manual direto pelo Super Admin ou via links de convite com tempo de expiração e página pública de entrada com preview do servidor (`/invite/:code`);
 - **Backups Automáticos no S3:** Agendamento periódico de dumps compactados do PostgreSQL para o Backblaze B2 com retenção FIFO;
 - **Terminal de Logs Docker:** Monitoramento ao vivo dos contêineres Docker da aplicação com filtragem por data, nível de log e timestamps no Horário de Brasília;
 - **Métricas de Infraestrutura:** Acompanhamento de CPU, RAM, conexões ativas do pool de banco de dados e alertas automatizados via Webhook.

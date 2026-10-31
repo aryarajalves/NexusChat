@@ -113,10 +113,17 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }) {
         }}
       >
         {/* Cabeçalho Fixo do Modal */}
-        <div className="modal-header" style={{ marginBottom: '14px', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <UserPlus size={20} color="#0284c7" />
-            <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>Criar Conta de Usuário</h3>
+        <div className="modal-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="modal-header-badge">
+              <UserPlus size={20} />
+            </div>
+            <div>
+              <h3>Criar Conta de Usuário</h3>
+              <p style={{ fontSize: '12.5px', color: '#949ba4', margin: '2px 0 0 0' }}>
+                Preencha os dados abaixo para cadastrar um novo usuário.
+              </p>
+            </div>
           </div>
           <button
             type="button"
@@ -165,8 +172,8 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }) {
           {error && <div className="auth-error-banner" data-testid="create-user-error-banner">{error}</div>}
 
           {/* Nome */}
-          <div className="form-group" style={{ gap: '4px' }}>
-            <label htmlFor="create-user-name" style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+          <div className="form-group">
+            <label htmlFor="create-user-name">
               Nome Completo
             </label>
             <input
@@ -184,8 +191,8 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }) {
           </div>
 
           {/* E-mail */}
-          <div className="form-group" style={{ gap: '4px' }}>
-            <label htmlFor="create-user-email" style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+          <div className="form-group">
+            <label htmlFor="create-user-email">
               E-mail
             </label>
             <input
@@ -203,8 +210,8 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }) {
           </div>
 
           {/* Perfil */}
-          <div className="form-group" style={{ gap: '4px' }}>
-            <label htmlFor="create-user-role" style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+          <div className="form-group">
+            <label htmlFor="create-user-role">
               Perfil de Acesso
             </label>
             <select
@@ -218,14 +225,14 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }) {
               <option value="user">Usuário comum</option>
               <option value="admin">Administrador (Admin)</option>
             </select>
-            <small className="help-text" style={{ fontSize: '11.5px', color: '#64748b' }}>
+            <small className="help-text">
               * O perfil Super Admin é exclusivo e não pode ser criado manualmente por aqui.
             </small>
           </div>
 
           {/* Senha */}
-          <div className="form-group" style={{ gap: '4px' }}>
-            <label htmlFor="create-user-password" style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+          <div className="form-group">
+            <label htmlFor="create-user-password">
               Senha de Acesso
             </label>
             <div className="input-wrapper" style={{ position: 'relative' }}>
@@ -240,11 +247,18 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }) {
                 disabled={loading}
                 autoComplete="new-password"
                 data-testid="create-user-password-input"
-                style={{ paddingRight: '40px' }}
+                style={{ paddingRight: '44px' }}
               />
               <button
                 type="button"
-                className="toggle-password-btn"
+                className="close-modal-btn"
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  padding: '6px',
+                }}
                 onClick={() => setShowPassword(!showPassword)}
                 tabIndex="-1"
                 data-testid="toggle-create-password-btn"
@@ -254,14 +268,14 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }) {
             </div>
 
             {/* Checklist Compacto de Requisitos de Senha */}
-            <div className="password-rules-card" style={{ marginTop: '6px', padding: '8px 12px' }}>
-              <span className="rules-title" style={{ marginBottom: '6px' }}>Requisitos de Segurança:</span>
+            <div className="password-rules-card">
+              <span className="rules-title">Requisitos de Segurança:</span>
               <ul
                 className="rules-list"
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
-                  gap: '4px 8px',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                  gap: '6px 12px',
                 }}
               >
                 <li className={passwordRules.length ? 'rule-met' : 'rule-unmet'} data-testid="rule-length">
@@ -289,8 +303,8 @@ export default function CreateUserModal({ isOpen, onClose, onSuccess }) {
           </div>
 
           {/* Confirmar Senha */}
-          <div className="form-group" style={{ gap: '4px' }}>
-            <label htmlFor="create-user-password-confirm" style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+          <div className="form-group">
+            <label htmlFor="create-user-password-confirm">
               Confirmar Senha
             </label>
             <input

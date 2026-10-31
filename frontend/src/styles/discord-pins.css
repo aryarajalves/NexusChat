@@ -275,3 +275,81 @@
 .pinned-unpin-btn:hover {
   color: #f23f43;
 }
+
+/* Mídias renderizadas no card de mensagens fixadas */
+.pinned-card-media-wrapper {
+  margin-top: 6px;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: #1e1f22;
+  max-width: 100%;
+}
+
+.pinned-media-image {
+  max-width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 6px;
+  display: block;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.pinned-media-image:hover {
+  opacity: 0.92;
+  transform: scale(1.01);
+}
+
+.pinned-media-video {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 6px;
+  display: block;
+  width: 100%;
+}
+
+.pinned-media-audio {
+  width: 100%;
+  height: 36px;
+  margin-top: 2px;
+}
+
+/* Barra de Paginação de Fixadas */
+.pinned-pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: #1e1f22;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 11.5px;
+}
+
+.pinned-page-indicator {
+  color: #949ba4;
+  font-weight: 500;
+}
+
+.pinned-page-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #2b2d31;
+  color: #f2f3f5;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.pinned-page-nav-btn:hover:not(:disabled) {
+  background-color: #383a40;
+  color: #ffffff;
+}
+
+.pinned-page-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

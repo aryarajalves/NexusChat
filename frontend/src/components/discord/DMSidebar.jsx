@@ -157,7 +157,7 @@ export default function DMSidebar({
                 {isUnread && (
                   <div className="channel-unread-dot" data-testid={`dm-unread-dot-${conv.id}`} />
                 )}
-                <div className="discord-avatar-wrapper" style={{ width: '32px', height: '32px', fontSize: '13px', flexShrink: 0 }}>
+                <div className="discord-avatar-wrapper" style={{ width: '32px', height: '32px', fontSize: '13px', flexShrink: 0, position: 'relative' }}>
                   {conv.other_user?.avatar_url ? (
                     <img
                       src={conv.other_user.avatar_url}
@@ -167,7 +167,13 @@ export default function DMSidebar({
                   ) : (
                     initial
                   )}
-                  <span className="discord-online-badge" />
+                  {isUnread ? (
+                    <span className="contact-unread-avatar-badge" data-testid={`contact-unread-avatar-badge-${conv.id}`}>
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  ) : (
+                    <span className="discord-online-badge" />
+                  )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
                   <span style={{ color: (isActive || isUnread) ? '#fff' : '#dbdee1', fontWeight: (isActive || isUnread) ? 700 : 600, fontSize: '13.5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

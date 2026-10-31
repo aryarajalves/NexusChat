@@ -272,9 +272,9 @@ async def send_dm_message(
         "data": response_data.model_dump(mode="json")
     })
 
-    # Notifica o outro usuário sobre a nova mensagem privada não lida
+    # Notifica o outro usuário sobre a nova mensagem privada não lida e entrega os dados em tempo real
     other_user_id = conv.user2_id if conv.user1_id == current_user.id else conv.user1_id
-    await notify_dm_unread(conversation_id, msg.id, other_user_id)
+    await notify_dm_unread(conversation_id, msg.id, other_user_id, response_data.model_dump(mode="json"))
 
     return response_data
 

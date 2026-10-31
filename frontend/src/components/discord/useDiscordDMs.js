@@ -1,7 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useToast } from '../../context/ToastContext';
 
-export function useDiscordDMs({ token, currentUser, activeServerId, onMessagePin, onUnreadUpdate }) {
+export function useDiscordDMs({
+  token,
+  currentUser,
+  activeServerId,
+  onMessageNew,
+  onMessageEdit,
+  onMessageDelete,
+  onMessageReaction,
+  onMessagePin,
+  onUnreadUpdate,
+}) {
   const [conversations, setConversations] = useState([]);
   const [activeDMId, setActiveDMId] = useState(() => {
     const saved = localStorage.getItem('discord_active_dm_id');
@@ -16,14 +26,22 @@ export function useDiscordDMs({ token, currentUser, activeServerId, onMessagePin
   const dmHeartbeatIntervalRef = useRef(null);
   const dmReconnectTimeoutRef = useRef(null);
   const dmIntentionalCloseRef = useRef(false);
+  const onMessageNewRef = useRef(onMessageNew);
+  const onMessageEditRef = useRef(onMessageEdit);
+  const onMessageDeleteRef = useRef(onMessageDelete);
+  const onMessageReactionRef = useRef(onMessageReaction);
   const onMessagePinRef = useRef(onMessagePin);
   const onUnreadUpdateRef = useRef(onUnreadUpdate);
   const { addToast } = useToast();
 
   useEffect(() => {
+    onMessageNewRef.current = onMessageNew;
+    onMessageEditRef.current = onMessageEdit;
+    onMessageDeleteRef.current = onMessageDelete;
+    onMessageReactionRef.current = onMessageReaction;
     onMessagePinRef.current = onMessagePin;
     onUnreadUpdateRef.current = onUnreadUpdate;
-  }, [onMessagePin, onUnreadUpdate]);
+  }, [onMessageNew, onMessageEdit, onMessageDelete, onMessageReaction, onMessagePin, onUnreadUpdate]);
 
   // 1. Carrega todas as conversas diretas
   const loadConversations = useCallback(async () => {
@@ -155,7 +173,28 @@ export function useDiscordDMs({ token, currentUser, activeServerId, onMessagePin
             const payload = JSON.parse(event.data);
             if (payload.type === 'pong' || payload.event === 'pong') return;
 
-            if (payload.type === 'user_typing') {
+            if (payload.type === 'new_message' || payload.event === 'message:new') {
+              const newMsg = payload.data || payload.message;
+              if (newMsg && onMessageNewRef.current) {
+                onMessageNewRef.current(newMsg);
+              }
+              loadConversations();
+            } else if (payload.type === 'message_edited' || payload.type === 'message_edit' || payload.event === 'message:edit') {
+              const updatedMsg = payload.data || payload.message;
+              if (updatedMsg && onMessageEditRef.current) {
+                onMessageEditRef.current(updatedMsg);
+              }
+            } else if (payload.type === 'message_deleted' || payload.type === 'message_delete' || payload.event === 'message:delete') {
+              const delId = payload.data?.message_id || payload.data?.id || payload.message_id || payload.data;
+              if (delId && onMessageDeleteRef.current) {
+                onMessageDeleteRef.current(delId);
+              }
+            } else if (payload.type === 'reaction_updated' || payload.type === 'message_reaction' || payload.event === 'message:reaction') {
+              const rxData = payload.data || payload;
+              if (onMessageReactionRef.current && rxData) {
+                onMessageReactionRef.current(rxData);
+              }
+            } else if (payload.type === 'user_typing') {
               const { user_name, is_typing, user_id } = payload.data;
               if (user_id === currentUser?.id) return;
 
@@ -181,6 +220,7 @@ export function useDiscordDMs({ token, currentUser, activeServerId, onMessagePin
               if (onUnreadUpdateRef.current) {
                 onUnreadUpdateRef.current(payload);
               }
+              loadConversations();
             }
           } catch (err) {
             console.error('Erro ao processar mensagem do WebSocket DM:', err);

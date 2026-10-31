@@ -11,6 +11,8 @@ from app.api.v1.endpoints import (
     discord_unreads,
     discord_roles,
     discord_voice,
+    discord_invites,
+    discord_ws,
 )
 
 api_router = APIRouter()
@@ -25,3 +27,5 @@ api_router.include_router(discord_pins.router)
 api_router.include_router(discord_unreads.router)
 api_router.include_router(discord_roles.router)
 api_router.include_router(discord_voice.router)
+api_router.include_router(discord_invites.router)
+api_router.include_router(discord_ws.router)

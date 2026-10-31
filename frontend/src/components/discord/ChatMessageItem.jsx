@@ -58,7 +58,7 @@ export default function ChatMessageItem({
     e.stopPropagation();
     if (!isEmojiPickerOpen && e?.currentTarget) {
       const rect = e.currentTarget.getBoundingClientRect();
-      setPopoverPlacement(rect.top < 180 ? 'bottom' : 'top');
+      setPopoverPlacement(rect.top < 450 ? 'bottom' : 'top');
     }
     setIsMoreMenuOpen(false); setIsFullEmojiPickerOpen(false); setIsEmojiPickerOpen((prev) => !prev);
   };
@@ -372,6 +372,10 @@ export default function ChatMessageItem({
               className="quick-emoji-btn quick-emoji-more-btn"
               onClick={(e) => {
                 e.stopPropagation();
+                if (e?.currentTarget) {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setPopoverPlacement(rect.top < 450 ? 'bottom' : 'top');
+                }
                 setIsEmojiPickerOpen(false);
                 setIsFullEmojiPickerOpen(true);
               }}

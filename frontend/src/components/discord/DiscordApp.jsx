@@ -17,6 +17,8 @@ import { useDiscordSocket } from './useDiscordSocket';
 import { useDiscordActions } from './useDiscordActions';
 import { useDiscordDMs } from './useDiscordDMs';
 import { useDiscordNavigation } from './useDiscordNavigation';
+import useDiscordVoicePresence from './useDiscordVoicePresence';
+import useDiscordUserWS from './useDiscordUserWS';
 import { useToast } from '../../context/ToastContext';
 import { isSoundMuted, toggleSoundMuted, playDiscordSound } from './discordSounds';
 
@@ -103,11 +105,36 @@ export default function DiscordApp({ currentUser, onUserUpdated, onToggleAppSide
     }
   }, [activeServerId, activeChannelId]);
 
-  // 1. Hook de DMs (Mensagens Diretas)
+  // 1. Hook de DMs (Mensagens Diretas) com WebSocket em tempo real
+  const handleDMMessageNew = useCallback((newMsg) => {
+    if (!newMsg) return;
+    setMessages((prev) => (prev.some((m) => m.id === newMsg.id) ? prev : [...prev, newMsg]));
+    if (newMsg?.author_id !== currentUser?.id) {
+      playDiscordSound('message');
+    }
+  }, [currentUser]);
+
   const {
     conversations, activeDMId, setActiveDMId, loadConversations,
     startOrSelectDM, dmTypingUsers, dmConnectionStatus, sendDMTyping,
-  } = useDiscordDMs({ token, currentUser, activeServerId, onMessagePin: handlePinUpdate, onUnreadUpdate: handleUnreadUpdate });
+  } = useDiscordDMs({
+    token,
+    currentUser,
+    activeServerId,
+    onMessageNew: handleDMMessageNew,
+    onMessageEdit: (m) => setMessages((prev) => prev.map((x) => (x.id === m.id ? m : x))),
+    onMessageDelete: (id) => setMessages((prev) => prev.filter((x) => x.id !== id)),
+    onMessageReaction: (d) => setMessages((prev) => prev.map((x) => (x.id === d.message_id ? { ...x, reactions: d.reactions } : x))),
+    onMessagePin: handlePinUpdate,
+    onUnreadUpdate: handleUnreadUpdate,
+  });
+
+  // 2. Conexão WebSocket Global de Notificações (/api/v1/discord/ws/me)
+  useDiscordUserWS({
+    token,
+    onUnreadUpdate: handleUnreadUpdate,
+    onDMMessageNew: handleDMMessageNew,
+  });
 
   activeDMIdRef.current = activeDMId;
 
@@ -140,6 +167,11 @@ export default function DiscordApp({ currentUser, onUserUpdated, onToggleAppSide
   } = useDiscordActions({
     token, activeServerId, activeChannelId, setMessages, setServers,
     setActiveServerId, setChannels, setActiveChannelId, sendMessage,
+  });
+
+  // 4. Hook de Presença e Participantes de Canais de Voz
+  const { voiceChannelUsers, handleDisconnectVoicePresence } = useDiscordVoicePresence({
+    token, channels, connectedVoiceChannelId, onlineUsers, currentUser,
   });
 
   // Carrega mensagens (seja de canal ou de DM)
@@ -266,8 +298,12 @@ export default function DiscordApp({ currentUser, onUserUpdated, onToggleAppSide
     }
   };
 
-  const handleGeneralEditMessage = async (msgId, newContent) => {
-    if (activeServerId !== null) return handleEditMessage(msgId, newContent);
+  const handleGeneralEditMessage = async (arg1, arg2, arg3) => {
+    const isThreeArgs = arg3 !== undefined;
+    const chId = isThreeArgs ? arg1 : activeChannelId;
+    const msgId = isThreeArgs ? arg2 : arg1;
+    const newContent = isThreeArgs ? arg3 : arg2;
+    if (activeServerId !== null) return handleEditMessage(chId, msgId, newContent);
     const res = await fetch(`/api/v1/discord/dms/messages/${msgId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -282,8 +318,12 @@ export default function DiscordApp({ currentUser, onUserUpdated, onToggleAppSide
     }
   };
 
-  const handleGeneralToggleReaction = async (msgId, emoji) => {
-    if (activeServerId !== null) return handleToggleReaction(msgId, emoji);
+  const handleGeneralToggleReaction = async (arg1, arg2, arg3) => {
+    const isThreeArgs = arg3 !== undefined;
+    const chId = isThreeArgs ? arg1 : activeChannelId;
+    const msgId = isThreeArgs ? arg2 : arg1;
+    const emoji = isThreeArgs ? arg3 : arg2;
+    if (activeServerId !== null) return handleToggleReaction(chId, msgId, emoji);
     const res = await fetch(`/api/v1/discord/dms/messages/${msgId}/reactions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -330,6 +370,7 @@ export default function DiscordApp({ currentUser, onUserUpdated, onToggleAppSide
   };
 
   const handleDisconnectVoice = () => {
+    handleDisconnectVoicePresence(connectedVoiceChannelId);
     setConnectedVoiceChannelId(null);
     playDiscordSound('voice_leave');
     addToast('Você saiu do canal de voz.', 'info');
@@ -390,6 +431,8 @@ export default function DiscordApp({ currentUser, onUserUpdated, onToggleAppSide
           channels={channels}
           activeChannelId={activeChannelId}
           connectedVoiceChannelId={connectedVoiceChannelId}
+          voiceChannelUsers={voiceChannelUsers}
+          onlineUsers={onlineUsers}
           onSelectChannel={(chId) =>
             handleSelectChannel(chId, (vId) => {
               setConnectedVoiceChannelId(vId);

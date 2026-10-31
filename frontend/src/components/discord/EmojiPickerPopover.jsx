@@ -30,10 +30,20 @@ export default function EmojiPickerPopover({
     setRecentList(getRecentEmojis());
   }, []);
 
-  // Foco inicial no campo de busca
+  // Foco inicial no campo de busca e ajuste de segurança aos limites da tela
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchInputRef.current) searchInputRef.current.focus();
+      if (popoverRef.current) {
+        const rect = popoverRef.current.getBoundingClientRect();
+        if (rect.top < 10) {
+          popoverRef.current.style.top = '10px';
+          popoverRef.current.style.bottom = 'auto';
+        } else if (rect.bottom > window.innerHeight - 10) {
+          popoverRef.current.style.bottom = '10px';
+          popoverRef.current.style.top = 'auto';
+        }
+      }
     }, 50);
     return () => clearTimeout(timer);
   }, []);

@@ -309,14 +309,14 @@ async def notify_channel_unread(channel_id: int, server_id: int, message_id: int
         )
 
 
-async def notify_dm_unread(conversation_id: int, message_id: int, recipient_user_id: int):
+async def notify_dm_unread(conversation_id: int, message_id: int, recipient_user_id: int, message_data: Optional[Dict[str, Any]] = None):
     """Envia notificação de mensagem não lida para o outro participante da DM."""
-    await socket_manager.broadcast_to_user(
-        recipient_user_id,
-        {
-            "event": "unread:update",
-            "type": "dm",
-            "conversation_id": conversation_id,
-            "message_id": message_id,
-        },
-    )
+    payload = {
+        "event": "unread:update",
+        "type": "dm",
+        "conversation_id": conversation_id,
+        "message_id": message_id,
+    }
+    if message_data:
+        payload["message"] = message_data
+    await socket_manager.broadcast_to_user(recipient_user_id, payload)

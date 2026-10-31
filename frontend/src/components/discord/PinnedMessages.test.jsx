@@ -123,6 +123,104 @@ describe('Pinned Messages Feature (Item 3)', () => {
       fireEvent.click(screen.getByTestId('close-pinned-panel-btn'));
       expect(handleClose).toHaveBeenCalledTimes(1);
     });
+
+    it('renders rich media previews (image, video, audio) in pinned cards', () => {
+      const mediaMessages = [
+        {
+          id: 301,
+          author_name: 'Super Admin',
+          content: 'Foto importante',
+          attachment_url: 'https://exemplo.com/foto.jpg',
+          attachment_type: 'image/jpeg',
+          created_at: '2026-10-28T14:00:00Z',
+        },
+        {
+          id: 302,
+          author_name: 'Super Admin',
+          content: 'Vídeo da call',
+          attachment_url: 'https://exemplo.com/video.mp4',
+          attachment_type: 'video/mp4',
+          created_at: '2026-10-28T14:10:00Z',
+        },
+        {
+          id: 303,
+          author_name: 'Super Admin',
+          content: 'Áudio gravado',
+          attachment_url: 'https://exemplo.com/audio.mp3',
+          attachment_type: 'audio/mpeg',
+          created_at: '2026-10-28T14:20:00Z',
+        },
+      ];
+
+      render(
+        <PinnedMessagesPanel
+          isOpen={true}
+          onClose={vi.fn()}
+          channel={mockChannel}
+          pinnedMessages={mediaMessages}
+        />
+      );
+
+      // Imagem
+      const imgMedia = screen.getByTestId('pinned-media-301');
+      expect(imgMedia).toBeInTheDocument();
+      expect(imgMedia.querySelector('img')).toHaveAttribute('src', 'https://exemplo.com/foto.jpg');
+
+      // Vídeo
+      const videoMedia = screen.getByTestId('pinned-media-302');
+      expect(videoMedia).toBeInTheDocument();
+      expect(videoMedia.querySelector('video')).toHaveAttribute('src', 'https://exemplo.com/video.mp4');
+
+      // Áudio
+      const audioMedia = screen.getByTestId('pinned-media-303');
+      expect(audioMedia).toBeInTheDocument();
+      expect(audioMedia.querySelector('audio')).toHaveAttribute('src', 'https://exemplo.com/audio.mp3');
+    });
+
+    it('paginates pinned messages showing only 20 per page with navigation controls', () => {
+      const twentyFiveMessages = Array.from({ length: 25 }, (_, i) => ({
+        id: 1000 + i + 1,
+        author_name: `User ${i + 1}`,
+        content: `Fixada número ${i + 1}`,
+        created_at: '2026-10-28T14:00:00Z',
+      }));
+
+      render(
+        <PinnedMessagesPanel
+          isOpen={true}
+          onClose={vi.fn()}
+          channel={mockChannel}
+          pinnedMessages={twentyFiveMessages}
+        />
+      );
+
+      // Deve renderizar a barra de paginação e indicar Página 1 de 2
+      expect(screen.getByTestId('pinned-pagination-bar')).toBeInTheDocument();
+      expect(screen.getByTestId('pinned-page-indicator')).toHaveTextContent('Página 1 de 2');
+
+      // Na página 1, mostra apenas os primeiros 20 (1001 a 1020)
+      expect(screen.getByTestId('pinned-card-1001')).toBeInTheDocument();
+      expect(screen.getByTestId('pinned-card-1020')).toBeInTheDocument();
+      expect(screen.queryByTestId('pinned-card-1021')).toBeNull();
+
+      // Botão anterior desativado na primeira página
+      const prevBtn = screen.getByTestId('pinned-prev-page-btn');
+      const nextBtn = screen.getByTestId('pinned-next-page-btn');
+      expect(prevBtn).toBeDisabled();
+      expect(nextBtn).not.toBeDisabled();
+
+      // Avança para a página 2
+      fireEvent.click(nextBtn);
+
+      expect(screen.getByTestId('pinned-page-indicator')).toHaveTextContent('Página 2 de 2');
+      expect(screen.queryByTestId('pinned-card-1001')).toBeNull();
+      expect(screen.getByTestId('pinned-card-1021')).toBeInTheDocument();
+      expect(screen.getByTestId('pinned-card-1025')).toBeInTheDocument();
+
+      // Botão próxima desativado na última página
+      expect(nextBtn).toBeDisabled();
+      expect(prevBtn).not.toBeDisabled();
+    });
   });
 
   describe('ChatMessageItem Pin Badge & Popover Action', () => {

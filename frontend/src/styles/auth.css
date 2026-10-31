@@ -197,8 +197,8 @@
   justify-content: center;
 }
 
-.input-wrapper input,
-.form-group .input-wrapper input {
+.auth-form .input-wrapper input,
+.auth-card .form-group .input-wrapper input {
   width: 100%;
   padding: 12px 46px 12px 46px !important;
   border: 1px solid #cbd5e1;
@@ -210,15 +210,15 @@
   background-color: #ffffff !important;
 }
 
-.input-wrapper input:hover,
-.form-group .input-wrapper input:hover {
+.auth-form .input-wrapper input:hover,
+.auth-card .form-group .input-wrapper input:hover {
   border-color: #94a3b8 !important;
   background-color: #ffffff !important;
   color: #1e293b !important;
 }
 
-.input-wrapper input:focus,
-.form-group .input-wrapper input:focus {
+.auth-form .input-wrapper input:focus,
+.auth-card .form-group .input-wrapper input:focus {
   border-color: #4f46e5 !important;
   background-color: #ffffff !important;
   color: #1e293b !important;

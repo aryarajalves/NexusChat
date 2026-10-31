@@ -178,6 +178,19 @@ class ServerInviteResponse(BaseModel):
     created_at: datetime
 
 
+class ServerInvitePublicInfo(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    code: str
+    server_id: int
+    server_name: str
+    server_icon: Optional[str] = None
+    members_count: int = 1
+    expires_at: Optional[datetime] = None
+    is_expired: bool = False
+    inviter_name: Optional[str] = None
+
+
 # --- Mensagens Diretas (DMs) ---
 class DMConversationCreate(BaseModel):
     target_user_id: int
