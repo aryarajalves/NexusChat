@@ -5,7 +5,7 @@ services:
   # SERVIÇO BACKEND (FastAPI - Nexus Chat API)
   # ==========================================
   nexus-chat-backend:
-    image: ${IMAGE_BACKEND:-aryalvesfernandes/nexus-chat:backend-1.0.1}
+    image: ${IMAGE_BACKEND:-aryalvesfernandes/nexus-chat:backend-1.0.5}
     hostname: "{{.Service.Name}}.{{.Task.Slot}}"
     networks:
       network_swarm_public:
@@ -77,7 +77,7 @@ services:
   # SERVIÇO FRONTEND (React SPA + Nginx - Nexus Chat Web)
   # ==========================================
   nexus-chat-frontend:
-    image: ${IMAGE_FRONTEND:-aryalvesfernandes/nexus-chat:frontend-1.0.4}
+    image: ${IMAGE_FRONTEND:-aryalvesfernandes/nexus-chat:frontend-1.0.5}
     hostname: "{{.Service.Name}}.{{.Task.Slot}}"
     networks:
       - network_swarm_public
