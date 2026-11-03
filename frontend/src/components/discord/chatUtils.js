@@ -53,23 +53,72 @@ export const formatFileSize = (bytes) => {
 /**
  * Renderiza o texto de mensagens formatando menções com @ (@nome, @everyone, @here)
  * em pílulas visuais elegantes, marcando com .is-me caso mencione o usuário atual.
+ * Quando onMentionClick é fornecido, torna a pílula interativa para abrir diretamente
+ * a conversa privada (DM) com o contato mencionado.
  */
-export const renderContentWithMentions = (content, currentUserName = '') => {
+export const renderContentWithMentions = (
+  content,
+  currentUserName = '',
+  onMentionClick = null,
+  members = []
+) => {
   if (!content) return content;
   const parts = content.split(/(@[a-zA-Z0-9_\-\u00C0-\u017F]+)/g);
   return parts.map((part, i) => {
     if (part.startsWith('@')) {
-      const target = part.slice(1).toLowerCase();
+      const rawTarget = part.slice(1);
+      const target = rawTarget.toLowerCase();
+      const isEveryoneOrHere = target === 'everyone' || target === 'here';
       const isMe =
-        target === 'everyone' ||
-        target === 'here' ||
+        isEveryoneOrHere ||
         (currentUserName && target === String(currentUserName).toLowerCase());
+
+      // Busca membro correspondente pelo nome, username ou e-mail
+      let matchedMember = null;
+      if (!isEveryoneOrHere && Array.isArray(members) && members.length > 0) {
+        matchedMember = members.find((m) => {
+          const mName = String(m?.user_name || m?.name || '').toLowerCase();
+          const mEmail = String(m?.email || '').toLowerCase();
+          return (
+            mName === target ||
+            mName.startsWith(target) ||
+            mEmail.startsWith(target)
+          );
+        });
+      }
+
+      const canClick = Boolean(onMentionClick && !isEveryoneOrHere);
+
+      const handleClick = (e) => {
+        if (!canClick) return;
+        e.stopPropagation();
+        e.preventDefault();
+        const targetUserId = matchedMember ? (matchedMember.user_id || matchedMember.id) : null;
+        if (targetUserId) {
+          onMentionClick(targetUserId);
+        } else {
+          onMentionClick(rawTarget);
+        }
+      };
+
+      const pillClasses = [
+        'chat-mention-pill',
+        isMe ? 'is-me' : '',
+        canClick ? 'is-clickable' : '',
+      ]
+        .filter(Boolean)
+        .join(' ');
+
       return React.createElement(
         'span',
         {
           key: i,
-          className: `chat-mention-pill ${isMe ? 'is-me' : ''}`,
+          className: pillClasses,
           'data-testid': 'mention-pill',
+          onClick: canClick ? handleClick : undefined,
+          title: canClick ? `Conversar com @${rawTarget} na DM` : undefined,
+          role: canClick ? 'button' : undefined,
+          tabIndex: canClick ? 0 : undefined,
         },
         part
       );

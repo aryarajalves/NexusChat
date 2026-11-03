@@ -118,6 +118,49 @@ def test_upload_attachment_exceeds_50mb(attachment_setup, monkeypatch):
     assert response.status_code == 400
     assert "excede o limite" in response.json()["detail"]
 
+
+def test_upload_attachment_superadmin_has_no_size_limit(attachment_setup, monkeypatch):
+    """Super Admin pode enviar arquivos de qualquer tamanho sem restrição de 50 MB."""
+    db = TestingSessionLocal()
+    try:
+        sa = db.query(User).filter(User.email == "superadmin_attach@test.com").first()
+        if not sa:
+            sa = User(
+                email="superadmin_attach@test.com",
+                name="Super Admin Attach",
+                hashed_password=get_password_hash("password123"),
+                role="superadmin",
+                is_active=True
+            )
+            db.add(sa)
+            db.commit()
+            db.refresh(sa)
+
+        # Adiciona o superadmin como membro do servidor de teste
+        server_id = attachment_setup["server_id"]
+        member = db.query(ServerMember).filter(ServerMember.server_id == server_id, ServerMember.user_id == sa.id).first()
+        if not member:
+            db.add(ServerMember(server_id=server_id, user_id=sa.id, role="ADMIN"))
+            db.commit()
+
+        sa_token = create_access_token({"sub": str(sa.id)})
+    finally:
+        db.close()
+
+    ch_id = attachment_setup["channel_id"]
+    from app.api.v1.endpoints import discord as discord_module
+    monkeypatch.setattr(discord_module, "MAX_FILE_SIZE_BYTES", 100)
+
+    # Envia arquivo maior que o limite configurado (250 bytes > 100)
+    file_obj = io.BytesIO(b"X" * 250)
+    response = client.post(
+        f"/api/v1/discord/channels/{ch_id}/attachments",
+        headers={"Authorization": f"Bearer {sa_token}"},
+        files={"file": ("unlimited_superadmin.png", file_obj, "image/png")}
+    )
+    assert response.status_code == 200
+    assert response.json()["attachment_size"] == 250
+
 def test_send_message_with_attachment_only(attachment_setup):
     token = attachment_setup["user_token"]
     ch_id = attachment_setup["channel_id"]
@@ -191,4 +234,27 @@ def test_upload_dm_attachment(attachment_setup):
     )
     assert response.status_code == 200
     assert response.json()["attachment_type"] == "audio/webm"
+
+
+def test_attachment_delivery_includes_cache_control_headers(attachment_setup):
+    token = attachment_setup["user_token"]
+    ch_id = attachment_setup["channel_id"]
+
+    img_bytes = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDRfake_png_for_cache_test"
+    file_payload = ("screenshot_test.png", io.BytesIO(img_bytes), "image/png")
+
+    up_resp = client.post(
+        f"/api/v1/discord/channels/{ch_id}/attachments",
+        headers={"Authorization": f"Bearer {token}"},
+        files={"file": file_payload}
+    )
+    assert up_resp.status_code == 200
+    att_url = up_resp.json()["attachment_url"]
+
+    # Busca a mídia enviada e verifica os headers de Cache-Control
+    get_resp = client.get(att_url)
+    assert get_resp.status_code in (200, 307)
+    cache_header = get_resp.headers.get("Cache-Control") or ""
+    assert "public" in cache_header
+    assert "max-age=" in cache_header
 

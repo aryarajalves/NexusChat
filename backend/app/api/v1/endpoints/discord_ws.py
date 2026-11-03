@@ -40,10 +40,19 @@ async def user_notification_websocket(
         return
 
     await websocket.accept()
+    was_offline = not socket_manager.is_user_online(user.id)
     if user.id not in socket_manager.user_sockets:
         socket_manager.user_sockets[user.id] = set()
     socket_manager.user_sockets[user.id].add(websocket)
     socket_manager.socket_users[websocket] = (user.id, user.name)
+
+    if was_offline:
+        online_ids = [uid for uid in list(socket_manager.user_sockets.keys()) if uid != user.id]
+        if online_ids:
+            await socket_manager.broadcast_to_users(
+                online_ids,
+                {"event": "user:presence", "user_id": user.id, "is_online": True},
+            )
 
     logger.info(f"[WebSocket User] Usuário {user.name} ({user.id}) conectado ao canal global de notificações")
 
@@ -63,4 +72,14 @@ async def user_notification_websocket(
             if not socket_manager.user_sockets[user.id]:
                 del socket_manager.user_sockets[user.id]
         socket_manager.socket_users.pop(websocket, None)
+
+        if not socket_manager.is_user_online(user.id):
+            await socket_manager.remove_user_from_all_voice_rooms(user.id, user.name)
+            online_ids = list(socket_manager.user_sockets.keys())
+            if online_ids:
+                await socket_manager.broadcast_to_users(
+                    online_ids,
+                    {"event": "user:presence", "user_id": user.id, "is_online": False},
+                )
+
         logger.info(f"[WebSocket User] Usuário {user.name} ({user.id}) desconectado do canal global de notificações")

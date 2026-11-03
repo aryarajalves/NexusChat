@@ -234,4 +234,36 @@ describe('ChatMessageItem Mention Rendering & Highlighting', () => {
     const result = renderContentWithMentions('Fala @Aryaraj e @outro', 'Aryaraj');
     expect(result.length).toBeGreaterThan(1);
   });
+
+  it('triggers onStartDM with target user_id when clicking on a mentioned user pill', () => {
+    const handleStartDM = vi.fn();
+    const testMembers = [
+      { user_id: 10, name: 'Hokage', nickname: '', role: 'MEMBER' },
+      { user_id: 20, name: 'Beatriz', nickname: '', role: 'MEMBER' },
+    ];
+    const msg = {
+      id: 53,
+      content: 'Olá @Hokage seja bem-vindo!',
+      author_id: 2,
+      author_name: 'Carlos',
+      created_at: '2026-10-28T18:00:00Z',
+    };
+
+    render(
+      <ChatMessageItem
+        msg={msg}
+        channelId={1}
+        currentUserId={currentUser.id}
+        currentUser={currentUser}
+        members={testMembers}
+        onStartDM={handleStartDM}
+      />
+    );
+
+    const pill = screen.getByTestId('mention-pill');
+    expect(pill).toHaveClass('is-clickable');
+    fireEvent.click(pill);
+
+    expect(handleStartDM).toHaveBeenCalledWith(10);
+  });
 });

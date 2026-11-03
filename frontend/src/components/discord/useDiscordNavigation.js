@@ -41,9 +41,15 @@ export function useDiscordNavigation({ token, servers, setServers, channels, set
   // Handler para selecionar canal
   const handleSelectChannel = useCallback((channelId, onVoiceConnect) => {
     const ch = channels.find((c) => c.id === channelId);
-    if (ch && ch.type === 'VOICE' && onVoiceConnect) {
-      onVoiceConnect(channelId);
+    if (ch && ch.type === 'VOICE') {
+      if (onVoiceConnect) {
+        onVoiceConnect(channelId);
+      }
+      setActiveChannelId(channelId);
+      return;
     }
+
+    // Se for canal de texto, persiste como o canal de texto ativo do servidor
     setActiveChannelId(channelId);
     localStorage.setItem('discord_active_channel_id', String(channelId));
     if (activeServerId !== null) {
@@ -99,10 +105,10 @@ export function useDiscordNavigation({ token, servers, setServers, channels, set
             || localStorage.getItem('discord_active_channel_id');
           const parsedChId = savedChId ? parseInt(savedChId, 10) : null;
           const matchingCh = parsedChId ? chData.find((c) => c.id === parsedChId) : null;
-          if (matchingCh) {
+          if (matchingCh && matchingCh.type === 'TEXT') {
             setActiveChannelId(matchingCh.id);
           } else {
-            const defaultCh = (chData.find((c) => c.type === 'TEXT') || chData[0]);
+            const defaultCh = (chData.find((c) => c.type === 'TEXT') || matchingCh || chData[0]);
             setActiveChannelId(defaultCh.id);
             localStorage.setItem('discord_active_channel_id', String(defaultCh.id));
             localStorage.setItem(`discord_active_channel_${activeServerId}`, String(defaultCh.id));

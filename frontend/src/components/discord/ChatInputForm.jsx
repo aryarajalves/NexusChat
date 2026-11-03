@@ -17,6 +17,7 @@ import { formatFileSize } from './chatUtils';
 
 export default function ChatInputForm({
   channel,
+  currentUser,
   replyingTo,
   onCancelReply,
   onSendMessage,
@@ -180,9 +181,11 @@ export default function ChatInputForm({
     }
   };
 
+  const isSuperAdmin = currentUser?.role === 'superadmin';
+
   const processSelectedFile = (file) => {
     if (!file) return;
-    if (file.size > 50 * 1024 * 1024) {
+    if (!isSuperAdmin && file.size > 50 * 1024 * 1024) {
       addToast('O arquivo excede o limite máximo permitido de 50 MB.', 'error');
       return;
     }
@@ -391,7 +394,7 @@ export default function ChatInputForm({
             type="button"
             className="chat-attach-btn"
             onClick={() => fileInputRef.current?.click()}
-            title="Anexar arquivo ou mídia (máx 50MB)"
+            title={isSuperAdmin ? "Anexar arquivo ou mídia (Ilimitado para Super Admin)" : "Anexar arquivo ou mídia (máx 50MB)"}
             disabled={isSending || isUploading}
             data-testid="chat-attach-btn"
           >

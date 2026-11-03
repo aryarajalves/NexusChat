@@ -16,7 +16,8 @@ from app.schemas.discord import (
     ServerResponse,
 )
 from app.api.v1.endpoints.users import get_current_user
-from app.services.storage import upload_discord_media_file, DISCORD_UPLOAD_DIR
+from app.services.storage import upload_discord_media_file, DISCORD_UPLOAD_DIR, cleanup_unreferenced_media
+from app.services.socket_manager import socket_manager
 
 router = APIRouter(prefix="/discord", tags=["Discord Server Roles & Settings"])
 
@@ -270,12 +271,14 @@ async def upload_server_icon(
     if len(file_bytes) > MAX_IMAGE_SIZE_BYTES:
         raise HTTPException(status_code=400, detail="O arquivo não pode ultrapassar 10 MB.")
 
+    old_icon = server.icon_url
     unique_name = f"icon_{server_id}_{uuid.uuid4().hex[:10]}{ext}"
     upload_res = upload_discord_media_file(file_bytes, unique_name, file.content_type)
     icon_url = upload_res["attachment_url"]
     server.icon_url = icon_url
     db.commit()
     db.refresh(server)
+    cleanup_unreferenced_media(db, [old_icon])
 
     logger.info(f"Ícone do servidor ID {server_id} atualizado com sucesso.")
     return {"icon_url": icon_url, "message": "Ícone atualizado com sucesso!"}
@@ -299,12 +302,110 @@ async def upload_server_banner(
     if len(file_bytes) > MAX_IMAGE_SIZE_BYTES:
         raise HTTPException(status_code=400, detail="O arquivo não pode ultrapassar 10 MB.")
 
+    old_banner = server.banner_url
     unique_name = f"banner_{server_id}_{uuid.uuid4().hex[:10]}{ext}"
     upload_res = upload_discord_media_file(file_bytes, unique_name, file.content_type)
     banner_url = upload_res["attachment_url"]
     server.banner_url = banner_url
     db.commit()
     db.refresh(server)
+    cleanup_unreferenced_media(db, [old_banner])
 
     logger.info(f"Banner do servidor ID {server_id} atualizado com sucesso.")
     return {"banner_url": banner_url, "message": "Banner atualizado com sucesso!"}
+
+
+@router.delete("/servers/{server_id}/members/{user_id}")
+async def remove_server_member(
+    server_id: int,
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Remove um membro de um servidor específico (expulsão / kick)."""
+    server = ensure_can_manage(server_id, current_user, db)
+
+    # Não permite remover o criador/dono do servidor
+    if user_id == server.owner_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Não é possível remover o criador/dono do servidor."
+        )
+
+    # Não permite o usuário remover a si mesmo por esta rota administrativa
+    if user_id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Você não pode remover a si mesmo da administração de membros."
+        )
+
+    # Busca o membro por user_id ou por member_id
+    member = db.query(ServerMember).filter(
+        ServerMember.server_id == server_id,
+        (ServerMember.user_id == user_id) | (ServerMember.id == user_id)
+    ).first()
+
+    if not member:
+        raise HTTPException(status_code=404, detail="Membro não encontrado neste servidor")
+
+    # Se quem está removendo for apenas ADMIN (e não for owner nem superadmin),
+    # não pode remover o dono ou outro admin
+    if server.owner_id != current_user.id and current_user.role != "superadmin":
+        if member.role in ["OWNER", "ADMIN"] or (member.custom_role and member.custom_role.is_admin):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Administradores não podem remover outros administradores ou o dono do servidor."
+            )
+
+    removed_user_id = member.user_id
+    removed_member_id = member.id
+    target_user_name = member.user.name if member.user else f"Usuário {removed_user_id}"
+
+    # Remove de salas de voz caso esteja conectado
+    try:
+        await socket_manager.remove_user_from_all_voice_rooms(removed_user_id, target_user_name)
+    except Exception as e:
+        logger.warning(f"Erro ao desconectar usuário {removed_user_id} de salas de voz: {e}")
+
+    # Remove o membro do banco de dados
+    db.delete(member)
+    db.commit()
+
+    logger.info(
+        f"Membro '{target_user_name}' (ID {removed_user_id}) removido do servidor '{server.name}' (ID {server_id}) por {current_user.email}"
+    )
+
+    # Notifica em tempo real os membros restantes do servidor
+    try:
+        remaining_members = db.query(ServerMember.user_id).filter(ServerMember.server_id == server_id).all()
+        recipient_ids = [m[0] for m in remaining_members]
+        if recipient_ids:
+            await socket_manager.broadcast_to_users(
+                recipient_ids,
+                {
+                    "event": "server:member_removed",
+                    "server_id": server_id,
+                    "user_id": removed_user_id,
+                    "member_id": removed_member_id,
+                    "members_count": len(recipient_ids),
+                }
+            )
+        # Notifica o usuário expulso
+        await socket_manager.broadcast_to_users(
+            [removed_user_id],
+            {
+                "event": "server:kicked",
+                "server_id": server_id,
+                "server_name": server.name,
+                "user_id": removed_user_id,
+            }
+        )
+    except Exception as exc:
+        logger.error(f"Erro ao transmitir evento de remoção do membro {removed_user_id}: {exc}")
+
+    return {
+        "message": f"Membro '{target_user_name}' removido com sucesso do servidor.",
+        "user_id": removed_user_id,
+        "member_id": removed_member_id,
+        "server_id": server_id
+    }

@@ -17,7 +17,7 @@ from app.core.security import (
 )
 from app.models.user import User, Invite, PasswordResetToken, RegistrationVerification
 from app.services.email import send_verification_email
-from app.services.storage import upload_discord_media_file
+from app.services.storage import upload_discord_media_file, cleanup_unreferenced_media
 from app.schemas.user import (
     UserLogin,
     Token,
@@ -121,12 +121,14 @@ def update_profile(
     db: Session = Depends(get_db)
 ):
     """Atualiza nome e avatar do perfil do usuário logado."""
+    old_avatar = current_user.avatar_url
     if payload.name is not None and payload.name.strip():
         current_user.name = payload.name.strip()
     if payload.avatar_url is not None:
         current_user.avatar_url = payload.avatar_url.strip() or None
     db.commit()
     db.refresh(current_user)
+    cleanup_unreferenced_media(db, [old_avatar])
     return current_user
 
 @router.post("/avatar")
@@ -147,12 +149,14 @@ async def upload_avatar(
         raise HTTPException(status_code=400, detail="Formato de imagem inválido. Use PNG, JPG, GIF ou WEBP.")
     file_bytes = await file.read()
     validate_uploaded_file(file.filename or "", file_bytes, max_size_bytes=10 * 1024 * 1024)
+    old_avatar = current_user.avatar_url
     unique_name = f"avatar_{current_user.id}_{uuid.uuid4().hex[:10]}{ext}"
     upload_res = upload_discord_media_file(file_bytes, unique_name, file.content_type)
     avatar_url = upload_res["attachment_url"]
     current_user.avatar_url = avatar_url
     db.commit()
     db.refresh(current_user)
+    cleanup_unreferenced_media(db, [old_avatar])
     return {"avatar_url": avatar_url, "message": "Avatar atualizado com sucesso!"}
 
 @router.post("/change-password")
@@ -267,8 +271,10 @@ def delete_user(
             detail="Não é permitido excluir seu próprio usuário atual."
         )
 
+    old_avatar = target_user.avatar_url
     db.delete(target_user)
     db.commit()
+    cleanup_unreferenced_media(db, [old_avatar])
     return {"message": "Usuário excluído com sucesso."}
 
 @router.post("/users/bulk-delete")
@@ -282,15 +288,19 @@ def bulk_delete_users(
 
     users_to_delete = db.query(User).filter(User.id.in_(data.ids)).all()
     deleted_count = 0
+    old_avatars = []
     for u in users_to_delete:
         if u.role == "superadmin":
             continue # Ignora superadmin por segurança
         if u.id == current_user.id:
             continue # Ignora o próprio usuário logado
+        if u.avatar_url:
+            old_avatars.append(u.avatar_url)
         db.delete(u)
         deleted_count += 1
 
     db.commit()
+    cleanup_unreferenced_media(db, old_avatars)
     return {"message": f"{deleted_count} usuário(s) excluído(s) com sucesso.", "deleted_count": deleted_count}
 
 @router.post("/users/{user_id}/reset-password-request", response_model=PasswordResetRequestResponse)

@@ -25,3 +25,8 @@
 @import './styles/discord-voice-recording.css';
 @import './styles/discord-webcam-pip.css';
 @import './styles/discord-server-creation.css';
+@import './styles/discord-threads.css';
+@import './styles/discord-channel-settings.css';
+@import './styles/discord-camera-effects.css';
+@import './styles/discord-member-sidebar.css';
+@import './styles/discord-responsive.css';

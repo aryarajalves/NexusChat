@@ -1,6 +1,6 @@
 import os
 import re
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from fastapi import HTTPException, status
 
 BLOCKED_EXTENSIONS = {
@@ -35,10 +35,11 @@ def sanitize_filename(filename: str) -> str:
 def validate_uploaded_file(
     filename: str,
     file_bytes: bytes,
-    max_size_bytes: int = 50 * 1024 * 1024
+    max_size_bytes: Optional[int] = 50 * 1024 * 1024
 ) -> Dict[str, Any]:
     """
     Valida tamanho, extensão e integridade de segurança de um anexo enviado.
+    Se max_size_bytes for None ou <= 0 (ex.: Super Admin), não impõe limite de tamanho.
     Lança HTTPException 400 caso o arquivo viole políticas de segurança.
     """
     clean_name = sanitize_filename(filename)
@@ -50,8 +51,8 @@ def validate_uploaded_file(
             detail="Nome de arquivo inválido."
         )
 
-    # 1. Validação de tamanho
-    if len(file_bytes) > max_size_bytes:
+    # 1. Validação de tamanho (se configurado teto positivo)
+    if max_size_bytes and max_size_bytes > 0 and len(file_bytes) > max_size_bytes:
         limit_mb = max_size_bytes // (1024 * 1024)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

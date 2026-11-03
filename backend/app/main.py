@@ -73,6 +73,57 @@ async def lifespan(app: FastAPI):
             conn.commit()
         except Exception:
             pass
+        # Sistema de Boas-Vindas por Servidor
+        try:
+            conn.execute(text("ALTER TABLE servers ADD COLUMN IF NOT EXISTS welcome_enabled BOOLEAN NOT NULL DEFAULT FALSE;"))
+            conn.commit()
+        except Exception:
+            pass
+        try:
+            if conn.dialect.name == "postgresql":
+                conn.execute(text("ALTER TABLE servers ADD COLUMN IF NOT EXISTS welcome_channel_id INTEGER REFERENCES channels(id) ON DELETE SET NULL;"))
+            else:
+                conn.execute(text("ALTER TABLE servers ADD COLUMN IF NOT EXISTS welcome_channel_id INTEGER;"))
+            conn.commit()
+        except Exception:
+            pass
+        try:
+            conn.execute(text("ALTER TABLE servers ADD COLUMN IF NOT EXISTS welcome_message VARCHAR(2000) DEFAULT 'Olá {user}, seja muito bem-vindo(a) ao servidor **{server}**! 🎉';"))
+            conn.commit()
+        except Exception:
+            pass
+        # Tópicos (Threads)
+        try:
+            if conn.dialect.name == "postgresql":
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS message_threads (
+                        id SERIAL PRIMARY KEY,
+                        channel_id INTEGER NOT NULL REFERENCES channels(id) ON DELETE CASCADE,
+                        root_message_id INTEGER NOT NULL UNIQUE REFERENCES messages(id) ON DELETE CASCADE,
+                        creator_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        name VARCHAR(100) NOT NULL,
+                        created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT (NOW() AT TIME ZONE 'utc'),
+                        updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT (NOW() AT TIME ZONE 'utc')
+                    );
+                """))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS thread_messages (
+                        id SERIAL PRIMARY KEY,
+                        thread_id INTEGER NOT NULL REFERENCES message_threads(id) ON DELETE CASCADE,
+                        author_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        content VARCHAR(2000) NOT NULL,
+                        attachment_url VARCHAR(500),
+                        attachment_type VARCHAR(50),
+                        attachment_size INTEGER,
+                        created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT (NOW() AT TIME ZONE 'utc'),
+                        updated_at TIMESTAMP WITHOUT TIME ZONE
+                    );
+                """))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS idx_message_threads_channel_id ON message_threads (channel_id);"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS idx_thread_messages_thread_id_id ON thread_messages (thread_id, id);"))
+                conn.commit()
+        except Exception:
+            pass
 
     # Seed initial superadmin from env
     init_superadmin()

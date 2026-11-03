@@ -164,4 +164,58 @@ describe('useDiscordSocket Hook', () => {
     });
     expect(MockWebSocket.instances.length).toBe(1);
   });
+
+  it('triggers onThreadCreated and onThreadMessageNew callbacks when socket receives thread events', () => {
+    const onThreadCreated = vi.fn();
+    const onThreadMessageNew = vi.fn();
+
+    renderHook(() =>
+      useDiscordSocket({
+        channelId: 8,
+        token: 'auth-test-token',
+        onThreadCreated,
+        onThreadMessageNew,
+      })
+    );
+
+    const ws = MockWebSocket.instances[0];
+    act(() => {
+      ws.simulateOpen();
+    });
+
+    act(() => {
+      ws.simulateMessage({
+        event: 'thread:created',
+        channel_id: 8,
+        message_id: 18,
+        thread: { id: 1, name: 'Tópico de Teste' },
+      });
+    });
+
+    expect(onThreadCreated).toHaveBeenCalledTimes(1);
+    expect(onThreadCreated).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message_id: 18,
+        thread: expect.objectContaining({ id: 1, name: 'Tópico de Teste' }),
+      })
+    );
+
+    act(() => {
+      ws.simulateMessage({
+        event: 'thread:message:new',
+        channel_id: 8,
+        thread_id: 1,
+        root_message_id: 18,
+        thread_summary: { id: 1, message_count: 2 },
+      });
+    });
+
+    expect(onThreadMessageNew).toHaveBeenCalledTimes(1);
+    expect(onThreadMessageNew).toHaveBeenCalledWith(
+      expect.objectContaining({
+        root_message_id: 18,
+        thread_summary: expect.objectContaining({ id: 1, message_count: 2 }),
+      })
+    );
+  });
 });

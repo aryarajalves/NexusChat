@@ -4,40 +4,38 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, WebSocket, WebSocketDisconnect, File, UploadFile
-from fastapi.responses import FileResponse
-from sqlalchemy.orm import Session
+from fastapi.responses import FileResponse, RedirectResponse
+from sqlalchemy.orm import Session, joinedload
 from app.core.database import get_db, SessionLocal
 from app.core.security import decode_access_token
 from app.core.logger import logger
 from app.models.user import User
-from app.models.discord import Server, Channel, ServerMember, Message, ServerInvite, MessageReaction, ChannelRolePermission
+from app.models.discord import (
+    Server, Channel, ServerMember, Message, ServerInvite, MessageReaction, ChannelRolePermission,
+    MessageThread, ThreadMessage
+)
 from app.schemas.discord import (
-    ServerCreate,
-    ServerUpdate,
-    ServerResponse,
-    ChannelCreate,
-    ChannelUpdate,
-    ChannelResponse,
-    MessageCreate,
-    MessageUpdate,
-    MessageForwardRequest,
-    ReactionCreate,
-    ReactionSummary,
-    MessageResponse,
-    ServerMemberResponse,
-    ServerInviteCreate,
-    ServerInviteResponse
+    ServerCreate, ServerUpdate, ServerResponse, ChannelCreate, ChannelUpdate, ChannelResponse,
+    MessageCreate, MessageUpdate, MessageForwardRequest, ReactionCreate, ReactionSummary,
+    MessageResponse, ServerMemberResponse, ServerInviteCreate, ServerInviteResponse
 )
 from app.api.v1.endpoints.users import get_current_user
 from app.services.socket_manager import socket_manager, notify_channel_unread
-from app.services.storage import upload_discord_media_file, get_discord_media_file_path, DISCORD_UPLOAD_DIR
+from app.services.storage import (
+    upload_discord_media_file, resolve_discord_media_delivery, DISCORD_UPLOAD_DIR,
+    cleanup_unreferenced_media, collect_channel_media_urls, collect_server_media_urls
+)
 from app.core.rate_limiter import check_rate_limit
 from app.core.upload_security import validate_uploaded_file, get_content_disposition_for_file
 from .discord_helpers import (
     ensure_utc,
     format_message_reactions,
     format_bulk_message_reactions,
-    build_message_response
+    build_message_response,
+    get_server_member,
+    ensure_member,
+    ensure_admin_or_owner,
+    validate_channel_name_unique
 )
 from app.services.discord_permissions import (
     can_user_access_channel,
@@ -45,36 +43,16 @@ from app.services.discord_permissions import (
     get_accessible_channel_recipients,
     build_channel_response
 )
+from app.services.discord_welcome import (
+    handle_member_joined_server,
+    validate_and_apply_welcome_settings,
+)
 
 router = APIRouter(prefix="/discord", tags=["Discord Clone"])
 
 # Configuração de upload de arquivos anexos (Backblaze B2 + Cache Local)
 UPLOAD_DIR = DISCORD_UPLOAD_DIR
 MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB
-
-def get_server_member(server_id: int, user_id: int, db: Session) -> Optional[ServerMember]:
-    return db.query(ServerMember).filter(
-        ServerMember.server_id == server_id,
-        ServerMember.user_id == user_id
-    ).first()
-
-def ensure_member(server_id: int, user: User, db: Session) -> ServerMember:
-    member = get_server_member(server_id, user.id, db)
-    if not member:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Você não participa deste servidor"
-        )
-    return member
-
-def ensure_admin_or_owner(server_id: int, user: User, db: Session) -> ServerMember:
-    member = ensure_member(server_id, user, db)
-    if member.role not in ["OWNER", "ADMIN"]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Apenas administradores ou o dono do servidor podem realizar esta ação"
-        )
-    return member
 
 # ==========================================
 # 1. SERVIDORES
@@ -105,7 +83,7 @@ def create_server(
     db.add(server)
     db.flush()
 
-    # Cria canais iniciais padrão (#geral de texto e Geral de voz)
+    # Cria canais iniciais padrão (#geral de texto e Sala de Voz de áudio)
     default_text = Channel(
         server_id=server.id,
         name="geral",
@@ -115,13 +93,15 @@ def create_server(
     )
     default_voice = Channel(
         server_id=server.id,
-        name="geral",
+        name="Sala de Voz",
         type="VOICE",
         category="Canais de Voz",
         position=1
     )
     db.add(default_text)
     db.add(default_voice)
+    db.flush()
+    server.welcome_channel_id = default_text.id
 
     # Adiciona o criador como membro OWNER
     owner_member = ServerMember(
@@ -179,6 +159,7 @@ def update_server(
     if not server:
         raise HTTPException(status_code=404, detail="Servidor não encontrado")
 
+    old_media = [server.icon_url, server.banner_url]
     if payload.name is not None:
         server.name = payload.name.strip()
     if payload.icon_url is not None:
@@ -187,9 +168,11 @@ def update_server(
         server.banner_url = payload.banner_url
     if payload.description is not None:
         server.description = payload.description
+    validate_and_apply_welcome_settings(server, payload, db)
 
     db.commit()
     db.refresh(server)
+    cleanup_unreferenced_media(db, old_media)
 
     res = ServerResponse.model_validate(server)
     res.members_count = len(server.members)
@@ -212,8 +195,10 @@ def delete_server(
         )
 
     server_name = server.name
+    media_urls = collect_server_media_urls(db, server_id)
     db.delete(server)
     db.commit()
+    cleanup_unreferenced_media(db, media_urls)
     logger.info(f"Servidor '{server_name}' (ID {server_id}) excluído por '{current_user.email}'.")
     return {"detail": "Servidor excluído com sucesso"}
 
@@ -229,6 +214,7 @@ def create_channel(
     db: Session = Depends(get_db)
 ):
     ensure_admin_or_owner(server_id, current_user, db)
+    clean_name = validate_channel_name_unique(server_id, payload.name, db)
 
     pos = payload.position
     if pos == 0:
@@ -237,7 +223,7 @@ def create_channel(
 
     channel = Channel(
         server_id=server_id,
-        name=payload.name,
+        name=clean_name,
         type=payload.type,
         category=payload.category,
         position=pos,
@@ -273,7 +259,13 @@ def update_channel(
         raise HTTPException(status_code=404, detail="Canal não encontrado")
 
     if payload.name is not None:
-        channel.name = payload.name
+        clean_name = validate_channel_name_unique(
+            server_id,
+            payload.name,
+            db,
+            exclude_channel_id=channel_id
+        )
+        channel.name = clean_name
     if payload.category is not None:
         channel.category = payload.category
     if payload.position is not None:
@@ -328,8 +320,10 @@ def delete_channel(
             detail="O servidor precisa manter pelo menos 1 canal de texto ativo"
         )
 
+    media_urls = collect_channel_media_urls(db, channel_id)
     db.delete(channel)
     db.commit()
+    cleanup_unreferenced_media(db, media_urls)
     return {"detail": "Canal excluído com sucesso"}
 
 # ==========================================
@@ -361,6 +355,7 @@ def list_server_members(
             role_id=m.role_id,
             role_name=role_name,
             role_color=role_color,
+            is_online=(m.user_id == current_user.id or socket_manager.is_user_online(m.user_id)),
             joined_at=m.joined_at
         ))
     return result
@@ -408,7 +403,7 @@ def create_server_invite(
     )
 
 @router.post("/invites/{code}/join", response_model=ServerResponse)
-def join_server_by_invite(
+async def join_server_by_invite(
     code: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -453,8 +448,10 @@ def join_server_by_invite(
     invite.current_uses += 1
     db.add(new_member)
     db.commit()
+    db.refresh(new_member)
 
     server = db.query(Server).filter(Server.id == invite.server_id).first()
+    await handle_member_joined_server(db, server, new_member, current_user)
     res = ServerResponse.model_validate(server)
     res.members_count = len(server.members)
     return res
@@ -473,7 +470,11 @@ def list_channel_messages(
 ):
     channel = ensure_channel_access(channel_id, current_user, db)
 
-    query = db.query(Message).filter(Message.channel_id == channel_id)
+    query = db.query(Message).options(
+        joinedload(Message.author),
+        joinedload(Message.thread).joinedload(MessageThread.creator),
+        joinedload(Message.thread).joinedload(MessageThread.messages).joinedload(ThreadMessage.author)
+    ).filter(Message.channel_id == channel_id)
     if before_id:
         query = query.filter(Message.id < before_id)
 
@@ -564,7 +565,8 @@ async def upload_channel_attachment(
     channel = ensure_channel_access(channel_id, current_user, db)
 
     file_bytes = await file.read()
-    val_res = validate_uploaded_file(file.filename or "", file_bytes, max_size_bytes=MAX_FILE_SIZE_BYTES)
+    max_size = None if current_user.role == "superadmin" else MAX_FILE_SIZE_BYTES
+    val_res = validate_uploaded_file(file.filename or "", file_bytes, max_size_bytes=max_size)
 
     unique_name = f"{uuid.uuid4().hex}{val_res['extension']}"
     upload_res = upload_discord_media_file(file_bytes, unique_name, file.content_type)
@@ -578,16 +580,24 @@ async def upload_channel_attachment(
 
 @router.get("/attachments/{filename}")
 def get_attachment_file(filename: str):
-    """Serve arquivo anexo do canal com suporte ao Backblaze B2, Content-Disposition e cache local."""
-    file_path = get_discord_media_file_path(filename)
-    if not file_path or not os.path.exists(file_path):
+    """Serve anexo direto do Backblaze B2 (via redirect assinado/CDN) ou do fallback local."""
+    disp = get_content_disposition_for_file(filename)
+    delivery = resolve_discord_media_delivery(filename, content_disposition=disp)
+    if not delivery:
         raise HTTPException(status_code=404, detail="Anexo não encontrado")
 
-    disp = get_content_disposition_for_file(filename)
+    if delivery["mode"] == "redirect":
+        return RedirectResponse(
+            url=delivery["url"],
+            status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+            headers={"Cache-Control": "public, max-age=86400"}
+        )
+
     return FileResponse(
-        file_path,
+        delivery["local_path"],
         content_disposition_type=disp,
-        filename=os.path.basename(filename) if disp == "attachment" else None
+        filename=os.path.basename(filename) if disp == "attachment" else None,
+        headers={"Cache-Control": "public, max-age=31536000, immutable"}
     )
 
 @router.delete("/channels/{channel_id}/messages/{message_id}")
@@ -615,8 +625,10 @@ async def delete_channel_message(
             detail="Você não tem permissão para deletar esta mensagem"
         )
 
+    attachment_url = message.attachment_url
     db.delete(message)
     db.commit()
+    cleanup_unreferenced_media(db, [attachment_url])
 
     # Notifica via WebSocket sobre a remoção da mensagem
     await socket_manager.broadcast_to_channel(
@@ -930,18 +942,23 @@ async def channel_websocket_endpoint(
 
             # 4. Estado de voz (mudo, ensurdecido, falando)
             elif event_type == "voice:state":
+                is_muted = bool(data.get("is_muted", False))
+                is_deafened = bool(data.get("is_deafened", False))
+                is_speaking = bool(data.get("is_speaking", False))
+                socket_manager.update_voice_user_state(channel_id, user.id, is_muted, is_deafened, is_speaking)
                 await socket_manager.broadcast_to_channel(
                     channel_id,
                     {
                         "event": "voice:state",
                         "user_id": user.id,
                         "user_name": user.name,
-                        "is_muted": bool(data.get("is_muted", False)),
-                        "is_deafened": bool(data.get("is_deafened", False)),
-                        "is_speaking": bool(data.get("is_speaking", False))
+                        "is_muted": is_muted,
+                        "is_deafened": is_deafened,
+                        "is_speaking": is_speaking
                     },
                     exclude=websocket
                 )
+                await socket_manager.broadcast_voice_channel_update(channel_id)
 
             # 5. Sinalização WebRTC (P2P Mesh de Voz)
             elif event_type == "voice:signal":

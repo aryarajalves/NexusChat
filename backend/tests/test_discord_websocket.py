@@ -137,3 +137,49 @@ def test_rest_message_triggers_websocket_broadcast(two_users):
         assert data["event"] == "message:new"
         assert data["message"]["content"] == "Mensagem enviada pelo REST API!"
         assert data["message"]["author_name"] == settings.SUPERADMIN_NAME
+
+
+def test_websocket_voice_signal_relay(two_users):
+    """Valida retransmissão de sinalização WebRTC (voice:signal) entre participantes de canal de voz."""
+    token = get_token()
+    sa_headers = {"Authorization": f"Bearer {token}"}
+    srv_res = client.post("/api/v1/discord/servers", json={"name": "Servidor Voz WebRTC"}, headers=sa_headers)
+    assert srv_res.status_code == 201
+    server_id = srv_res.json()["id"]
+    voice_ch = next(c for c in srv_res.json()["channels"] if c["type"] == "VOICE")
+    voice_id = voice_ch["id"]
+
+    inv_res = client.post(f"/api/v1/discord/servers/{server_id}/invites", json={}, headers=sa_headers)
+    invite_code = inv_res.json()["code"]
+
+    bob_token = get_token("bob@teste.com", "Senha@Forte1234!")
+    bob_headers = {"Authorization": f"Bearer {bob_token}"}
+    assert client.post(f"/api/v1/discord/invites/{invite_code}/join", headers=bob_headers).status_code == 200
+
+    with client.websocket_connect(f"/api/v1/discord/ws/channels/{voice_id}?token={token}") as sa_ws:
+        sa_ws.receive_json()  # presence:join superadmin
+
+        with client.websocket_connect(f"/api/v1/discord/ws/channels/{voice_id}?token={bob_token}") as bob_ws:
+            bob_join_for_bob = bob_ws.receive_json()
+            assert bob_join_for_bob["event"] == "presence:join"
+            sa_join_for_sa = sa_ws.receive_json()
+            assert sa_join_for_sa["event"] == "presence:join"
+
+            # Bob envia sinalização SDP/media-state destinada ao Superadmin
+            bob_ws.send_json({
+                "event": "voice:signal",
+                "target_user_id": 1,
+                "signal": {
+                    "type": "sdp-offer",
+                    "sdp": {"type": "offer", "sdp": "v=0..."},
+                    "mediaState": {"isCameraOn": True, "isScreenSharing": False},
+                },
+            })
+
+            relayed_to_sa = sa_ws.receive_json()
+            assert relayed_to_sa["event"] == "voice:signal"
+            assert relayed_to_sa["sender_name"] == "Bob Construtor"
+            assert relayed_to_sa["target_user_id"] == 1
+            assert relayed_to_sa["signal"]["type"] == "sdp-offer"
+            assert relayed_to_sa["signal"]["mediaState"]["isCameraOn"] is True
+

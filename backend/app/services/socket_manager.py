@@ -1,5 +1,6 @@
 import asyncio
 import json
+import time
 import uuid
 from typing import Dict, Set, List, Any, Optional
 from fastapi import WebSocket
@@ -25,6 +26,10 @@ class ConnectionManager:
     def __init__(self):
         # Mapeamento: channel_id -> set de instâncias WebSocket locais neste worker
         self.channel_rooms: Dict[int, Set[WebSocket]] = {}
+        # Mapeamento: channel_id -> {user_id: {"user_id": int, "user_name": str}} para presença persistente de voz
+        self.voice_rooms: Dict[int, Dict[int, Dict[str, Any]]] = {}
+        # Mapeamento: channel_id -> timestamp (float) de início da call (persiste enquanto houver participantes)
+        self.voice_room_start_times: Dict[int, float] = {}
         # Mapeamento: dm_conversation_id -> set de instâncias WebSocket locais
         self.dm_rooms: Dict[int, Set[WebSocket]] = {}
         # Mapeamento: websocket -> (user_id, user_name)
@@ -164,9 +169,15 @@ class ConnectionManager:
                 if not self.user_sockets[uid]:
                     del self.user_sockets[uid]
 
+            still_in_channel = any(
+                self.socket_users.get(ws, (None,))[0] == uid
+                for ws in self.channel_rooms.get(channel_id, set())
+            )
+
             if self.is_connected_to_redis and self.redis_client:
                 try:
-                    asyncio.create_task(self.redis_client.srem(f"nexus:channel:{channel_id}:users", f"{uid}:{uname}"))
+                    if not still_in_channel:
+                        asyncio.create_task(self.redis_client.srem(f"nexus:channel:{channel_id}:users", f"{uid}:{uname}"))
                     if uid not in self.user_sockets:
                         asyncio.create_task(self.redis_client.srem("nexus:online_users", uid))
                 except Exception:
@@ -197,19 +208,114 @@ class ConnectionManager:
         """Publica evento no barramento de canais (Redis Pub/Sub se ativo, ou in-memory)."""
         await self._publish_event("channel", channel_id, data)
 
-    def get_online_users_in_channel(self, channel_id: int) -> List[Dict[str, Any]]:
-        """Retorna a lista de usuários únicos com conexão ativa no canal."""
-        if channel_id not in self.channel_rooms:
-            return []
+    def register_voice_user(self, channel_id: int, user_id: int, user_name: str, is_muted: bool = True, is_deafened: bool = False):
+        """Registra a presença ativa de um usuário em um canal de voz com seu estado de microfone e inicializa o cronômetro."""
+        if channel_id not in self.voice_rooms:
+            self.voice_rooms[channel_id] = {}
+        if channel_id not in self.voice_room_start_times:
+            self.voice_room_start_times[channel_id] = time.time()
 
+        prev_state = self.voice_rooms[channel_id].get(user_id, {})
+        self.voice_rooms[channel_id][user_id] = {
+            "user_id": user_id,
+            "user_name": user_name,
+            "is_muted": prev_state.get("is_muted", is_muted),
+            "is_deafened": prev_state.get("is_deafened", is_deafened),
+            "is_speaking": False
+        }
+        logger.info(f"[Voz] Usuário {user_name} (ID: {user_id}) registrado na sala #{channel_id} (mutado: {self.voice_rooms[channel_id][user_id]['is_muted']})")
+
+    def update_voice_user_state(self, channel_id: int, user_id: int, is_muted: bool, is_deafened: bool, is_speaking: bool = False):
+        """Atualiza o estado de microfone/áudio do usuário na sala de voz para consultas em tempo real."""
+        if channel_id in self.voice_rooms and user_id in self.voice_rooms[channel_id]:
+            self.voice_rooms[channel_id][user_id]["is_muted"] = is_muted
+            self.voice_rooms[channel_id][user_id]["is_deafened"] = is_deafened
+            self.voice_rooms[channel_id][user_id]["is_speaking"] = is_speaking
+
+    def unregister_voice_user(self, channel_id: int, user_id: int):
+        """Remove a presença de um usuário do canal de voz e reseta o cronômetro se todos saírem."""
+        if channel_id in self.voice_rooms:
+            self.voice_rooms[channel_id].pop(user_id, None)
+            if not self.voice_rooms[channel_id]:
+                del self.voice_rooms[channel_id]
+                self.voice_room_start_times.pop(channel_id, None)
+                logger.info(f"[Voz] Sala de voz #{channel_id} esvaziada. Cronômetro da call resetado.")
+            else:
+                logger.info(f"[Voz] Usuário ID {user_id} removido da sala de voz #{channel_id}")
+
+    def get_call_started_at(self, channel_id: int) -> Optional[float]:
+        """Retorna o timestamp (epoch float) de início da call se o canal possuir participantes, ou None se vazio."""
+        if channel_id in self.voice_rooms and self.voice_rooms[channel_id]:
+            return self.voice_room_start_times.get(channel_id)
+        return None
+
+    def is_user_online(self, user_id: int) -> bool:
+        """Retorna True se o usuário possuir ao menos uma conexão WebSocket ativa."""
+        return bool(self.user_sockets.get(user_id))
+
+    async def broadcast_voice_channel_update(self, channel_id: int):
+        """Notifica em tempo real todos os usuários conectados sobre a lista atualizada da call e tempo de início."""
+        participants = self.get_online_users_in_channel(channel_id)
+        call_started_at = self.get_call_started_at(channel_id)
+        connected_user_ids = list(self.user_sockets.keys())
+        if connected_user_ids:
+            await self.broadcast_to_users(
+                connected_user_ids,
+                {
+                    "event": "voice:channel_update",
+                    "channel_id": channel_id,
+                    "active_participants": participants,
+                    "total_participants": len(participants),
+                    "call_started_at": call_started_at,
+                },
+            )
+
+    async def remove_user_from_all_voice_rooms(self, user_id: int, user_name: str = "") -> List[int]:
+        """Remove o usuário de todas as salas de voz ativas e notifica em tempo real os demais membros."""
+        affected_channels = [
+            ch_id for ch_id, room_users in list(self.voice_rooms.items()) if user_id in room_users
+        ]
+        for ch_id in affected_channels:
+            self.unregister_voice_user(ch_id, user_id)
+            participants = self.get_online_users_in_channel(ch_id)
+            await self.broadcast_to_channel(
+                ch_id,
+                {
+                    "event": "presence:leave",
+                    "user_id": user_id,
+                    "user_name": user_name,
+                    "online_users": participants,
+                },
+            )
+            await self.broadcast_voice_channel_update(ch_id)
+
+        if affected_channels:
+            logger.info(
+                f"[Voz] Presença limpa para usuário {user_name or user_id} nas salas de voz: {affected_channels}"
+            )
+        return affected_channels
+
+    def get_online_users_in_channel(self, channel_id: int) -> List[Dict[str, Any]]:
+        """Retorna a lista de usuários únicos com conexão ativa no canal (WebSocket + Sessão de Voz)."""
         seen_ids = set()
         users = []
-        for ws in self.channel_rooms[channel_id]:
-            if ws in self.socket_users:
-                uid, name = self.socket_users[ws]
+
+        # 1. Usuários registrados na sessão de voz persistente
+        if channel_id in self.voice_rooms:
+            for uid, udata in self.voice_rooms[channel_id].items():
                 if uid not in seen_ids:
                     seen_ids.add(uid)
-                    users.append({"user_id": uid, "user_name": name})
+                    users.append(udata)
+
+        # 2. Usuários conectados via WebSocket local no canal
+        if channel_id in self.channel_rooms:
+            for ws in self.channel_rooms[channel_id]:
+                if ws in self.socket_users:
+                    uid, name = self.socket_users[ws]
+                    if uid not in seen_ids:
+                        seen_ids.add(uid)
+                        users.append({"user_id": uid, "user_name": name, "is_muted": True, "is_deafened": False})
+
         return users
 
     # --- Suporte a DMs (Mensagens Diretas) ---

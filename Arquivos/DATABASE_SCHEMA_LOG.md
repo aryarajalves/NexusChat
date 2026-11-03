@@ -51,6 +51,14 @@ Registro de migrações e atualizações estruturais do banco de dados (PostgreS
 
 ---
 
+### [02/11/2026] - Sistema de Tópicos (Threads) em Mensagens do Canal
+- **Tabelas Criadas:**
+  - `message_threads`: Criação de discussões paralelas a partir de uma mensagem raiz (`id`, `channel_id`, `root_message_id`, `creator_id`, `name`, `created_at`, `updated_at`).
+  - `thread_messages`: Mensagens enviadas dentro do tópico/thread (`id`, `thread_id`, `author_id`, `content`, `attachment_url`, `attachment_type`, `attachment_size`, `created_at`, `updated_at`).
+- **Script de Migração:** `backend/scripts/migrate_discord_threads.py`
+
+---
+
 ### [28/10/2026] - Sistema de Mensagens Diretas (DMs Privadas)
 - **Tabelas Criadas:**
   - `dm_conversations`: Armazena a conversa privada entre dois usuários (`id`, `user1_id`, `user2_id`, `created_at`, `updated_at`) com índice único por par de usuários (`uq_dm_conversation_users`).
@@ -120,6 +128,29 @@ Registro de migrações e atualizações estruturais do banco de dados (PostgreS
   - Partições mensais automáticas (`messages_y2026m10`, `messages_y2026m11`, `messages_y2026m12`, `messages_default`).
   - Índice composto local `idx_part_messages_channel_id_id` em cada partição individual.
 - **Script de Migração:** `backend/scripts/migrate_messages_partitioning.py`
+
+---
+
+### [31/10/2026] - Sistema de Boas-Vindas Configurável por Servidor (Welcome System)
+- **Colunas Adicionadas na tabela `servers`:**
+  - `servers.welcome_enabled`: Campo booleano (`BOOLEAN NOT NULL DEFAULT FALSE`) para ativar/desativar o disparo automático de boas-vindas ao entrar no servidor.
+  - `servers.welcome_channel_id`: Chave estrangeira opcional (`INTEGER REFERENCES channels(id) ON DELETE SET NULL`) apontando para o canal de texto onde a saudação será enviada.
+  - `servers.welcome_message`: Template customizável da mensagem de boas-vindas (`VARCHAR(2000)`), suportando as variáveis `{user}` e `{server}`.
+- **Script de Migração:** `backend/scripts/migrate_server_welcome.py`
+- **Automação no Lifespan:** Executado automaticamente no startup em `backend/app/main.py`.
+
+---
+
+### [02/11/2026] - Sistema de Tópicos (Threads) nas Mensagens
+- **Tabelas Criadas:**
+  - `message_threads`: Armazena tópicos vinculados a uma mensagem raiz (`id`, `channel_id`, `root_message_id`, `creator_id`, `name`, `created_at`, `updated_at`).
+  - `thread_messages`: Armazena mensagens dentro do tópico (`id`, `thread_id`, `author_id`, `content`, `attachment_url`, `attachment_type`, `attachment_size`, `created_at`, `updated_at`).
+- **Índices Criados:**
+  - `idx_message_threads_channel_id`: Busca rápida de tópicos por canal.
+  - `idx_thread_messages_thread_id_id`: Paginação e busca otimizada de mensagens dentro de uma thread.
+- **Script de Migração:** `backend/scripts/migrate_discord_threads.py`
+- **Automação no Lifespan:** Criado automaticamente no startup em `backend/app/main.py`.
+
 
 
 

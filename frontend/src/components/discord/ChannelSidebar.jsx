@@ -14,6 +14,7 @@ import {
   Settings,
   Trash2,
 } from 'lucide-react';
+import VoiceCallTimer from './VoiceCallTimer';
 
 export default function ChannelSidebar({
   server,
@@ -28,13 +29,19 @@ export default function ChannelSidebar({
   voiceStates = {},
   onlineUsers = [],
   voiceChannelUsers = {},
+  voiceChannelCallTimes = {},
   onDisconnectVoice,
   channelUnreads = {},
   isSoundMuted = false,
   onToggleSoundMute,
+  isVoiceMuted = false,
+  onToggleVoiceMute,
+  isVoiceDeafened = false,
+  onToggleVoiceDeafen,
   onOpenServerSettings,
   onOpenUserSettings,
   onOpenDeleteServer,
+  onOpenEditChannel,
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -42,7 +49,8 @@ export default function ChannelSidebar({
   const isOwnerOrAdmin =
     currentUserRole === 'OWNER' ||
     currentUserRole === 'ADMIN' ||
-    server?.owner_id === currentUser?.id;
+    server?.owner_id === currentUser?.id ||
+    currentUser?.role === 'superadmin';
 
   const isOwner =
     currentUserRole === 'OWNER' ||
@@ -229,11 +237,27 @@ export default function ChannelSidebar({
                     )}
                     <span className={isUnread ? 'channel-name-unread' : ''}>{ch.name}</span>
                   </div>
-                  {isUnread && (
-                    <span className="channel-unread-badge" data-testid={`channel-unread-badge-${ch.id}`}>
-                      {unreadCount > 99 ? '99+' : unreadCount}
-                    </span>
-                  )}
+                  <div className="channel-item-actions">
+                    {isUnread && (
+                      <span className="channel-unread-badge" data-testid={`channel-unread-badge-${ch.id}`}>
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                    {isOwnerOrAdmin && (
+                      <button
+                        type="button"
+                        className="channel-action-settings-btn"
+                        title="Configurações do Canal"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenEditChannel && onOpenEditChannel(ch);
+                        }}
+                        data-testid={`edit-channel-btn-${ch.id}`}
+                      >
+                        <Settings size={14} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -264,27 +288,29 @@ export default function ChannelSidebar({
               let displayUsers = [];
 
               if (isConnected) {
-                // Combina usuários em tempo real do socket com os participantes da sala
-                const sourceList = (onlineUsers && onlineUsers.length > 0) ? onlineUsers : channelUsers;
-                const merged = [...sourceList];
-                if (currentUser && !merged.some((u) => (u.user_id || u.id) === currentUser.id)) {
-                  merged.push({ user_id: currentUser.id, user_name: currentUser.name });
+                // Combina participantes da sala de voz com usuários do socket (apenas se o socket ativo for o canal de voz)
+                const map = new Map();
+                channelUsers.forEach((u) => {
+                  const uid = u.user_id || u.id;
+                  if (uid) map.set(uid, { user_id: uid, user_name: u.user_name || u.name, is_muted: u.is_muted, is_deafened: u.is_deafened });
+                });
+                if (isActive) {
+                  (onlineUsers || []).forEach((u) => {
+                    const uid = u.user_id || u.id;
+                    if (uid) map.set(uid, { user_id: uid, user_name: u.user_name || u.name, is_muted: u.is_muted, is_deafened: u.is_deafened });
+                  });
                 }
-                const seen = new Set();
-                displayUsers = merged.filter((u) => {
-                  const uid = u.user_id || u.id;
-                  if (!uid || seen.has(uid)) return false;
-                  seen.add(uid);
-                  return true;
-                });
+                if (currentUser) {
+                  map.set(currentUser.id, { user_id: currentUser.id, user_name: currentUser.name, is_muted: isVoiceMuted, is_deafened: isVoiceDeafened });
+                }
+                displayUsers = Array.from(map.values());
               } else {
-                const seen = new Set();
-                displayUsers = channelUsers.filter((u) => {
+                const map = new Map();
+                channelUsers.forEach((u) => {
                   const uid = u.user_id || u.id;
-                  if (!uid || seen.has(uid)) return false;
-                  seen.add(uid);
-                  return true;
+                  if (uid) map.set(uid, { user_id: uid, user_name: u.user_name || u.name, is_muted: u.is_muted, is_deafened: u.is_deafened });
                 });
+                displayUsers = Array.from(map.values());
               }
 
               return (
@@ -298,12 +324,32 @@ export default function ChannelSidebar({
                   >
                     <div className="channel-item-left">
                       {ch.is_private ? (
-                        <Lock size={16} className={`channel-icon ${isConnected ? 'voice-active-icon' : ''}`} data-testid={`channel-lock-${ch.id}`} />
+                        <Lock size={16} className={`channel-icon ${isConnected || displayUsers.length > 0 ? 'voice-active-icon' : ''}`} data-testid={`channel-lock-${ch.id}`} />
                       ) : (
-                        <Volume2 size={16} className={`channel-icon ${isConnected ? 'voice-active-icon' : ''}`} />
+                        <Volume2 size={16} className={`channel-icon ${isConnected || displayUsers.length > 0 ? 'voice-active-icon' : ''}`} />
                       )}
                       <span>{ch.name}</span>
                     </div>
+                    <VoiceCallTimer
+                      callStartedAt={voiceChannelCallTimes?.[ch.id]}
+                      isActive={displayUsers.length > 0}
+                    />
+                    {isOwnerOrAdmin && (
+                      <div className="channel-item-actions">
+                        <button
+                          type="button"
+                          className="channel-action-settings-btn"
+                          title="Configurações do Canal"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenEditChannel && onOpenEditChannel(ch);
+                          }}
+                          data-testid={`edit-voice-channel-btn-${ch.id}`}
+                        >
+                          <Settings size={14} />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Usuários Conectados no Canal de Voz */}
@@ -311,9 +357,12 @@ export default function ChannelSidebar({
                     <div className="voice-channel-users-list" data-testid={`voice-channel-users-${ch.id}`}>
                       {displayUsers.map((u) => {
                         const uid = u.user_id || u.id;
-                        const uname = u.user_name || u.name || (uid === currentUser?.id ? (currentUser?.name || 'Super Admin') : 'Membro');
-                        const isSpeaking = voiceStates[uid]?.is_speaking;
-                        const isMuted = voiceStates[uid]?.is_muted;
+                        const isMe = Number(uid) === Number(currentUser?.id);
+                        const uname = u.user_name || u.name || (isMe ? (currentUser?.name || 'Você') : 'Membro');
+                        const userState = voiceStates[uid] || voiceStates[Number(uid)] || voiceStates[String(uid)] || {};
+                        const isSpeaking = isMe ? false : Boolean(userState.is_speaking);
+                        const isMuted = isMe ? isVoiceMuted : Boolean(userState.is_muted !== undefined ? userState.is_muted : (u.is_muted ?? true));
+                        const isDeafened = isMe ? isVoiceDeafened : Boolean(userState.is_deafened !== undefined ? userState.is_deafened : u.is_deafened);
                         const initial = (uname || 'U').trim().charAt(0).toUpperCase();
 
                         return (
@@ -330,9 +379,14 @@ export default function ChannelSidebar({
                               {initial}
                             </div>
                             <span className="voice-user-name">{uname}</span>
-                            {isMuted && (
-                              <MicOff size={13} className="voice-user-muted-icon" />
-                            )}
+                            <div className="voice-user-icons" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              {isMuted && (
+                                <MicOff size={13} className="voice-user-muted-icon" title="Microfone Mutado" data-testid={`voice-user-muted-${uid}`} />
+                              )}
+                              {isDeafened && (
+                                <Headphones size={13} className="voice-user-deaf-icon" title="Áudio Desativado (Ensurdecido)" data-testid={`voice-user-deaf-${uid}`} />
+                              )}
+                            </div>
                           </div>
                         );
                       })}
@@ -397,17 +451,23 @@ export default function ChannelSidebar({
         </div>
 
         <div className="discord-user-controls">
-          <button type="button" className="control-icon-btn" title="Microfone" data-testid="mic-btn">
-            <Mic size={16} />
+          <button
+            type="button"
+            className={`control-icon-btn ${isVoiceMuted ? 'muted' : ''}`}
+            onClick={onToggleVoiceMute}
+            title={isVoiceMuted ? 'Ativar Microfone' : 'Silenciar Microfone'}
+            data-testid="mic-btn"
+          >
+            {isVoiceMuted ? <MicOff size={16} /> : <Mic size={16} />}
           </button>
           <button
             type="button"
-            className={`control-icon-btn ${isSoundMuted ? 'muted' : ''}`}
-            onClick={onToggleSoundMute}
-            title={isSoundMuted ? 'Ativar Efeitos Sonoros' : 'Silenciar Efeitos Sonoros'}
+            className={`control-icon-btn ${isVoiceDeafened || isSoundMuted ? 'muted' : ''}`}
+            onClick={onToggleVoiceDeafen || onToggleSoundMute}
+            title={isVoiceDeafened ? 'Desativar Ensurdecer' : isSoundMuted ? 'Ativar Efeitos Sonoros' : 'Silenciar Efeitos Sonoros'}
             data-testid="audio-btn"
           >
-            {isSoundMuted ? <VolumeX size={16} /> : <Headphones size={16} />}
+            {isVoiceDeafened || isSoundMuted ? <VolumeX size={16} /> : <Headphones size={16} />}
           </button>
           <button
             type="button"

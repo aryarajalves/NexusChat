@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, createEvent } from '@testing-library/react';
 import VoicePipPlayer from './VoicePipPlayer';
 
 describe('VoicePipPlayer Draggable Component', () => {
@@ -110,5 +110,24 @@ describe('VoicePipPlayer Draggable Component', () => {
     // Verifica que a posição customizada foi aplicada ao estilo inline
     expect(container.style.left).toBe('250px');
     expect(container.style.top).toBe('380px');
+  });
+
+  it('prevents default drag start and default mouse behavior to prevent triggering chat dropzone', () => {
+    render(<VoicePipPlayer {...defaultProps} />);
+    const container = screen.getByTestId('voice-pip-container');
+    const dragHandle = screen.getByTestId('voice-pip-drag-handle');
+    const body = screen.getByTestId('voice-pip-body');
+
+    const dragEvent = createEvent.dragStart(container);
+    fireEvent(container, dragEvent);
+    expect(dragEvent.defaultPrevented).toBe(true);
+
+    const mouseDownEvent = createEvent.mouseDown(dragHandle, { button: 0, clientX: 100, clientY: 100 });
+    fireEvent(dragHandle, mouseDownEvent);
+    expect(mouseDownEvent.defaultPrevented).toBe(true);
+
+    const bodyMouseDownEvent = createEvent.mouseDown(body, { button: 0, clientX: 100, clientY: 100 });
+    fireEvent(body, bodyMouseDownEvent);
+    expect(bodyMouseDownEvent.defaultPrevented).toBe(true);
   });
 });

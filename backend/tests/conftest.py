@@ -34,6 +34,13 @@ app.dependency_overrides[get_db] = override_get_db
 
 @pytest.fixture(autouse=True)
 def setup_database():
+    from app.services.socket_manager import socket_manager
+    socket_manager.channel_rooms.clear()
+    socket_manager.voice_rooms.clear()
+    socket_manager.dm_rooms.clear()
+    socket_manager.socket_users.clear()
+    socket_manager.user_sockets.clear()
+
     app.dependency_overrides[get_db] = override_get_db
     Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()
@@ -50,5 +57,8 @@ def setup_database():
     db.close()
     yield
     Base.metadata.drop_all(bind=engine)
+    socket_manager.channel_rooms.clear()
+    socket_manager.voice_rooms.clear()
+    socket_manager.dm_rooms.clear()
 
 client = TestClient(app)

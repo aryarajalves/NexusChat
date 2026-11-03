@@ -300,16 +300,17 @@
 /* 3. Renderização de Anexos no Chat */
 .chat-attachment-wrapper { margin-top: 8px; }
 .chat-attachment-img-link {
-  display: inline-block;
-  max-width: 480px;
-  max-height: 340px;
+  display: block;
+  max-width: 520px;
+  width: fit-content;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #1e1f22;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .chat-attachment-img-link:hover { transform: scale(1.01); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
-.chat-attachment-img { width: 100%; max-height: 340px; object-fit: cover; display: block; }
+.chat-attachment-img { max-width: 100%; max-height: 380px; width: auto; height: auto; object-fit: contain; display: block; background: #2b2d31; }
 .chat-attachment-file-card {
   display: flex;
   align-items: center;

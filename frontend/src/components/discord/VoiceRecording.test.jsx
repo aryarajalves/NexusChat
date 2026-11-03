@@ -93,7 +93,7 @@ describe('Voice Channel Recording & Export Feature', () => {
       // Export button click
       const exportBtn = screen.getByTestId('export-recording-btn');
       fireEvent.click(exportBtn);
-      expect(onExport).toHaveBeenCalledWith(expect.stringContaining('gravacao_geral_audio_'));
+      expect(onExport).toHaveBeenCalledWith(expect.stringContaining('gravacao_geral_audio_'), expect.any(Object));
 
       // Discard button click
       const discardBtn = screen.getByTestId('discard-recording-btn');
@@ -101,7 +101,7 @@ describe('Voice Channel Recording & Export Feature', () => {
       expect(onClose).toHaveBeenCalled();
     });
 
-    it('renders video recording preview when recordType is video', () => {
+    it('renders video recording preview, format selector, and compression toggle when recordType is video', () => {
       const mockBlob = new Blob(['dummy video content'], { type: 'video/webm' });
 
       render(
@@ -118,7 +118,19 @@ describe('Voice Channel Recording & Export Feature', () => {
 
       expect(screen.getByTestId('recorded-video-preview')).toBeInTheDocument();
       expect(screen.getByText('00:45')).toBeInTheDocument();
-      expect(screen.getByText('WebM (VIDEO)')).toBeInTheDocument();
+      expect(screen.getByTestId('voice-recording-options')).toBeInTheDocument();
+      expect(screen.getByTestId('format-pill-mp4')).toHaveClass('active');
+      expect(screen.getByText('MP4')).toBeInTheDocument();
+
+      // Alterna formato para WebM
+      fireEvent.click(screen.getByTestId('format-pill-webm'));
+      expect(screen.getByTestId('format-pill-webm')).toHaveClass('active');
+
+      // Alterna compressão de vídeo
+      const toggleCard = screen.getByTestId('toggle-compression-card');
+      expect(toggleCard).toHaveClass('active');
+      fireEvent.click(toggleCard);
+      expect(toggleCard).not.toHaveClass('active');
     });
   });
 

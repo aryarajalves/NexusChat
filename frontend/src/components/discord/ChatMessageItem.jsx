@@ -11,9 +11,15 @@ import {
   MoreHorizontal,
   Copy,
   Pin,
+  MessageSquare,
 } from 'lucide-react';
 import { formatBrasiliaDateTime, renderContentWithMentions } from './chatUtils';
 import EmojiPickerPopover from './EmojiPickerPopover';
+import {
+  MessageAttachmentPreview,
+  MessageReactionsRow,
+  MessageThreadBadge,
+} from './ChatMessageExtras';
 
 const QUICK_EMOJIS = ['🀄', '😀', '❤️', '🔥', '👍', '🎉', '😂', '👀', '🚀', '⭐', '🙏', '✨', '👏', '😍', '🤔', '🥳', '🙌', '💯'];
 
@@ -29,11 +35,14 @@ export default function ChatMessageItem({
   onRequestDelete,
   onRequestReply,
   onTogglePin,
+  onRequestThread,
+  onOpenThread,
   repliedMessage,
   onScrollToMessage,
   formatFileSize,
   addToast,
   members = [],
+  onStartDM,
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editingContent, setEditingContent] = useState(msg.content || '');
@@ -89,16 +98,6 @@ export default function ChatMessageItem({
   const isAuthor = msg.author_id === currentUserId;
   const authorMember = members?.find((m) => m.user_id === msg.author_id);
   const roleColor = msg.author_role_color || authorMember?.role_color;
-  const isImage =
-    msg.attachment_type?.startsWith('image/') ||
-    /\.(png|jpe?g|gif|webp|svg|bmp)(\?.*)?$/i.test(msg.attachment_url || '');
-  const isAudio =
-    msg.attachment_type?.startsWith('audio/') ||
-    /\.(mp3|ogg|wav|m4a|aac|opus)(\?.*)?$/i.test(msg.attachment_url || '');
-  const isVideo =
-    !isAudio &&
-    (msg.attachment_type?.startsWith('video/') ||
-      /\.(mp4|webm|mov|mkv)(\?.*)?$/i.test(msg.attachment_url || ''));
 
   const handleStartEdit = () => {
     setIsEditing(true);
@@ -207,7 +206,7 @@ export default function ChatMessageItem({
           ) : (
             msg.content && (
               <div className="chat-text-content" data-testid={`message-content-${msg.id}`}>
-                {renderContentWithMentions(msg.content, currentUserName)}
+                {renderContentWithMentions(msg.content, currentUserName, onStartDM, members)}
                 {msg.is_edited && (
                   <span className="chat-message-edited" data-testid={`message-edited-badge-${msg.id}`}>
                     (editado)
@@ -218,58 +217,18 @@ export default function ChatMessageItem({
           )}
 
           {/* Renderização de Anexos */}
-          {msg.attachment_url && (
-            <div className="chat-attachment-wrapper">
-              {isImage ? (
-                <a href={msg.attachment_url} target="_blank" rel="noreferrer" className="chat-attachment-img-link">
-                  <img src={msg.attachment_url} alt="Anexo de imagem" className="chat-attachment-img" loading="lazy" />
-                </a>
-              ) : isVideo ? (
-                <div className="chat-attachment-video-wrapper">
-                  <video src={msg.attachment_url} controls playsInline className="chat-attachment-video" />
-                </div>
-              ) : isAudio ? (
-                <div className="chat-attachment-audio-wrapper">
-                  <audio src={msg.attachment_url} controls className="chat-attachment-audio" />
-                </div>
-              ) : (
-                <a href={msg.attachment_url} target="_blank" rel="noreferrer" className="chat-attachment-file-card" download>
-                  <FileText size={24} className="attachment-file-icon" />
-                  <div className="attachment-file-info">
-                    <span className="attachment-filename">{msg.attachment_url.split('/').pop()}</span>
-                    <span className="attachment-filesize">{formatFileSize(msg.attachment_size)}</span>
-                  </div>
-                  <Download size={16} className="attachment-download-icon" />
-                </a>
-              )}
-            </div>
-          )}
+          <MessageAttachmentPreview msg={msg} formatFileSize={formatFileSize} />
 
-          {/* Linha de Reações com Emojis (Chips estilo Discord) */}
-          <div className="message-reactions-row" data-testid={`message-reactions-${msg.id}`}>
-            {(msg.reactions || []).map((r) => (
-              <button
-                key={r.emoji}
-                type="button"
-                className={`reaction-badge ${r.reacted_by_me ? 'active' : ''}`}
-                onClick={() => onToggleReaction && onToggleReaction(channelId, msg.id, r.emoji)}
-                title={r.reacted_by_me ? `Remover reação ${r.emoji}` : `Reagir com ${r.emoji}`}
-                data-testid={`reaction-chip-${msg.id}-${r.emoji}`}
-              >
-                <span>{r.emoji}</span>
-                <span className="reaction-badge-count">{r.count}</span>
-              </button>
-            ))}
-            <button
-              type="button"
-              className="reaction-badge-add"
-              onClick={toggleEmojiPicker}
-              title="Adicionar reação"
-              data-testid={`add-reaction-btn-${msg.id}`}
-            >
-              <Smile size={14} />
-            </button>
-          </div>
+          {/* Linha de Reações com Emojis */}
+          <MessageReactionsRow
+            msg={msg}
+            channelId={channelId}
+            onToggleReaction={onToggleReaction}
+            onOpenEmojiPicker={toggleEmojiPicker}
+          />
+
+          {/* Badge / Card de Tópico (Thread) estilo Discord */}
+          <MessageThreadBadge thread={msg.thread} onOpenThread={onOpenThread} />
         </div>
       </div>
 
@@ -460,6 +419,25 @@ export default function ChatMessageItem({
               <Share2 size={15} />
               <span>Encaminhar Mensagem</span>
             </button>
+
+            {onRequestThread && (
+              <button
+                type="button"
+                className="more-menu-item"
+                onClick={() => {
+                  setIsMoreMenuOpen(false);
+                  if (msg.thread && onOpenThread) {
+                    onOpenThread(msg.thread.id);
+                  } else {
+                    onRequestThread(msg);
+                  }
+                }}
+                data-testid={`more-thread-action-${msg.id}`}
+              >
+                <MessageSquare size={15} />
+                <span>{msg.thread ? 'Abrir Tópico' : 'Criar Tópico'}</span>
+              </button>
+            )}
 
             {isAuthor && (
               <button

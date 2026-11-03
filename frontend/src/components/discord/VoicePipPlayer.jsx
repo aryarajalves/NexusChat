@@ -14,6 +14,7 @@ import {
 export default function VoicePipPlayer({
   channel,
   currentUser,
+  participantsCount = 1,
   isMuted,
   isSpeaking,
   isCameraOn,
@@ -56,7 +57,15 @@ export default function VoicePipPlayer({
 
   const handleMouseDown = (e) => {
     if (e.button !== 0 || e.target.closest('button')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    window.getSelection?.()?.removeAllRanges?.();
     handleStartDrag(e.clientX, e.clientY);
+  };
+
+  const handleBlockNativeDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   const handleTouchStart = (e) => {
@@ -148,13 +157,17 @@ export default function VoicePipPlayer({
       ref={containerRef}
       className={`voice-pip-floating-box ${isDragging ? 'is-dragging' : ''}`}
       style={containerStyle}
+      draggable={false}
+      onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
+      onDragStart={handleBlockNativeDrag}
       data-testid="voice-pip-container"
     >
       {/* Cabeçalho arrastável do Mini-Player PiP */}
       <div
         className="voice-pip-header"
-        onMouseDown={handleMouseDown}
-        onTouchStart={handleTouchStart}
+        draggable={false}
+        onDragStart={handleBlockNativeDrag}
         data-testid="voice-pip-drag-handle"
         title="Clique e arraste para mover na tela"
       >
@@ -166,7 +179,7 @@ export default function VoicePipPlayer({
         >
           <GripHorizontal size={14} className="voice-pip-grip-icon" />
           <Volume2 size={15} color="#57f287" />
-          <span>#{channel?.name}</span>
+          <span>#{channel?.name}{participantsCount > 1 ? ` (${participantsCount})` : ''}</span>
           <span className="voice-pip-status-dot" />
         </div>
         <button
@@ -183,10 +196,12 @@ export default function VoicePipPlayer({
       {/* Visualização de Vídeo ou Avatar em PiP */}
       <div
         className="voice-pip-body"
+        draggable={false}
+        onDragStart={handleBlockNativeDrag}
         onClick={() => {
           if (!hasDraggedRef.current) onReturnToVoice?.();
         }}
-        title="Clique para voltar ao canal de voz"
+        title="Clique para voltar ou arraste para reposicionar"
         data-testid="voice-pip-body"
       >
         {isScreenSharing ? (

@@ -13,6 +13,9 @@ class ServerUpdate(BaseModel):
     icon_url: Optional[str] = Field(None, max_length=500)
     banner_url: Optional[str] = Field(None, max_length=500)
     description: Optional[str] = Field(None, max_length=255)
+    welcome_enabled: Optional[bool] = None
+    welcome_channel_id: Optional[int] = None
+    welcome_message: Optional[str] = Field(None, max_length=2000)
 
 class ChannelResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -36,6 +39,9 @@ class ServerResponse(BaseModel):
     banner_url: Optional[str] = None
     description: Optional[str] = None
     owner_id: int
+    welcome_enabled: bool = False
+    welcome_channel_id: Optional[int] = None
+    welcome_message: Optional[str] = None
     created_at: datetime
     channels: List[ChannelResponse] = []
     members_count: int = 1
@@ -70,7 +76,7 @@ class MessageCreate(BaseModel):
     content: Optional[str] = Field("", max_length=MAX_MESSAGE_CONTENT_LENGTH)
     attachment_url: Optional[str] = Field(None, max_length=500)
     attachment_type: Optional[str] = Field(None, max_length=50)
-    attachment_size: Optional[int] = Field(None, le=MAX_ATTACHMENT_SIZE_BYTES)
+    attachment_size: Optional[int] = Field(None, ge=0)
     reply_to_id: Optional[int] = None
 
 class ReactionSummary(BaseModel):
@@ -87,6 +93,62 @@ class MessageUpdate(BaseModel):
 
 class MessageForwardRequest(BaseModel):
     target_channel_id: int
+
+# --- Tópicos (Threads) ---
+class ThreadCreate(BaseModel):
+    name: Optional[str] = Field(None, max_length=100)
+
+class ThreadSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    channel_id: int
+    root_message_id: int
+    creator_id: int
+    creator_name: str
+    name: str
+    message_count: int = 0
+    last_message_content: Optional[str] = None
+    last_message_author: Optional[str] = None
+    last_message_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+class ThreadMessageCreate(BaseModel):
+    content: Optional[str] = Field("", max_length=MAX_MESSAGE_CONTENT_LENGTH)
+    attachment_url: Optional[str] = Field(None, max_length=500)
+    attachment_type: Optional[str] = Field(None, max_length=50)
+    attachment_size: Optional[int] = Field(None, ge=0)
+
+class ThreadMessageResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    thread_id: int
+    author_id: int
+    author_name: str
+    author_email: str
+    author_avatar_url: Optional[str] = None
+    content: Optional[str] = ""
+    attachment_url: Optional[str] = None
+    attachment_type: Optional[str] = None
+    attachment_size: Optional[int] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+class ThreadDetailResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    channel_id: int
+    root_message_id: int
+    creator_id: int
+    creator_name: str
+    name: str
+    root_message: Optional['MessageResponse'] = None
+    messages: List[ThreadMessageResponse] = []
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
 class MessageResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -105,6 +167,7 @@ class MessageResponse(BaseModel):
     is_edited: bool = False
     is_pinned: bool = False
     reactions: List[ReactionSummary] = []
+    thread: Optional[ThreadSummary] = None
     author_role_color: Optional[str] = None
     author_role_name: Optional[str] = None
     created_at: datetime
@@ -158,6 +221,7 @@ class ServerMemberResponse(BaseModel):
     role_id: Optional[int] = None
     role_name: Optional[str] = None
     role_color: Optional[str] = None
+    is_online: bool = True
     joined_at: datetime
 
 # --- Convites ---

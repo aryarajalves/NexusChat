@@ -73,6 +73,29 @@ describe('ChatArea Realtime & Attachments', () => {
     expect(screen.queryByTestId('attachment-pending-box')).not.toBeInTheDocument();
   });
 
+  it('allows Super Admin to attach files larger than 50 MB without error', async () => {
+    renderWithToast(
+      <ChatArea channel={mockChannel} currentUser={{ id: 99, name: 'Super Admin', role: 'superadmin' }} />
+    );
+
+    const fileInput = screen.getByTestId('file-upload-input');
+
+    // Cria arquivo simulado de 150 MB
+    const hugeFile = new File(['x'.repeat(100)], 'huge_stream.mp4', { type: 'video/mp4' });
+    Object.defineProperty(hugeFile, 'size', { value: 150 * 1024 * 1024 });
+
+    fireEvent.change(fileInput, { target: { files: [hugeFile] } });
+
+    // Toast de erro NÃO deve ser exibido para superadmin
+    expect(screen.queryByText('O arquivo excede o limite máximo permitido de 50 MB.')).not.toBeInTheDocument();
+
+    // Preview do arquivo deve ser montado normalmente
+    await waitFor(() => {
+      expect(screen.getByTestId('attachment-pending-box')).toBeInTheDocument();
+      expect(screen.getByText('huge_stream.mp4')).toBeInTheDocument();
+    });
+  });
+
   it('accepts file <= 50 MB, shows preview box and can remove it', async () => {
     renderWithToast(
       <ChatArea channel={mockChannel} />
@@ -413,5 +436,28 @@ describe('ChatArea Realtime & Attachments', () => {
     expect(screen.getByTestId('attachment-pending-box')).toBeInTheDocument();
     expect(screen.getByText('print_colado.png')).toBeInTheDocument();
     expect(messageInput).toHaveAttribute('placeholder', 'Adicionar uma legenda para print_colado.png...');
+  });
+
+  it('does not activate drag overlay when non-file items (e.g. text or PiP elements) are dragged over chat', () => {
+    const { container } = renderWithToast(<ChatArea channel={mockChannel} messages={[]} />);
+    const chatSection = container.querySelector('.discord-chat-area');
+
+    fireEvent.dragEnter(chatSection, {
+      dataTransfer: { types: ['text/plain'] },
+    });
+    expect(screen.queryByTestId('chat-drag-overlay')).not.toBeInTheDocument();
+
+    // Também bloqueia se um mini-player PiP estiver com classe is-dragging ativa no DOM
+    const fakePip = document.createElement('div');
+    fakePip.className = 'voice-pip-floating-box is-dragging';
+    document.body.appendChild(fakePip);
+    try {
+      fireEvent.dragEnter(chatSection, {
+        dataTransfer: { types: ['Files'] },
+      });
+      expect(screen.queryByTestId('chat-drag-overlay')).not.toBeInTheDocument();
+    } finally {
+      fakePip.remove();
+    }
   });
 });

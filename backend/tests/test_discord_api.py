@@ -29,7 +29,7 @@ def get_auth_headers(email=settings.SUPERADMIN_EMAIL, password=settings.SUPERADM
     return {"Authorization": f"Bearer {token}"}
 
 def test_create_server_and_defaults():
-    """Valida a criação de um servidor e os canais padrão #geral (texto) e geral (voz)."""
+    """Valida a criação de um servidor e os canais padrão #geral (texto) e Sala de Voz (voz)."""
     headers = get_auth_headers()
     payload = {
         "name": "Comunidade Python",
@@ -43,10 +43,64 @@ def test_create_server_and_defaults():
     assert data["members_count"] == 1
     assert len(data["channels"]) == 2
     
-    # Verifica canais padrão gerados automaticamente
+    # Verifica canais padrão gerados automaticamente com nomes distintos
     channel_types = [c["type"] for c in data["channels"]]
     assert "TEXT" in channel_types
     assert "VOICE" in channel_types
+    channel_names = {c["type"]: c["name"] for c in data["channels"]}
+    assert channel_names["TEXT"] == "geral"
+    assert channel_names["VOICE"] == "Sala de Voz"
+    assert channel_names["TEXT"] != channel_names["VOICE"]
+
+def test_channel_name_uniqueness_and_defaults():
+    """Valida que canais no mesmo servidor não podem ter nomes duplicados e que os nomes padrão são diferentes."""
+    headers = get_auth_headers()
+    srv_res = client.post("/api/v1/discord/servers", json={"name": "Servidor Nomes Unicos"}, headers=headers)
+    assert srv_res.status_code == 201
+    server_id = srv_res.json()["id"]
+
+    channels = srv_res.json()["channels"]
+    text_channel = next(c for c in channels if c["type"] == "TEXT")
+    voice_channel = next(c for c in channels if c["type"] == "VOICE")
+    assert text_channel["name"] == "geral"
+    assert voice_channel["name"] == "Sala de Voz"
+    assert text_channel["name"] != voice_channel["name"]
+
+    # 1. Tenta criar canal de voz com o mesmo nome do canal de texto ("geral") -> deve falhar com 400
+    dup_res = client.post(
+        f"/api/v1/discord/servers/{server_id}/channels",
+        json={"name": "geral", "type": "VOICE"},
+        headers=headers
+    )
+    assert dup_res.status_code == 400
+    assert "Já existe um canal com este nome" in dup_res.json()["detail"]
+
+    # 2. Tenta criar canal com variação de maiúsculas ("GERAL") -> deve falhar com 400
+    dup_case_res = client.post(
+        f"/api/v1/discord/servers/{server_id}/channels",
+        json={"name": "GERAL", "type": "TEXT"},
+        headers=headers
+    )
+    assert dup_case_res.status_code == 400
+    assert "Já existe um canal com este nome" in dup_case_res.json()["detail"]
+
+    # 3. Tenta renomear o canal de voz para "geral" -> deve falhar com 400
+    patch_res = client.patch(
+        f"/api/v1/discord/servers/{server_id}/channels/{voice_channel['id']}",
+        json={"name": "geral"},
+        headers=headers
+    )
+    assert patch_res.status_code == 400
+    assert "Já existe um canal com este nome" in patch_res.json()["detail"]
+
+    # 4. Criar canal com nome novo e válido ("anuncios") -> sucesso 201
+    valid_res = client.post(
+        f"/api/v1/discord/servers/{server_id}/channels",
+        json={"name": "anuncios", "type": "TEXT"},
+        headers=headers
+    )
+    assert valid_res.status_code == 201
+    assert valid_res.json()["name"] == "anuncios"
 
 def test_server_limit_enforcement():
     """Valida a regra de limite de servidores por conta."""

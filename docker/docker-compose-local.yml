@@ -109,6 +109,4 @@ services:
 
 volumes:
   nexus_chat_pg_data:
-    external: true
-    name: projeto-base_projeto_base_pg_data
   nexus_chat_redis_data:

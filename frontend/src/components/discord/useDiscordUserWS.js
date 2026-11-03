@@ -9,12 +9,18 @@ export default function useDiscordUserWS({
   token,
   onUnreadUpdate,
   onDMMessageNew,
+  onServerMemberJoined,
+  onVoiceChannelUpdate,
+  onUserPresence,
 }) {
   const wsRef = useRef(null);
   const heartbeatRef = useRef(null);
   const reconnectRef = useRef(null);
   const onUnreadUpdateRef = useRef(onUnreadUpdate);
   const onDMMessageNewRef = useRef(onDMMessageNew);
+  const onServerMemberJoinedRef = useRef(onServerMemberJoined);
+  const onVoiceChannelUpdateRef = useRef(onVoiceChannelUpdate);
+  const onUserPresenceRef = useRef(onUserPresence);
   const intentionalCloseRef = useRef(false);
 
   useEffect(() => {
@@ -24,6 +30,18 @@ export default function useDiscordUserWS({
   useEffect(() => {
     onDMMessageNewRef.current = onDMMessageNew;
   }, [onDMMessageNew]);
+
+  useEffect(() => {
+    onServerMemberJoinedRef.current = onServerMemberJoined;
+  }, [onServerMemberJoined]);
+
+  useEffect(() => {
+    onVoiceChannelUpdateRef.current = onVoiceChannelUpdate;
+  }, [onVoiceChannelUpdate]);
+
+  useEffect(() => {
+    onUserPresenceRef.current = onUserPresence;
+  }, [onUserPresence]);
 
   useEffect(() => {
     if (!token) {
@@ -86,6 +104,12 @@ export default function useDiscordUserWS({
               if (payload.message && onDMMessageNewRef.current) {
                 onDMMessageNewRef.current(payload.message);
               }
+            } else if (payload.event === 'server:member_joined' && onServerMemberJoinedRef.current) {
+              onServerMemberJoinedRef.current(payload);
+            } else if (payload.event === 'voice:channel_update' && onVoiceChannelUpdateRef.current) {
+              onVoiceChannelUpdateRef.current(payload);
+            } else if (payload.event === 'user:presence' && onUserPresenceRef.current) {
+              onUserPresenceRef.current(payload);
             }
           } catch (_) {}
         };

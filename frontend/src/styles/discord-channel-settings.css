@@ -1,0 +1,86 @@
+/* discord-channel-settings.css - Estilos para Configurações/Edição de Canal e Ações */
+
+/* 1. Botão de engrenagem no hover do canal */
+.channel-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.channel-action-settings-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  color: #949ba4;
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.channel-item:hover .channel-action-settings-btn,
+.channel-item.active .channel-action-settings-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.channel-action-settings-btn:hover {
+  color: #dbdee1;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* 2. Modal de Edição de Canal */
+.edit-channel-modal-card {
+  max-width: 480px;
+  width: 100%;
+}
+
+.channel-delete-confirm-panel {
+  padding: 16px 20px;
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 8px;
+  margin: 16px 0;
+}
+
+/* 3. Menção Clicável para DM */
+.chat-mention-pill.is-clickable {
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.chat-mention-pill.is-clickable:hover {
+  background: rgba(88, 101, 242, 0.55);
+  color: #ffffff;
+  box-shadow: 0 0 6px rgba(88, 101, 242, 0.4);
+}
+
+.chat-mention-pill.is-clickable:active {
+  transform: scale(0.97);
+}
+
+/* 4. Cronômetro de Call Ativa no Canal de Voz (Estilo Discord) */
+.voice-channel-call-timer {
+  margin-left: auto;
+  margin-right: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #23a55a;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(35, 165, 90, 0.12);
+  border: 1px solid rgba(35, 165, 90, 0.25);
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.15s ease;
+}
+
+.channel-item:hover .voice-channel-call-timer {
+  background: rgba(35, 165, 90, 0.18);
+  border-color: rgba(35, 165, 90, 0.4);
+}

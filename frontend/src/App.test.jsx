@@ -185,7 +185,7 @@ describe('App Component', () => {
     expect(screen.getByText('Sua sessão expirou. Por favor, faça login novamente.')).toBeInTheDocument();
   });
 
-  it('clears active tab and unselects community when opening system sidebar from discord', async () => {
+  it('starts on DashboardWelcome (Image 02) and shows system sidebar when reloaded from discord', () => {
     localStorage.setItem('auth_token', 'mock_token');
     localStorage.setItem(
       'auth_user',
@@ -197,6 +197,31 @@ describe('App Component', () => {
       })
     );
     localStorage.setItem('active_tab', 'discord');
+
+    render(
+      <ToastProvider>
+        <App />
+      </ToastProvider>
+    );
+
+    // Deve abrir diretamente na tela de boas-vindas do sistema (Imagem 02)
+    expect(screen.getByRole('complementary', { name: /menu lateral/i })).toBeInTheDocument();
+    expect(screen.getByTestId('dashboard-welcome-container')).toBeInTheDocument();
+    expect(screen.getByTestId('welcome-enter-discord-btn')).toBeInTheDocument();
+    expect(localStorage.getItem('active_tab')).toBeNull();
+  });
+
+  it('clears active tab and unselects community when opening system sidebar from discord', async () => {
+    localStorage.setItem('auth_token', 'mock_token');
+    localStorage.setItem(
+      'auth_user',
+      JSON.stringify({
+        id: 1,
+        name: 'Super Admin',
+        email: 'admin@test.com',
+        role: 'superadmin',
+      })
+    );
 
     global.fetch = vi.fn().mockImplementation((url) => {
       if (typeof url === 'string' && url.includes('/servers')) {
@@ -211,7 +236,11 @@ describe('App Component', () => {
       </ToastProvider>
     );
 
-    // Inicialmente no Discord, sidebar do sistema escondida
+    // Clica no botão de acessar comunidade Discord no menu lateral
+    const enterDiscordBtn = screen.getByTestId('nav-item-discord');
+    fireEvent.click(enterDiscordBtn);
+
+    // Agora no Discord, sidebar do sistema escondida
     expect(screen.queryByRole('complementary', { name: /menu lateral/i })).not.toBeInTheDocument();
 
     // Clica no botão do menu para exibir a barra lateral

@@ -31,11 +31,17 @@ Plataforma completa de comunicação e colaboração em tempo real inspirada no 
 - **Voz, Vídeo & Gravação com Webcam PiP:**
   - Canais de voz em grupo com controle de mudo e ensurdecer;
   - Player flutuante Picture-in-Picture (PiP) totalmente arrastável (Drag & Drop) com persistência de coordenadas e limitação na viewport;
-  - Presença em tempo real de múltiplos participantes conectados nos canais de voz;
-  - Gravação de áudio e vídeo da transmissão via `MediaRecorder`;
-  - Gravação com webcam sobreposta em *Picture-in-Picture* (PiP) móvel;
+  - Presença em tempo real de múltiplos participantes conectados nos canais de voz com separação estrita de presença;
+  - Gravação de áudio e vídeo da transmissão via `MediaRecorder` com opção de exportação em **MP4** ou **WebM** e compressão inteligente sem perda de qualidade;
+  - Gravação com webcam sobreposta em *Picture-in-Picture* (PiP) móvel nos 4 cantos da tela ou com livre arrasto;
+  - Desfoque de fundo de câmera nativo com segmentação corporal (estilo Google Meet: Desativado, Leve e Intenso);
+  - Compartilhamento de tela com controle opcional de captura de áudio do computador;
   - Efeitos sonoros característicos sintetizados via Web Audio API (mensagens, menções, conexão e desconexão de voz);
   - Modal completo de configurações de usuário (perfil, microfone/alto-falante, volume de efeitos e aparência visual).
+- **📱 Responsividade Mobile e Gavetas Deslizantes (Mobile Drawer Navigation):**
+  - Layout adaptativo para celulares e telas divididas ($\le 768\text{px}$) com chat em tela inteira ($100\text{vw}$);
+  - Gavetas deslizantes suaves para lista de servidores/canais (esquerda) e membros (direita) com backdrops translúcidos e fechamento automático ao selecionar conversa;
+  - Cache imutável (`Cache-Control: public, max-age=31536000, immutable`) para mídias e eliminação de queries N+1 no banco de dados.
 
 ---
 

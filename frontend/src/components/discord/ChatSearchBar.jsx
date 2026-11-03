@@ -27,7 +27,7 @@ export default function ChatSearchBar({
 
       setLoading(true);
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
         const baseUrl = channel.is_dm

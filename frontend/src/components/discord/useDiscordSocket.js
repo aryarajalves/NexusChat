@@ -13,6 +13,10 @@ export function useDiscordSocket({
   onMessageReaction,
   onMessagePin,
   onUnreadUpdate,
+  onThreadCreated,
+  onThreadMessageNew,
+  onMemberRemoved,
+  onServerKicked,
 }) {
   const [connectionStatus, setConnectionStatus] = useState('disconnected'); // 'connected' | 'connecting' | 'disconnected'
   const [typingUsers, setTypingUsers] = useState([]);
@@ -33,6 +37,10 @@ export function useDiscordSocket({
   const onMessageReactionRef = useRef(onMessageReaction);
   const onMessagePinRef = useRef(onMessagePin);
   const onUnreadUpdateRef = useRef(onUnreadUpdate);
+  const onThreadCreatedRef = useRef(onThreadCreated);
+  const onThreadMessageNewRef = useRef(onThreadMessageNew);
+  const onMemberRemovedRef = useRef(onMemberRemoved);
+  const onServerKickedRef = useRef(onServerKicked);
 
   useEffect(() => {
     onMessageNewRef.current = onMessageNew;
@@ -41,7 +49,22 @@ export function useDiscordSocket({
     onMessageReactionRef.current = onMessageReaction;
     onMessagePinRef.current = onMessagePin;
     onUnreadUpdateRef.current = onUnreadUpdate;
-  }, [onMessageNew, onMessageDelete, onMessageEdit, onMessageReaction, onMessagePin, onUnreadUpdate]);
+    onThreadCreatedRef.current = onThreadCreated;
+    onThreadMessageNewRef.current = onThreadMessageNew;
+    onMemberRemovedRef.current = onMemberRemoved;
+    onServerKickedRef.current = onServerKicked;
+  }, [
+    onMessageNew,
+    onMessageDelete,
+    onMessageEdit,
+    onMessageReaction,
+    onMessagePin,
+    onUnreadUpdate,
+    onThreadCreated,
+    onThreadMessageNew,
+    onMemberRemoved,
+    onServerKicked,
+  ]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -141,6 +164,30 @@ export function useDiscordSocket({
             case 'unread:update':
               if (onUnreadUpdateRef.current) {
                 onUnreadUpdateRef.current(payload);
+              }
+              break;
+
+            case 'thread:created':
+              if (onThreadCreatedRef.current && payload) {
+                onThreadCreatedRef.current(payload);
+              }
+              break;
+
+            case 'thread:message:new':
+              if (onThreadMessageNewRef.current && payload) {
+                onThreadMessageNewRef.current(payload);
+              }
+              break;
+
+            case 'server:member_removed':
+              if (onMemberRemovedRef.current && (payload.user_id || payload.member_id)) {
+                onMemberRemovedRef.current(payload.user_id || payload.member_id);
+              }
+              break;
+
+            case 'server:kicked':
+              if (onServerKickedRef.current && payload.server_id) {
+                onServerKickedRef.current(payload);
               }
               break;
 
@@ -262,13 +309,21 @@ export function useDiscordSocket({
     }
   }, []);
 
-  // Envia estado de voz (mutado, ensurdecido, falando)
-  const sendVoiceState = useCallback((state) => {
+  // Envia estado de voz (mutado, ensurdecido, falando) - suporta objeto ou parâmetros posicionais
+  const sendVoiceState = useCallback((state, maybeDeafened, maybeSpeaking) => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      const payload =
+        typeof state === 'object' && state !== null
+          ? state
+          : {
+              is_muted: Boolean(state),
+              is_deafened: Boolean(maybeDeafened),
+              is_speaking: Boolean(maybeSpeaking),
+            };
       socketRef.current.send(
         JSON.stringify({
           event: 'voice:state',
-          ...state,
+          ...payload,
         })
       );
     }

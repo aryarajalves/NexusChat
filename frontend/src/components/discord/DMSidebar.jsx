@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Plus, Search, Mic, Headphones, VolumeX, Settings, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MessageSquare, Plus, Search, Mic, MicOff, Headphones, VolumeX, Settings, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function DMSidebar({
   conversations = [],
@@ -10,6 +10,10 @@ export default function DMSidebar({
   dmUnreads = {},
   isSoundMuted = false,
   onToggleSoundMute,
+  isVoiceMuted = false,
+  onToggleVoiceMute,
+  isVoiceDeafened = false,
+  onToggleVoiceDeafen,
   onOpenUserSettings,
 }) {
   const [filterText, setFilterText] = useState('');
@@ -292,17 +296,23 @@ export default function DMSidebar({
           </div>
         </div>
         <div className="discord-user-controls">
-          <button type="button" className="control-icon-btn" title="Microfone" data-testid="dm-mic-btn">
-            <Mic size={16} />
+          <button
+            type="button"
+            className={`control-icon-btn ${isVoiceMuted ? 'muted' : ''}`}
+            onClick={onToggleVoiceMute}
+            title={isVoiceMuted ? 'Ativar Microfone' : 'Silenciar Microfone'}
+            data-testid="dm-mic-btn"
+          >
+            {isVoiceMuted ? <MicOff size={16} /> : <Mic size={16} />}
           </button>
           <button
             type="button"
-            className={`control-icon-btn ${isSoundMuted ? 'muted' : ''}`}
-            onClick={onToggleSoundMute}
-            title={isSoundMuted ? 'Ativar Efeitos Sonoros' : 'Silenciar Efeitos Sonoros'}
+            className={`control-icon-btn ${isVoiceDeafened || isSoundMuted ? 'muted' : ''}`}
+            onClick={onToggleVoiceDeafen || onToggleSoundMute}
+            title={isVoiceDeafened ? 'Desativar Ensurdecer' : isSoundMuted ? 'Ativar Efeitos Sonoros' : 'Silenciar Efeitos Sonoros'}
             data-testid="dm-headphones-btn"
           >
-            {isSoundMuted ? <VolumeX size={16} /> : <Headphones size={16} />}
+            {isVoiceDeafened || isSoundMuted ? <VolumeX size={16} /> : <Headphones size={16} />}
           </button>
           <button
             type="button"

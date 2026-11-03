@@ -5,6 +5,7 @@ import {
   Users,
   UploadCloud,
   Pin,
+Menu,
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import VoiceChannelArea from './VoiceChannelArea';
@@ -13,42 +14,26 @@ import ChatMessageItem from './ChatMessageItem';
 import ChatSearchBar from './ChatSearchBar';
 import ChatInputForm from './ChatInputForm';
 import PinnedMessagesPanel from './PinnedMessagesPanel';
+import ThreadSidePanel from './ThreadSidePanel';
 import { formatBrasiliaDateTime, formatFileSize } from './chatUtils';
 import useVirtualMessageList from './useVirtualMessageList';
 
 export { formatBrasiliaDateTime, formatFileSize };
 
 export default function ChatArea({
-  channel,
-  messages = [],
-  channels = [],
-  onSendMessage,
-  onEditMessage,
-  onToggleReaction,
-  onForwardMessage,
-  typingUsers = [],
-  onSendTyping,
-  showMembers,
-  onToggleMembers,
-  loading = false,
-  connectionStatus = 'connected',
-  currentUserId,
-  currentUserRole,
-  onRequestDeleteMessage,
-  onUploadAttachment,
-  currentUser,
-  onlineUsers = [],
-  voiceStates = {},
-  onSendVoiceState,
-  onDisconnectVoice,
-  pinnedMessages = [],
-  onTogglePin,
-  loadingPins = false,
-  members = [],
+  channel, messages = [], channels = [], onSendMessage, onEditMessage,
+  onToggleReaction, onForwardMessage, typingUsers = [], onSendTyping,
+  showMembers, onToggleMembers, loading = false, connectionStatus = 'connected',
+  currentUserId, currentUserRole, onRequestDeleteMessage, onUploadAttachment,
+  currentUser, onlineUsers = [], voiceStates = {}, onSendVoiceState,
+  onDisconnectVoice, pinnedMessages = [], onTogglePin, loadingPins = false,
+  members = [], onThreadUpdate, onStartDM, onToggleMobileNav,
 }) {
   const [replyingTo, setReplyingTo] = useState(null);
   const [forwardingMessage, setForwardingMessage] = useState(null);
   const [isPinsOpen, setIsPinsOpen] = useState(false);
+  const [activeThreadDetail, setActiveThreadDetail] = useState(null);
+  const [loadingThread, setLoadingThread] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [droppedFile, setDroppedFile] = useState(null);
 
@@ -75,20 +60,24 @@ export default function ChatArea({
     }
   }, [messages]);
 
+  const isFileDragEvent = (e) => {
+    if (typeof document !== 'undefined' && document.querySelector('.voice-pip-floating-box.is-dragging, .webcam-pip-container.is-dragging')) {
+      return false;
+    }
+    const types = Array.from(e.dataTransfer?.types || []);
+    return types.includes('Files');
+  };
+
   const handleDragEnter = (e) => {
+    if (!isFileDragEvent(e)) return;
     e.preventDefault();
     e.stopPropagation();
     dragCounterRef.current += 1;
-    if (
-      (e.dataTransfer?.items && e.dataTransfer.items.length > 0) ||
-      (e.dataTransfer?.types && e.dataTransfer.types.length > 0) ||
-      (e.dataTransfer?.files && e.dataTransfer.files.length > 0)
-    ) {
-      setIsDraggingOver(true);
-    }
+    setIsDraggingOver(true);
   };
 
   const handleDragOver = (e) => {
+    if (!isFileDragEvent(e)) return;
     e.preventDefault();
     e.stopPropagation();
   };
@@ -128,6 +117,140 @@ export default function ChatArea({
     }
   };
 
+  const handleOpenThread = async (threadId) => {
+    setLoadingThread(true);
+    const authToken = localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
+    try {
+      const res = await fetch(`/api/v1/discord/threads/${threadId}`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setActiveThreadDetail(data);
+        if (onThreadUpdate && data?.root_message_id) {
+          const lastMsg = data.messages && data.messages.length > 0 ? data.messages[data.messages.length - 1] : null;
+          onThreadUpdate(data.root_message_id, {
+            id: data.id,
+            channel_id: data.channel_id,
+            root_message_id: data.root_message_id,
+            creator_id: data.creator_id,
+            creator_name: data.creator_name,
+            name: data.name,
+            message_count: data.messages?.length || 0,
+            last_message_content: lastMsg ? lastMsg.content : null,
+            last_message_author: lastMsg ? lastMsg.author_name : null,
+            last_message_at: lastMsg ? lastMsg.created_at : data.created_at,
+            created_at: data.created_at,
+            updated_at: data.updated_at,
+          });
+        }
+      } else {
+        addToast('Não foi possível carregar o tópico.', 'error');
+      }
+    } catch {
+      addToast('Erro de conexão ao abrir tópico.', 'error');
+    } finally {
+      setLoadingThread(false);
+    }
+  };
+
+  const handleCreateOrOpenThread = async (targetMsg) => {
+    if (!targetMsg) return;
+    if (targetMsg.thread?.id) {
+      handleOpenThread(targetMsg.thread.id);
+      return;
+    }
+
+    setLoadingThread(true);
+    const authToken = localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
+    const fallbackName = (targetMsg.content || '').slice(0, 40).trim() || 'Tópico da Mensagem';
+
+    try {
+      const res = await fetch(`/api/v1/discord/channels/${channel.id}/messages/${targetMsg.id}/threads`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ name: fallbackName }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setActiveThreadDetail(data);
+        if (onThreadUpdate && data) {
+          const lastMsg = data.messages && data.messages.length > 0 ? data.messages[data.messages.length - 1] : null;
+          onThreadUpdate(targetMsg.id, {
+            id: data.id,
+            channel_id: data.channel_id,
+            root_message_id: data.root_message_id,
+            creator_id: data.creator_id,
+            creator_name: data.creator_name,
+            name: data.name,
+            message_count: data.messages?.length || 0,
+            last_message_content: lastMsg ? lastMsg.content : null,
+            last_message_author: lastMsg ? lastMsg.author_name : null,
+            last_message_at: lastMsg ? lastMsg.created_at : data.created_at,
+            created_at: data.created_at,
+            updated_at: data.updated_at,
+          });
+        }
+      } else {
+        const err = await res.json().catch(() => ({}));
+        addToast(err.detail || 'Falha ao criar tópico.', 'error');
+      }
+    } catch {
+      addToast('Erro de conexão ao criar tópico.', 'error');
+    } finally {
+      setLoadingThread(false);
+    }
+  };
+
+  const handleSendThreadMessage = async (threadId, content) => {
+    const authToken = localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
+    try {
+      const res = await fetch(`/api/v1/discord/threads/${threadId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ content }),
+      });
+      if (res.ok) {
+        const newMsg = await res.json();
+        setActiveThreadDetail((prev) => {
+          if (!prev || prev.id !== threadId) return prev;
+          const updatedMessages = [...(prev.messages || []), newMsg];
+          const updatedDetail = { ...prev, messages: updatedMessages };
+          if (onThreadUpdate && prev.root_message_id) {
+            onThreadUpdate(prev.root_message_id, {
+              id: prev.id,
+              channel_id: prev.channel_id,
+              root_message_id: prev.root_message_id,
+              creator_id: prev.creator_id,
+              creator_name: prev.creator_name,
+              name: prev.name,
+              message_count: updatedMessages.length,
+              last_message_content: newMsg.content,
+              last_message_author: newMsg.author_name,
+              last_message_at: newMsg.created_at,
+              created_at: prev.created_at,
+              updated_at: newMsg.created_at,
+            });
+          }
+          return updatedDetail;
+        });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        addToast(err.detail || 'Não foi possível enviar mensagem no tópico.', 'error');
+      }
+    } catch {
+      addToast('Erro de conexão ao responder no tópico.', 'error');
+    }
+  };
+
   if (!channel) {
     return (
       <section className="discord-chat-area" aria-label="Área de Mensagens">
@@ -150,7 +273,9 @@ export default function ChatArea({
         onlineUsers={onlineUsers}
         voiceStates={voiceStates}
         onSendVoiceState={onSendVoiceState}
+        onDisconnectVoice={onDisconnectVoice}
         onDisconnect={onDisconnectVoice}
+        onToggleMobileNav={onToggleMobileNav}
       />
     );
   }
@@ -177,7 +302,18 @@ export default function ChatArea({
 
       {/* Topbar do Canal */}
       <div className="chat-topbar">
-        <div className="chat-channel-info">
+                <div className="chat-channel-info">
+          {onToggleMobileNav && (
+            <button
+              type="button"
+              className="chat-mobile-nav-btn"
+              onClick={onToggleMobileNav}
+              title="Abrir Canais"
+              data-testid="chat-mobile-nav-btn"
+            >
+              <Menu size={22} />
+            </button>
+          )}
           {channel.is_dm ? <AtSign size={24} className="channel-hash-icon" /> : <Hash size={24} className="channel-hash-icon" />}
           <h1 className="chat-channel-name">{channel.is_dm ? `@${channel.name}` : channel.name}</h1>
           <span className="channel-topic-divider">|</span>
@@ -274,11 +410,14 @@ export default function ChatArea({
               onRequestDelete={(m) => onRequestDeleteMessage && onRequestDeleteMessage(m)}
               onRequestReply={handleStartReply}
               onTogglePin={onTogglePin}
+              onRequestThread={handleCreateOrOpenThread}
+              onOpenThread={handleOpenThread}
               repliedMessage={msg.reply_to_id ? messages.find((m) => m.id === msg.reply_to_id) : null}
               onScrollToMessage={handleScrollToMessage}
               formatFileSize={formatFileSize}
               addToast={addToast}
               members={members}
+              onStartDM={onStartDM}
             />
           ))
         )}
@@ -296,6 +435,7 @@ export default function ChatArea({
       <ChatInputForm
         channel={channel}
         members={members}
+        currentUser={currentUser}
         replyingTo={replyingTo}
         onCancelReply={() => setReplyingTo(null)}
         onSendMessage={onSendMessage}
@@ -326,6 +466,16 @@ export default function ChatArea({
         loading={loadingPins}
         onScrollToMessage={handleScrollToMessage}
         onTogglePin={onTogglePin}
+      />
+
+      {/* Painel Lateral de Tópico (Thread) estilo Discord */}
+      <ThreadSidePanel
+        isOpen={!!activeThreadDetail}
+        onClose={() => setActiveThreadDetail(null)}
+        threadDetail={activeThreadDetail}
+        loading={loadingThread}
+        onSendThreadMessage={handleSendThreadMessage}
+        currentUserId={currentUserId}
       />
     </section>
   );

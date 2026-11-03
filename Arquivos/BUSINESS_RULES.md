@@ -15,9 +15,14 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
   - Disponibiliza botões para selecionar, trocar e remover a imagem pré-visualizada antes de submeter o formulário.
   - O arquivo de imagem é transmitido e associado automaticamente ao servidor criado.
 - **Tipos de Canais:** Canais podem ser do tipo `TEXT` (mensagens de texto e anexos) ou `VOICE` (canais de áudio/streaming).
+- **Unicidade e Nomes Padrão de Canais por Servidor:**
+  - Dentro do mesmo servidor, **não é permitido criar ou renomear canais com nomes duplicados**, independente do tipo (seja texto ou voz). A validação é case-insensitive (ex: `geral` e `GERAL` são tratados como idênticos) e retorna `400 Bad Request: "Já existe um canal com este nome neste servidor"`.
+  - Ao criar um novo servidor, os canais padrão gerados automaticamente possuem obrigatoriamente nomes diferentes:
+    - Canal de Texto inicial: `# geral`
+    - Canal de Voz inicial: `🔊 Sala de Voz`
 - **Tempo Real:** As mensagens trafegam via WebSocket assíncrono com persistência imediata no PostgreSQL.
 - **Limite de Servidores:** Definido no perfil/convite do usuário (pode ser ilimitado ou com teto numérico, ex: 100 servidores).
-- **Limites de Mensagem:** Máximo de 2.000 caracteres por mensagem de texto e anexos de mídia de até 50 MB.
+- **Limites de Mensagem:** Máximo de 2.000 caracteres por mensagem de texto e anexos de mídia de até 50 MB para usuários comuns e administradores. **Usuários com perfil Super Admin (`role == 'superadmin'`) têm privilégio especial de upload sem qualquer limite de tamanho de mídia** (podem enviar arquivos, áudios e vídeos de qualquer tamanho).
 - **Retenção de Mensagens:** Histórico de mensagens é persistido de forma permanente no banco de dados.
 - **Visibilidade e Permissões de Canais (Canais Públicos e Privados):**
   - Canais podem ser **Públicos** (`is_private = False`) ou **Privados** (`is_private = True`), aplicável tanto para canais de texto quanto de voz.
@@ -28,6 +33,14 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
     - Membros sem permissão não visualizam o canal na lista e têm qualquer tentativa de leitura, envio de mensagens, conexão WebSocket ou token de voz LiveKit bloqueada com `403 Forbidden`.
     - Canais privados exibem um ícone de cadeado (`🔒`) na barra lateral de canais.
     - O modal de criação de canal conta com o interruptor 'Canal Privado' e a checklist interativa de cargos do servidor com suas respectivas cores.
+- **Configurações e Edição de Canais (Edit Channel Modal):**
+  - Donos do servidor (`owner_id`), administradores e superadmins contam com um botão de engrenagem (`⚙️`) exibido ao passar o mouse sobre qualquer canal de texto ou de voz na barra lateral (`ChannelSidebar`).
+  - Ao clicar na engrenagem, abre o modal de Configurações do Canal (`EditChannelModal`), permitindo:
+    - Alterar o nome do canal (com formatação automática em lowercase e hífens).
+    - Visualizar o tipo do canal (Texto ou Voz).
+    - Alternar entre Canal Público e Canal Privado.
+    - Configurar os cargos com permissão de acesso ao canal privado.
+    - Excluir o canal através do botão 'Excluir Canal', com painel de confirmação centralizado e proteção no backend que impede deletar o último canal de texto do servidor.
 - **Formatação de Horário:** As mensagens no chat exibem a data e o horário no fuso Horário de Brasília (`America/Sao_Paulo`), no padrão `DD/MM/YYYY, HH:mm`.
 - **Ações em Mensagens:** No hover da mensagem são disponibilizadas opções de reagir com emoji, responder mensagem específica, encaminhar para outro canal via modal, copiar texto e editar o texto (exclusivo para o autor, marcando `(editado)`).
 - **Respostas a Mensagens (Reply):** No hover de qualquer mensagem, o menu de 3 pontinhos ('Mais opções') e o botão direto permitem responder à mensagem específica. O input exibe um banner indicando o autor e prévia do texto original com opção de cancelar. Ao enviar, a mensagem é vinculada via `reply_to_id`, exibindo no feed a indicação visual em curva (spine), autor de referência e atalho que rola e destaca a mensagem original.
@@ -73,6 +86,7 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
   - A seleção insere `@Nome ` na posição exata do cursor no campo de texto.
   - No feed de mensagens, as menções são renderizadas como pílulas (*chips*) destacadas.
   - Mensagens que mencionam o usuário logado (ou `@everyone` / `@here`) recebem destaque visual com fundo âmbar/dourado translúcido (`rgba(250, 166, 26, 0.1)`) e borda lateral esquerda dourada (`#faa61a`).
+  - **Redirecionamento para DM via Clique na Menção:** Ao clicar sobre uma pílula de menção de usuário (ex: `@Hokage`), o sistema identifica o participante e redireciona imediatamente para a conversa privada (DM) com aquele contato, abrindo o chat 1x1 sem necessidade de navegar manualmente pela lista de membros.
 - **Efeitos Sonoros do Discord (Sound Effects / Web Audio):**
   - O sistema conta com gerador de efeitos sonoros nativos sintetizados via Web Audio API (sem dependência de arquivos de áudio externos).
   - Inclui os sons característicos do Discord:
@@ -112,9 +126,94 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
     - **Gravar Vídeo com Áudio:** Captura a tela/transmissão ao vivo combinada com o áudio do canal em formato WebM Video.
     - **Gravação de Tela com Webcam PiP Móvel (Picture-in-Picture):** Quando a câmera de vídeo estiver ligada, a gravação de tela permite incluir a webcam do usuário como overlay visual sobreposto. O usuário pode posicionar o quadro da webcam nos 4 cantos da tela (Inferior Direito, Inferior Esquerdo, Superior Direito, Superior Esquerdo) ou arrastar livremente com o mouse (Drag & Drop) durante a transmissão. A posição em tempo real é refletida tanto na pré-visualização em tela quanto na composição gravada no arquivo final exportado.
   - Durante a gravação, o dock exibe um indicador luminoso pulsante em vermelho (`● REC`), o modo ativo e um cronômetro em tempo real com botão de parada imediata.
-  - Ao finalizar a gravação, abre-se automaticamente um modal com prévia (player de vídeo ou áudio), duração e tamanho do arquivo, com botão de **Exportar / Baixar** que salva o arquivo com data e hora diretamente no computador do usuário.
+  - **Modal de Prévia e Exportação em MP4 / Compressão:**
+    - Ao finalizar a gravação, abre-se automaticamente um modal com prévia (player de vídeo ou áudio), duração e tamanho do arquivo.
+    - **Seleção de Formato:** Usuários podem escolher entre **MP4 (Padrão Recomendado)** ou **WebM** para o arquivo final.
+    - **Compressão Inteligente sem Perda Perceptível de Qualidade:** O modal disponibiliza um switch que otimiza a taxa de bits de vídeo (H.264 / 1.8 Mbps), reduzindo o tamanho do arquivo em até **50% a 60%** mantendo resolução original (1080p/720p) e máxima nitidez visual.
+    - A exportação exibe barra de progresso em tempo real durante a compressão e faz o download direto no computador do usuário.
+- **Sistema de Boas-Vindas do Servidor (Welcome System):**
+  - Disponível em **Configurações do Servidor > Boas-Vindas** para o Dono (`owner_id`) e Administradores do servidor.
+  - Permite ativar ou desativar o envio automático (`welcome_enabled`), escolher o canal de texto de destino (`welcome_channel_id`) e personalizar o texto de boas-vindas (`welcome_message`) com suporte às variáveis `{user}` (que menciona `@NomeDoUsuario`) e `{server}` (nome do servidor), iniciando com um modelo padrão pronto.
+  - Quando ativo, todo novo membro que ingressar no servidor via link de convite é mencionado (`@NomeDoUsuario`) automaticamente no canal de texto escolhido com a mensagem configurada, entregue em tempo real via WebSocket e acompanhada de badge de não lida.
+- **Tópicos (Threads) em Mensagens de Canais de Texto:**
+  - Usuários podem criar uma linha de conversa/tópico dedicada a partir de qualquer mensagem do canal de texto através do menu de 3 pontinhos ("Mais opções" > "Criar tópico").
+  - **Criação Direta (Sem Modal Obrigatório):** Ao clicar em "Criar Tópico", o tópico é gerado/aberto diretamente sem forçar o usuário a preencher um formulário de nome. O nome inicial do tópico é gerado automaticamente a partir do texto/conteúdo da mensagem raiz (ou "Tópico da Mensagem" se a mensagem for apenas anexo).
+  - Cada mensagem pode ter no máximo 1 tópico associado (se já existir, a ação apenas abre o tópico existente).
+  - No feed principal do canal, a mensagem que possui um tópico exibe o badge/card visual com curva (spine), título do tópico, quantidade de mensagens (`X mensagens`), último autor, prévia e carimbo de tempo.
+  - Ao clicar no badge do tópico ou na ação de criar tópico, abre-se um **Painel Lateral de Tópico** à direita do chat com o título do tópico, autor que iniciou, mensagem raiz fixada no topo, rolagem de mensagens do tópico e formulário de input dedicado (`Conversar em "<nome do tópico>"`).
+  - Novas mensagens enviadas dentro da thread sincronizam em tempo real via WebSocket (`thread:message:new`), atualizando o feed do painel e o contador/resumo do badge na mensagem raiz.
+- **Sincronização de Novos Membros e Limpeza Automática de Presença de Voz:**
+  - Ao aceitar um convite de servidor, o evento `server:member_joined` é transmitido via WebSocket para todos os membros do servidor, atualizando imediatamente a lista lateral direita de contatos sem necessidade de recarregar a página.
+  - Ao realizar logout ou encerrar todas as conexões WebSocket ativas, o sistema remove automaticamente o usuário de quaisquer salas de voz (`voice_rooms`) e propaga a atualização em tempo real (`presence:leave` e `voice:channel_update`).
+  - **Persistência de Estado de Voz (Mudo / Ensurdecido na Barra Lateral):** O estado de microfone mutado (`is_muted`) e fone ensurdecido (`is_deafened`) de cada usuário ativo na sala de voz é armazenado no `socket_manager` e retornado nas consultas `/voice-status` e eventos `voice:channel_update`. Ao atualizar a página (F5) ou visualizar os canais a partir de canais de texto, membros mutados já são exibidos com o ícone de microfone mutado em vermelho na lista lateral antes mesmo de o observador ingressar na call.
+- **Transmissão em Tempo Real de Voz, Câmera e Compartilhamento de Tela (WebRTC Mesh + Sinalização WebSocket):**
+  - Canais de voz estabelecem malha nativa W3C WebRTC (`RTCPeerConnection` com Perfect Negotiation + servidores STUN públicos Google/Cloudflare) sinalizada em tempo real pelo evento `voice:signal` do WebSocket seguro do canal (`/api/v1/discord/ws/channels/{channel_id}`).
+  - **Áudio de Voz Bidirecional:** O microfone de cada participante é transmitido ao vivo para os demais membros e reproduzido automaticamente via pool invisível de elementos `<audio>` (`RemoteAudioPool`), respeitando o botão local **Ensurdecer** (`Deafen`) e o alto-falante selecionado nas configurações do usuário, mantendo o áudio ativo mesmo em modo minimizado **Picture-in-Picture (PiP)**.
+  - **Câmera de Vídeo (Webcam) e Desfoque de Fundo Inteligente (Estilo Google Meet):**
+    - Ao ligar a webcam, o vídeo é transmitido via WebRTC e exibido em tempo real dentro do card daquele participante (`voice-participant-tile`) para todos na sala.
+    - **Desfoque Inteligente de Fundo (Estilo Google Meet):** Usuários contam com controles para desfocar exclusivamente o ambiente ao redor (paredes, estantes, objetos), mantendo a silhueta da pessoa, cabeça, ombros e rosto 100% nítidos com iluminação e cores naturais (sem vinhetas escuras, sombras pretas ou holofotes artificiais).
+    - O menu de efeitos pode ser acessado de duas formas:
+      1. No botão flutuante com ícone de varinha mágica/estrelas (`✨`) diretamente sobre o card da webcam do usuário (`camera-effect-tile-btn`).
+      2. No botão de efeitos de câmera (`✨`) no dock inferior de controles ao lado do botão de ligar/desligar a webcam.
+    - **Níveis de Efeito Disponíveis:**
+      - **Desativado (Normal):** Câmera padrão sem filtros adicionais.
+      - **Desfoque Leve (Foco Suave):** Aplica blur suave (8px) exclusivamente no fundo, preservando a pessoa nítida e sem escurecimento.
+      - **Desfoque Intenso (Estilo Google Meet):** Aplica desfoque profundo (16px) recortando a silhueta da pessoa via MediaPipe Selfie Segmentation, mantendo as cores e brilho naturais do quarto e da pessoa.
+    - O modo ativo de efeito é sincronizado via sinalização WebRTC (`cameraEffect`), sendo renderizado tanto na tela local quanto para os demais participantes da sala.
+  - **Compartilhamento de Tela e Layout Palco / Filmstrip (Spotlight Mode):**
+    - Ao compartilhar a tela (com suporte opcional a áudio do sistema/aba), a transmissão assume automaticamente o **Palco Principal Central (Spotlight)** com tamanho ampliado proporcional (16:9), ocupando a maior parte da área do canal.
+    - **Tira de Miniaturas no Topo (Filmstrip):** As câmeras de todos os participantes online (incluindo a do próprio apresentador e dos demais membros da sala) são compactadas e alinhadas em uma barra horizontal limpa no topo da tela compartilhada, impedindo que os cards de vídeo roubem o espaço da transmissão.
+    - **Proteção Anti-Espelho (Infinity Mirror Prevention):** O próprio usuário que está compartilhando a tela não tem acesso ao botão de maximizar nem ao duplo clique de maximização na sua própria janela de transmissão, prevenindo o efeito de túnel/espelho infinito. Usuários espectadores que estão assistindo à apresentação continuam com o botão e o atalho de maximizar ativos normalmente.
+  - **Cronômetro de Duração da Call (Voice Call Timer):**
+    - Quando um canal de voz passa a ter participantes ativos, um cronômetro é exibido em verde (`#23a55a`) à direita do nome do canal na barra lateral de canais (`ChannelSidebar`).
+    - O cronômetro inicia no momento em que o primeiro membro ingressa na call e avança continuamente no padrão Discord (`MM:SS` ou `HH:MM:SS` quando ultrapassar 1 hora).
+    - **Regra de Persistência e Reset:** Enquanto houver pelo menos 1 participante na sala de voz, o cronômetro mantém o mesmo tempo de início ininterrupto (mesmo que membros entrem e saiam). Ele só é resetado e desaparece se todos os membros saírem da call (sala esvaziada). Ao iniciar uma nova call no canal, o contador começa novamente do zero.
+- **Armazenamento em Nuvem 100% Backblaze B2 (Zero Acúmulo no HD) e Exclusão Física de Mídias:**
+  - Quando o Backblaze B2 (`B2_ENDPOINT_URL`, `B2_KEY_ID`, `B2_APPLICATION_KEY` e `B2_BUCKET_NAME`) está configurado no `.env`, todos os anexos de mensagens (canais e DMs), notas de áudio, ícones/banners de servidor e avatares são enviados diretamente da memória RAM para o bucket Backblaze B2 (`discord_media/`), **sem manter cópia permanente no HD local do servidor/VPS**.
+  - O disco local (`backend/uploads/discord/`) atua exclusivamente como fallback automático quando o Backblaze B2 não está configurado (ex.: ambiente de desenvolvimento local) ou em caso de indisponibilidade temporária da nuvem.
+  - Na leitura (`GET /api/v1/discord/attachments/{filename}`), quando o arquivo está no Backblaze B2, o backend responde com redirecionamento temporário (`307 Temporary Redirect`) para URL pré-assinada do Backblaze B2 (ou CDN configurada), preservando `Content-Disposition` seguro (`inline` para mídias seguras e `attachment` para documentos) sem baixar o arquivo para o HD do servidor.
+  - Ao excluir uma mensagem (em canal ou DM), um canal, um servidor inteiro ou substituir ícone/banner/avatar, o sistema verifica se mais nenhum registro no banco referencia aquele anexo (protegendo mensagens encaminhadas) e realiza a **exclusão física real** do objeto no Backblaze B2 (`delete_object`) e no fallback local.
 
 
+
+- **Lista Lateral de Membros e Gestão de Presença Visual (Online / Offline e Glassmorphism):**
+  - A gaveta lateral de membros do servidor (`MemberListSidebar`) separa de forma clara os usuários conectados daqueles desconectados:
+    - **Membros Online no Topo:** Ficam agrupados por suas respectivas categorias de cargos (ex: `Administração — X` e `Membros — Y`), exibindo a contagem de membros ativos naquele grupo.
+    - **Seção Dedicada 'Offline — Z' no Rodapé:** Todos os membros desconectados (`is_online === false`) são agrupados no final da lista em uma seção cinza dedicada com contador numérico de ausentes.
+    - **Destaque Visual para Membros Online:**
+      - Avatar com anel de presença neon verde (`box-shadow: 0 0 10px rgba(35, 165, 90, 0.45)`).
+      - Bolinha de status verde vibrante com glow sutil (`.online-glow`).
+      - Subtítulo `● Online` destacado em verde logo abaixo do nome.
+    - **Destaque Visual para Membros Offline:**
+      - Card com opacidade atenuada (`opacity: 0.62`), avatar dessaturado e badge cinza sólido (`.offline-dot`).
+      - Subtítulo `Offline` em cinza claro discreto.
+    - **Interatividade & Ações Rápidas (Glassmorphism):** Ao passar o mouse sobre o card de qualquer membro, o item ganha fundo translúcido blur (`backdrop-filter: blur(8px)`), leve translação suave e revela os atalhos de Mensagem Direta (DM) e Expulsão (Kick) quando autorizado.
+
+- **Remoção e Expulsão de Membros de Servidor (Kick Member):**
+  - O Dono do servidor (`owner_id`), Super Admins e Administradores (`role in ['OWNER', 'ADMIN']` ou cargo com `is_admin = True`) podem remover membros de um servidor específico.
+  - A ação está disponível tanto na barra lateral direita de membros (`MemberListSidebar`), através do botão de ícone de expulsão (`UserMinus`) exibido ao lado do botão de DM, quanto no painel de **Configurações do Servidor > Membros** (`ServerMembersTab`).
+  - **Proteções de Hierarquia:**
+    - É terminantemente proibido remover o criador/dono do servidor (`owner_id`).
+    - Usuários não podem se auto-remover por esta rota administrativa.
+    - Administradores comuns não podem remover outros administradores ou o dono.
+  - **Experiência do Usuário (Popup de Confirmação):** Toda remoção abre um modal centralizado de confirmação com backdrop translúcido que não fecha ao clicar fora, contendo botão de Cancelar e botão de ação perigosa destacado em vermelho com indicador de carregamento (spinner).
+  - **Tempo Real & Limpeza:** Ao confirmar a expulsão, o endpoint `DELETE /api/v1/discord/servers/{server_id}/members/{user_id}` desvincula o participante do servidor no banco de dados, desconecta o usuário imediatamente de qualquer sala de voz ativa no servidor, e transmite os eventos WebSocket `server:member_removed` (atualizando a lista dos demais membros) e `server:kicked` (notificando e desconectando o usuário expulso).
+
+- **Responsividade Mobile e Gavetas Deslizantes (Mobile Drawer Navigation):**
+  - Em telas menores ou dispositivos móveis (largura `<= 768px`, como celulares ou janelas divididas com DevTools):
+    - O layout abandona o modo multi-colunas estático (evitando o esmagamento mútuo de canais, membros e chat).
+    - A **Área de Chat e de Voz** ocupa 100% da largura da tela (`100vw`).
+    - As colunas de servidores e canais transformam-se em uma gaveta deslizante lateral esquerda (Drawer com backdrop translúcido escuro de foco).
+    - Um botão de navegação hambúrguer (`☰`) aparece no cabeçalho do canal de texto e da sala de voz para abrir e fechar a gaveta de servidores e canais.
+    - Ao selecionar qualquer canal de texto, canal de voz ou DM na gaveta móvel, a gaveta fecha-se automaticamente exibindo o canal em tela cheia.
+    - A lista de membros transforma-se em gaveta deslizante da direita (Drawer com backdrop), acionada pelo botão de membros (`👥`).
+    - O player flutuante em miniatura (PiP de voz/vídeo) adapta sua largura e posicionamento dinamicamente para não sobrepor barras nem sair da tela.
+
+- **Performance do Chat, Cache Imutável de Mídias e Proporções Nativas:**
+  - **Cache de Mídia em Memória/Disco:** Todas as mídias servidas via `/api/v1/discord/attachments/{filename}` incluem o cabeçalho `Cache-Control: public, max-age=31536000, immutable`, garantindo que imagens, prints de tela e vídeos sejam armazenados no cache local do navegador do usuário e abram instantaneamente (0ms) a partir da primeira visualização.
+  - **Eliminação de N+1 Queries no Histórico de Mensagens:** As consultas às mensagens de canais de texto e DMs executam carregamento relacional eager com `joinedload(Message.author)` e `joinedload(DMMessage.sender)`, garantindo que 50 mensagens sejam lidas em uma única query otimizada no banco de dados.
+  - **Proporção Nativa sem Cortes Visuais:** No feed do chat, imagens e capturas de tela respeitam a proporção original de aspecto com `object-fit: contain`, evitando cortes nas bordas de imagens panorâmicas e horizontais.
+  - **Cadência Saudável de Polling:** Polling de segurança de canais de voz ocorre a cada 15 segundos (e pausa com a aba oculta), preservando a saúde do worker Uvicorn e mantendo o WebSocket de mensageria estável sem desconexões espúrias.
 
 ---
 
@@ -130,3 +229,7 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
   - **Resposta:** Sim. O sistema permite criar canais de texto e de voz privados vinculados a cargos específicos, garantindo acesso exclusivo aos cargos autorizados, além de acesso total ao Dono e Administradores.
 - [x] O sistema deve implementar subsistema de API Keys, Bots externos e Webhooks neste momento?
   - **Resposta:** Não. O sistema ainda não possui bots nem webhooks e essa funcionalidade não é desejada no momento. Toda a autenticação permanece centralizada via sessão JWT para os usuários da aplicação.
+- [x] No Sistema de Boas-Vindas do servidor, o texto da mensagem deve ser personalizável pelo Dono/Admin nas Configurações do Servidor (com variáveis como `{user}` para marcar `@Usuário` e `{server}` para o nome do servidor) ou deve ser um texto padrão fixo?
+  - **Resposta:** O texto deve ser personalizável nas Configurações do Servidor, suportando as variáveis `{user}` (para mencionar `@Usuário`) e `{server}` (nome do servidor), já iniciando com um texto padrão pronto.
+- [x] A mensagem de boas-vindas ao entrar no servidor deve ser enviada apenas no canal de texto escolhido (mencionando `@Usuário`) ou também deve haver opção de enviar uma mensagem direta (DM) privada de boas-vindas?
+  - **Resposta:** Deve ser enviada no canal de texto escolhido marcando `@NovoMembro`.

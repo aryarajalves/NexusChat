@@ -20,13 +20,28 @@ function App() {
   const [token, setToken] = useState(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [activeTab, setActiveTab] = useState(() => {
-    return localStorage.getItem('active_tab') || 'users';
+    const saved = localStorage.getItem('active_tab');
+    // Se o usuário recarregar a página enquanto estava dentro do Discord,
+    // inicia na tela central de Boas-Vindas (DashboardWelcome - Imagem 02), evitando tela cinza vazia.
+    if (saved === 'discord') {
+      localStorage.removeItem('active_tab');
+      return '';
+    }
+    return saved !== null ? saved : 'users';
   });
-  const [isSidebarHidden, setIsSidebarHidden] = useState(() => {
-    return (localStorage.getItem('active_tab') || 'users') === 'discord';
-  });
+  const [isSidebarHidden, setIsSidebarHidden] = useState(false);
   const [pathname, setPathname] = useState(window.location.pathname);
   const { addToast } = useToast();
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (localStorage.getItem('active_tab') === 'discord') {
+        localStorage.removeItem('active_tab');
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   const handleSelectTab = (tabId) => {
     setActiveTab(tabId);
@@ -128,6 +143,14 @@ function App() {
   };
 
   const handleConfirmLogout = () => {
+    const activeToken = token || localStorage.getItem('auth_token');
+    if (activeToken) {
+      fetch('/api/v1/discord/channels/voice-leave-all', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + activeToken },
+        keepalive: true,
+      }).catch(() => {});
+    }
     setShowLogoutModal(false);
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
@@ -234,6 +257,7 @@ function App() {
             onUserUpdated={handleUserUpdated}
             onToggleAppSidebar={handleToggleAppSidebarFromDiscord}
             isAppSidebarHidden={isSidebarHidden}
+            onLogout={handlePromptLogout}
           />
         )}
         {isSuperAdmin && (

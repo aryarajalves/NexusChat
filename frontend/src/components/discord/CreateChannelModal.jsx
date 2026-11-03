@@ -10,6 +10,7 @@ export default function CreateChannelModal({
   roles = DEFAULT_ROLES,
   serverId,
   token,
+  existingChannels = [],
 }) {
   const [name, setName] = useState('');
   const [type, setType] = useState('TEXT');
@@ -67,8 +68,16 @@ export default function CreateChannelModal({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim()) {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
       setError('Por favor, informe o nome do canal.');
+      return;
+    }
+
+    const cleanLower = trimmedName.toLowerCase();
+    const isDuplicate = existingChannels.some((c) => (c.name || '').toLowerCase() === cleanLower);
+    if (isDuplicate) {
+      setError('Já existe um canal com este nome neste servidor (canais de texto e voz não podem ter o mesmo nome).');
       return;
     }
 
@@ -76,7 +85,7 @@ export default function CreateChannelModal({
       setIsSubmitting(true);
       setError('');
       await onCreateChannel({
-        name: name.trim(),
+        name: trimmedName,
         type,
         category: category.trim() || (type === 'TEXT' ? 'Canais de Texto' : 'Canais de Voz'),
         is_private: isPrivate,

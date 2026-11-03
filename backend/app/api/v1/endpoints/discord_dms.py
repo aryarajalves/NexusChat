@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, WebSocket, WebSocketDisconnect, File, UploadFile
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 
 from app.core.database import get_db, SessionLocal
@@ -23,7 +23,7 @@ from app.schemas.discord import (
 )
 from app.api.v1.endpoints.users import get_current_user
 from app.services.socket_manager import socket_manager, notify_dm_unread
-from app.services.storage import upload_discord_media_file, DISCORD_UPLOAD_DIR
+from app.services.storage import upload_discord_media_file, DISCORD_UPLOAD_DIR, cleanup_unreferenced_media
 from app.core.rate_limiter import check_rate_limit
 from app.core.upload_security import validate_uploaded_file
 
@@ -220,6 +220,7 @@ def get_dm_messages(
 
     messages = (
         db.query(DMMessage)
+        .options(joinedload(DMMessage.sender))
         .filter(DMMessage.conversation_id == conversation_id)
         .order_by(DMMessage.id.desc())
         .limit(limit)
@@ -299,7 +300,8 @@ async def upload_dm_attachment(
     ensure_conversation_participant(conv, current_user.id)
 
     file_bytes = await file.read()
-    val_res = validate_uploaded_file(file.filename or "", file_bytes, max_size_bytes=MAX_FILE_SIZE_BYTES)
+    max_size = None if current_user.role == "superadmin" else MAX_FILE_SIZE_BYTES
+    val_res = validate_uploaded_file(file.filename or "", file_bytes, max_size_bytes=max_size)
 
     unique_name = f"{uuid.uuid4().hex}{val_res['extension']}"
     upload_res = upload_discord_media_file(file_bytes, unique_name, file.content_type)
@@ -357,8 +359,10 @@ async def delete_dm_message(
         raise HTTPException(status_code=403, detail="Você só pode excluir suas próprias mensagens.")
 
     conv_id = msg.conversation_id
+    attachment_url = msg.attachment_url
     db.delete(msg)
     db.commit()
+    cleanup_unreferenced_media(db, [attachment_url])
 
     await socket_manager.broadcast_to_dm(conv_id, {
         "type": "message_deleted",

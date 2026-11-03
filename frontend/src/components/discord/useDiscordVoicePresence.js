@@ -1,19 +1,50 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 /**
  * Hook para gerenciar os participantes ativos de cada canal de voz do servidor
- * em tempo real, combinando polling REST e eventos de presença via WebSocket.
+ * em tempo real, unificando polling REST e eventos de presença via WebSocket.
  */
 export default function useDiscordVoicePresence({
   token,
   channels = [],
+  activeChannelId = null,
   connectedVoiceChannelId,
   onlineUsers = [],
   currentUser,
 }) {
   const [voiceChannelUsers, setVoiceChannelUsers] = useState({});
+  const [voiceChannelCallTimes, setVoiceChannelCallTimes] = useState({});
+  const connectedVoiceChannelIdRef = useRef(connectedVoiceChannelId);
+  const currentUserRef = useRef(currentUser);
+  const tokenRef = useRef(token);
 
-  // 1. Busca periódica do status dos canais de voz do servidor ativo
+  useEffect(() => {
+    connectedVoiceChannelIdRef.current = connectedVoiceChannelId;
+    currentUserRef.current = currentUser;
+    tokenRef.current = token;
+  }, [connectedVoiceChannelId, currentUser, token]);
+
+  // Limpa presença de voz caso a aba seja fechada ou o componente desmonte durante uma call
+  useEffect(() => {
+    const clearAllVoiceOnExit = () => {
+      if (connectedVoiceChannelIdRef.current && tokenRef.current) {
+        fetch('/api/v1/discord/channels/voice-leave-all', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${tokenRef.current}` },
+          keepalive: true,
+        }).catch(() => {});
+      }
+    };
+    window.addEventListener('beforeunload', clearAllVoiceOnExit);
+    return () => {
+      window.removeEventListener('beforeunload', clearAllVoiceOnExit);
+      clearAllVoiceOnExit();
+    };
+  }, []);
+
+
+
+  // 2. Busca periódica do status dos canais de voz do servidor ativo
   useEffect(() => {
     if (!token || !channels || channels.length === 0) return;
     const voiceChannels = channels.filter((c) => c.type === 'VOICE');
@@ -24,6 +55,7 @@ export default function useDiscordVoicePresence({
     const fetchVoiceStatuses = async () => {
       try {
         const updates = {};
+        const timeUpdates = {};
         await Promise.all(
           voiceChannels.map(async (vch) => {
             try {
@@ -35,21 +67,72 @@ export default function useDiscordVoicePresence({
                 if (data?.active_participants) {
                   updates[vch.id] = data.active_participants;
                 }
+                if (data?.call_started_at) {
+                  timeUpdates[vch.id] = data.call_started_at;
+                } else if (!data?.active_participants || data.active_participants.length === 0) {
+                  timeUpdates[vch.id] = null;
+                }
               }
             } catch (_) {}
           })
         );
-        if (isSubscribed && Object.keys(updates).length > 0) {
-          setVoiceChannelUsers((prev) => ({
-            ...prev,
-            ...updates,
-          }));
+        if (isSubscribed) {
+          if (Object.keys(updates).length > 0) {
+            setVoiceChannelUsers((prev) => {
+              const next = { ...prev };
+              const currentConnectedId = connectedVoiceChannelIdRef.current;
+              const currentLoggedUser = currentUserRef.current;
+
+              Object.entries(updates).forEach(([chId, backendUsers]) => {
+                const map = new Map();
+                (backendUsers || []).forEach((u) => {
+                  const uid = u.user_id || u.id;
+                  if (uid) {
+                    map.set(uid, {
+                      user_id: uid,
+                      user_name: u.user_name || u.name,
+                      is_muted: u.is_muted !== undefined ? Boolean(u.is_muted) : true,
+                      is_deafened: Boolean(u.is_deafened),
+                      is_speaking: Boolean(u.is_speaking),
+                    });
+                  }
+                });
+                if (String(currentConnectedId) === String(chId) && currentLoggedUser) {
+                  map.set(currentLoggedUser.id, {
+                    user_id: currentLoggedUser.id,
+                    user_name: currentLoggedUser.name,
+                  });
+                }
+                next[chId] = Array.from(map.values());
+              });
+              return next;
+            });
+          }
+
+          if (Object.keys(timeUpdates).length > 0) {
+            setVoiceChannelCallTimes((prev) => {
+              const next = { ...prev };
+              Object.entries(timeUpdates).forEach(([chId, startTime]) => {
+                if (startTime) {
+                  next[chId] = startTime;
+                } else if (next[chId] && (!updates[chId] || updates[chId].length === 0)) {
+                  delete next[chId];
+                }
+              });
+              return next;
+            });
+          }
         }
       } catch (_) {}
     };
 
+    const performPolling = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      fetchVoiceStatuses();
+    };
+
     fetchVoiceStatuses();
-    const interval = setInterval(fetchVoiceStatuses, 3000);
+    const interval = setInterval(performPolling, 15000);
 
     return () => {
       isSubscribed = false;
@@ -57,41 +140,109 @@ export default function useDiscordVoicePresence({
     };
   }, [token, channels]);
 
-  // 2. Sincroniza participantes do canal de voz ativo com os usuários do socket em tempo real
+  // 3. Mantém o usuário conectado na lista de participantes da sala de voz sem poluir com usuários de texto
   useEffect(() => {
-    if (connectedVoiceChannelId) {
+    if (connectedVoiceChannelId && currentUser) {
       setVoiceChannelUsers((prev) => {
         const currentList = prev[connectedVoiceChannelId] || [];
-        const source = onlineUsers && onlineUsers.length > 0 ? onlineUsers : currentList;
-        const merged = [...source];
-        if (currentUser && !merged.some((u) => (u.user_id || u.id) === currentUser.id)) {
-          merged.push({ user_id: currentUser.id, user_name: currentUser.name });
-        }
+        const alreadyIn = currentList.some((u) => (u.user_id || u.id) === currentUser.id);
+        if (alreadyIn) return prev;
         return {
           ...prev,
-          [connectedVoiceChannelId]: merged,
+          [connectedVoiceChannelId]: [
+            ...currentList,
+            { user_id: currentUser.id, user_name: currentUser.name },
+          ],
         };
       });
-    }
-  }, [connectedVoiceChannelId, onlineUsers, currentUser]);
 
-  // 3. Remove o usuário atual do canal de voz ao desconectar
+      setVoiceChannelCallTimes((prev) => {
+        if (!prev[connectedVoiceChannelId]) {
+          return { ...prev, [connectedVoiceChannelId]: Date.now() / 1000 };
+        }
+        return prev;
+      });
+    }
+  }, [connectedVoiceChannelId, currentUser]);
+
+  // 4. Atualização instantânea via WebSocket global (voice:channel_update)
+  const handleVoiceChannelUpdate = useCallback((payload) => {
+    if (!payload || !payload.channel_id) return;
+    const chId = payload.channel_id;
+    setVoiceChannelUsers((prev) => {
+      const map = new Map();
+      (payload.active_participants || []).forEach((u) => {
+        const uid = u.user_id || u.id;
+        if (uid) {
+          map.set(uid, {
+            user_id: uid,
+            user_name: u.user_name || u.name,
+            is_muted: u.is_muted !== undefined ? Boolean(u.is_muted) : true,
+            is_deafened: Boolean(u.is_deafened),
+            is_speaking: Boolean(u.is_speaking),
+          });
+        }
+      });
+      if (String(connectedVoiceChannelIdRef.current) === String(chId) && currentUserRef.current) {
+        map.set(currentUserRef.current.id, {
+          user_id: currentUserRef.current.id,
+          user_name: currentUserRef.current.name,
+        });
+      }
+      return {
+        ...prev,
+        [chId]: Array.from(map.values()),
+      };
+    });
+
+    setVoiceChannelCallTimes((prev) => {
+      if (payload.call_started_at) {
+        return { ...prev, [chId]: payload.call_started_at };
+      }
+      if (payload.total_participants === 0 || (payload.active_participants && payload.active_participants.length === 0)) {
+        const next = { ...prev };
+        delete next[chId];
+        return next;
+      }
+      return prev;
+    });
+  }, []);
+
+  // 4. Remove o usuário atual do canal de voz ao desconectar e notifica o backend
   const handleDisconnectVoicePresence = useCallback((channelId) => {
     if (!channelId) return;
+    if (token) {
+      fetch(`/api/v1/discord/channels/${channelId}/voice-leave`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      }).catch(() => {});
+    }
     setVoiceChannelUsers((prev) => {
       const remaining = (prev[channelId] || []).filter(
         (u) => (u.user_id || u.id) !== currentUser?.id
       );
+      if (remaining.length === 0) {
+        setVoiceChannelCallTimes((cPrev) => {
+          const cNext = { ...cPrev };
+          delete cNext[channelId];
+          return cNext;
+        });
+      }
       return {
         ...prev,
         [channelId]: remaining,
       };
     });
-  }, [currentUser]);
+  }, [token, currentUser]);
 
   return {
     voiceChannelUsers,
     setVoiceChannelUsers,
+    voiceChannelCallTimes,
+    handleVoiceChannelUpdate,
     handleDisconnectVoicePresence,
   };
 }

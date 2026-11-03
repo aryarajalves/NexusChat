@@ -29,6 +29,8 @@ export default function WebcamPipOverlay({
   const handlePointerDown = (e) => {
     // Ignora clique em botões dentro do header
     if (e.target.closest('button')) return;
+    e.preventDefault();
+    window.getSelection?.()?.removeAllRanges?.();
 
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -93,6 +95,11 @@ export default function WebcamPipOverlay({
       ref={containerRef}
       className={`webcam-pip-container ${!isCustom ? `corner-${currentCorner}` : ''} ${isDragging ? 'is-dragging' : ''}`}
       style={inlineStyle}
+      draggable={false}
+      onDragStart={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
       data-testid="webcam-pip-overlay"
       onPointerDown={handlePointerDown}
     >

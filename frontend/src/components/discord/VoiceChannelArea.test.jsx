@@ -125,9 +125,16 @@ describe('VoiceChannelArea Component', () => {
     const screenBtn = screen.getByTestId('voice-toggle-screen-btn');
     expect(screenBtn).toHaveAttribute('title', 'Compartilhar Tela');
 
-    // Clica para iniciar o compartilhamento
+    // Clica para abrir o modal de compartilhamento
     await act(async () => {
       fireEvent.click(screenBtn);
+    });
+
+    // Modal de confirmação de compartilhamento de tela com toggle de áudio do computador
+    const confirmModalBtn = await screen.findByTestId('confirm-share-screen-btn');
+    expect(confirmModalBtn).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(confirmModalBtn);
     });
 
     // Janela de vídeo e prévia da transmissão devem ser montados
@@ -219,7 +226,7 @@ describe('VoiceChannelArea Component', () => {
     );
 
     expect(screen.getByTestId('voice-pip-container')).toBeInTheDocument();
-    expect(screen.getByText('#geral')).toBeInTheDocument();
+    expect(screen.getByText(/#geral/)).toBeInTheDocument();
 
     // Botão de expandir
     const expandBtn = screen.getByTestId('voice-pip-expand-btn');
@@ -230,5 +237,23 @@ describe('VoiceChannelArea Component', () => {
     const disconnectBtn = screen.getByTestId('voice-pip-disconnect-btn');
     fireEvent.click(disconnectBtn);
     expect(handleDisconnect).toHaveBeenCalledTimes(1);
+  });
+
+  it('combina participantes de voiceUsers e onlineUsers exibindo todos na grade', () => {
+    renderWithToast(
+      <VoiceChannelArea
+        channel={mockChannel}
+        connectionStatus="connected"
+        currentUser={mockUser}
+        onlineUsers={[{ user_id: 1, user_name: 'Super Admin' }]}
+        voiceUsers={[{ user_id: 2, user_name: 'Bob' }, { user_id: 3, user_name: 'Aryaraj' }]}
+      />
+    );
+
+    expect(screen.getByTestId('voice-user-tile-1')).toBeInTheDocument();
+    expect(screen.getByTestId('voice-user-tile-2')).toBeInTheDocument();
+    expect(screen.getByTestId('voice-user-tile-3')).toBeInTheDocument();
+    expect(screen.getByText(/Bob/i)).toBeInTheDocument();
+    expect(screen.getByText(/Aryaraj/i)).toBeInTheDocument();
   });
 });

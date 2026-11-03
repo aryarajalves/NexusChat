@@ -481,8 +481,10 @@
 .member-role-badge {
   font-size: 10px;
   background-color: #5865f2;
-  color: #ffffff;
+  color: #ffffff !important;
   padding: 1px 6px;
   border-radius: 10px;
   margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
 }

@@ -110,6 +110,25 @@ describe('Private Channels & Role Restrictions (Texto e Voz)', () => {
         });
       });
     });
+
+    it('exibe mensagem de erro quando onCreateChannel rejeita por nome duplicado', async () => {
+      const handleCreate = vi.fn().mockRejectedValue(new Error('Já existe um canal com este nome neste servidor'));
+      render(
+        <CreateChannelModal
+          isOpen={true}
+          onClose={vi.fn()}
+          onCreateChannel={handleCreate}
+          roles={mockRoles}
+        />
+      );
+
+      fireEvent.change(screen.getByTestId('channel-name-input'), { target: { value: 'geral' } });
+      fireEvent.click(screen.getByTestId('channel-submit-btn'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Já existe um canal com este nome neste servidor')).toBeInTheDocument();
+      });
+    });
   });
 
   describe('ChannelSidebar Component', () => {

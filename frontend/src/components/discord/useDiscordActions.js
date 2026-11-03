@@ -216,6 +216,60 @@ export function useDiscordActions({
     }
   };
 
+  const handleUpdateChannel = async (channelId, payload) => {
+    if (!activeServerId || !channelId) return;
+
+    const res = await fetch(`/api/v1/discord/servers/${activeServerId}/channels/${channelId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+      const updatedChannel = await res.json();
+      setChannels((prev) => prev.map((c) => (c.id === channelId ? { ...c, ...updatedChannel } : c)));
+      addToast(`Canal "${updatedChannel.name}" atualizado com sucesso!`, 'success');
+      return updatedChannel;
+    } else {
+      const err = await res.json().catch(() => ({}));
+      const msg = err.detail || 'Falha ao atualizar configurações do canal.';
+      addToast(msg, 'error');
+      throw new Error(msg);
+    }
+  };
+
+  const handleDeleteChannel = async (channelId) => {
+    if (!activeServerId || !channelId) return;
+
+    const res = await fetch(`/api/v1/discord/servers/${activeServerId}/channels/${channelId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (res.ok) {
+      setChannels((prev) => {
+        const remaining = prev.filter((c) => c.id !== channelId);
+        if (activeChannelId === channelId && remaining.length > 0) {
+          const nextChannel = remaining.find((c) => c.type === 'TEXT') || remaining[0];
+          if (nextChannel) setActiveChannelId(nextChannel.id);
+        }
+        return remaining;
+      });
+      addToast('Canal excluído com sucesso!', 'success');
+      return true;
+    } else {
+      const err = await res.json().catch(() => ({}));
+      const msg = err.detail || 'Falha ao excluir canal.';
+      addToast(msg, 'error');
+      throw new Error(msg);
+    }
+  };
+
   const handleCreateInvite = useCallback(async (payload) => {
     if (!activeServerId) return;
 
@@ -303,6 +357,8 @@ export function useDiscordActions({
     handleCreateServer,
     handleCreateChannel,
     handleCreateInvite,
+    handleUpdateChannel,
+    handleDeleteChannel,
     handleTogglePin,
     handleDeleteServer,
   };

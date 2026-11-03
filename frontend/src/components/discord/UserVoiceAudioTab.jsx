@@ -21,6 +21,13 @@ export default function UserVoiceAudioTab() {
   ]);
   const [selectedInput, setSelectedInput] = useState('default');
   const [selectedOutput, setSelectedOutput] = useState('default');
+  const [capturePcAudio, setCapturePcAudio] = useState(() => {
+    try {
+      return localStorage.getItem('discord_capture_pc_audio') === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   const { addToast } = useToast();
 
@@ -158,6 +165,31 @@ export default function UserVoiceAudioTab() {
           <div>
             <span className="role-toggle-label">Silenciar todos os efeitos sonoros</span>
             <span className="role-toggle-desc">Desativa sons de mensagens, menções e canais de voz.</span>
+          </div>
+        </label>
+
+        <label className="role-toggle-item" style={{ marginTop: '14px' }}>
+          <input
+            type="checkbox"
+            checked={capturePcAudio}
+            onChange={(e) => {
+              const val = e.target.checked;
+              setCapturePcAudio(val);
+              try {
+                localStorage.setItem('discord_capture_pc_audio', String(val));
+              } catch {}
+              addToast(
+                val
+                  ? 'Captura de áudio do computador ativada por padrão.'
+                  : 'Captura de áudio do computador desativada por padrão.',
+                'info'
+              );
+            }}
+            data-testid="capture-pc-audio-default-checkbox"
+          />
+          <div>
+            <span className="role-toggle-label">Compartilhar áudio do computador ao transmitir tela</span>
+            <span className="role-toggle-desc">Transmite o som de jogos, vídeos e músicas do seu PC ao compartilhar tela.</span>
           </div>
         </label>
       </div>

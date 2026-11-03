@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Shield, Users, X, Trash2 } from 'lucide-react';
+import { Settings, Shield, Users, Sparkles, X, Trash2 } from 'lucide-react';
 import ServerGeneralTab from './ServerGeneralTab';
 import ServerRolesTab from './ServerRolesTab';
 import ServerMembersTab from './ServerMembersTab';
+import ServerWelcomeTab from './ServerWelcomeTab';
 
 export default function ServerSettingsModal({
   isOpen,
   onClose,
   server,
+  channels = [],
   onServerUpdated,
   currentUser,
   members = [],
@@ -93,6 +95,14 @@ export default function ServerSettingsModal({
             >
               <Users size={16} /> Membros ({members.length})
             </button>
+            <button
+              type="button"
+              className={`server-settings-nav-btn ${activeTab === 'welcome' ? 'active' : ''}`}
+              onClick={() => setActiveTab('welcome')}
+              data-testid="tab-welcome-btn"
+            >
+              <Sparkles size={16} /> Boas-Vindas
+            </button>
             {isOwner && onOpenDeleteServer && (
               <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
                 <button
@@ -144,6 +154,15 @@ export default function ServerSettingsModal({
               onMembersUpdated={onMembersUpdated}
               token={token}
               currentUserId={currentUser?.id}
+            />
+          )}
+
+          {activeTab === 'welcome' && (
+            <ServerWelcomeTab
+              server={server}
+              channels={channels.length > 0 ? channels : (server?.channels || [])}
+              onServerUpdated={onServerUpdated}
+              token={token}
             />
           )}
         </main>
