@@ -87,6 +87,15 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
   - No feed de mensagens, as menções são renderizadas como pílulas (*chips*) destacadas.
   - Mensagens que mencionam o usuário logado (ou `@everyone` / `@here`) recebem destaque visual com fundo âmbar/dourado translúcido (`rgba(250, 166, 26, 0.1)`) e borda lateral esquerda dourada (`#faa61a`).
   - **Redirecionamento para DM via Clique na Menção:** Ao clicar sobre uma pílula de menção de usuário (ex: `@Hokage`), o sistema identifica o participante e redireciona imediatamente para a conversa privada (DM) com aquele contato, abrindo o chat 1x1 sem necessidade de navegar manualmente pela lista de membros.
+- **Detecção e Renderização de Links Web Clicáveis:**
+  - Qualquer URL enviada no chat (`http://`, `https://` ou `www.`) em mensagens de canais, mensagens diretas (DMs), tópicos (threads) ou mensagens fixadas é automaticamente detectada e renderizada como link âncora `<a>` clicável.
+  - Links abrem automaticamente em nova aba (`target="_blank" rel="noopener noreferrer"`), protegendo a segurança contra ataques de tabnabbing.
+  - O visual adota a cor azul padrão do Discord (`#00a8fc`) com sublinhado ao passar o cursor (*hover*).
+  - Pontuações no final da frase (ex: ponto final, vírgula, exclamação ou parênteses) são isoladas para não corromper o destino do link.
+- **Unicidade e Transição entre Canais de Voz (Voice Channel Switch):**
+  - Um usuário só pode estar conectado em **uma única sala de voz por vez**.
+  - Ao clicar para ingressar em um novo canal de voz enquanto já estiver conectado em outro, o sistema desconecta e remove o usuário automaticamente da sala anterior no frontend e no backend.
+  - O backend (`socket_manager.register_voice_user`) varre e desvincula a presença anterior do usuário, notificando a sala anterior em tempo real via WebSocket (`presence:leave` e `voice:channel_update`) e garantindo que o usuário nunca seja exibido simultaneamente em múltiplos canais.
 - **Efeitos Sonoros do Discord (Sound Effects / Web Audio):**
   - O sistema conta com gerador de efeitos sonoros nativos sintetizados via Web Audio API (sem dependência de arquivos de áudio externos).
   - Inclui os sons característicos do Discord:
@@ -126,11 +135,28 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
     - **Gravar Vídeo com Áudio:** Captura a tela/transmissão ao vivo combinada com o áudio do canal em formato WebM Video.
     - **Gravação de Tela com Webcam PiP Móvel (Picture-in-Picture):** Quando a câmera de vídeo estiver ligada, a gravação de tela permite incluir a webcam do usuário como overlay visual sobreposto. O usuário pode posicionar o quadro da webcam nos 4 cantos da tela (Inferior Direito, Inferior Esquerdo, Superior Direito, Superior Esquerdo) ou arrastar livremente com o mouse (Drag & Drop) durante a transmissão. A posição em tempo real é refletida tanto na pré-visualização em tela quanto na composição gravada no arquivo final exportado.
   - Durante a gravação, o dock exibe um indicador luminoso pulsante em vermelho (`● REC`), o modo ativo e um cronômetro em tempo real com botão de parada imediata.
-  - **Modal de Prévia e Exportação em MP4 / Compressão:**
-    - Ao finalizar a gravação, abre-se automaticamente um modal com prévia (player de vídeo ou áudio), duração e tamanho do arquivo.
+  - **Modal de Prévia, Salvamento em Nuvem e Exportação:**
+    - Ao finalizar a gravação, abre-se automaticamente um modal com prévia (player de vídeo ou áudio), duração, tamanho e campo para nomear a gravação.
     - **Seleção de Formato:** Usuários podem escolher entre **MP4 (Padrão Recomendado)** ou **WebM** para o arquivo final.
     - **Compressão Inteligente sem Perda Perceptível de Qualidade:** O modal disponibiliza um switch que otimiza a taxa de bits de vídeo (H.264 / 1.8 Mbps), reduzindo o tamanho do arquivo em até **50% a 60%** mantendo resolução original (1080p/720p) e máxima nitidez visual.
-    - A exportação exibe barra de progresso em tempo real durante a compressão e faz o download direto no computador do usuário.
+    - **Salvamento em Nuvem no Backblaze B2 (Zero HD no Servidor):**
+      - O usuário pode salvar a gravação diretamente no Backblaze B2 através do botão "Salvar no Servidor (Nuvem)".
+      - O upload transita diretamente da memória para o Backblaze B2, sem persistência ou ocupação no HD do servidor host.
+    - O download local direto para a máquina do usuário permanece disponível no modal.
+  - **Galeria de Gravações do Canal de Voz e por Servidor nos Canais de Texto (Biblioteca na Nuvem):**
+    - **Acesso em Canais de Voz e Texto:** O botão de gravações (ícone de claquete/filme) está disponível tanto no cabeçalho dos canais de voz quanto no cabeçalho superior dos canais de texto de cada servidor (ao lado do botão de mensagens fixadas).
+    - **Escopo por Servidor:** Cada servidor possui seu repositório de gravações isolado. Ao abrir a galeria através de um canal de texto ou de voz de determinado servidor, o sistema lista as gravações daquele servidor com suporte a paginação de até 20 itens por página.
+    - **Identificação do Canal de Origem:** Cada card exibe o badge do canal em que a gravação ocorreu (`Canal: #NomeDoCanal`).
+    - Abre um modal/painel lateral exibindo a listagem de gravações daquele canal/servidor salvas na nuvem com player inline, duração, data/hora e tamanho.
+    - **Renomear Gravação:** Permite editar o título de exibição a qualquer momento diretamente pela interface.
+    - **Download com Nome Personalizado:** Gera link seguro pré-assinado do Backblaze B2 para baixar o arquivo original com o nome editado.
+    - **Exclusão Segura:** Ao deletar uma gravação, o sistema exige popup de confirmação modal e realiza a exclusão física completa tanto do banco de dados quanto do bucket no Backblaze B2 (sem sobras no servidor).
+    - **Seleção Individual e em Lote (Batch Selection):** Cada card de gravação disponibiliza um checkbox para seleção individual de 1 em 1. A barra de ferramentas no topo conta com botão "Selecionar todos" (para marcar/desmarcar os itens da página corrente) e opção de selecionar todas as gravações de uma só vez, além de contador dinâmico de itens selecionados e botão de limpar seleção.
+    - **Exclusão em Lote (Batch Delete):** Quando houver uma ou mais gravações selecionadas, a barra de ferramentas exibe o botão "Excluir Selecionados (X)". Ao clicar, é exibido um popup de confirmação centralizado com backdrop escuro que, ao ser confirmado, remove fisicamente todos os arquivos selecionados do Backblaze B2 e os apaga do banco de dados via endpoints `batch-delete` por canal ou por servidor.
+    - **Sistema de Paginação (Máximo 20 por Página):** A galeria divide a lista de gravações em páginas contendo no máximo **20 gravações por página**, exibindo no rodapé o indicador "Página X de Y", o intervalo de gravações visíveis e botões de navegação "Anterior" e "Próxima".
+    - **Controle de Acesso e Privacidade:**
+      - **Visualização e Download:** Apenas quem gravou (`user_id`), Administradores do servidor (`role in ['OWNER', 'ADMIN']` ou cargo com permissão admin) e Super Admin. Membros comuns visualizam apenas suas próprias gravações naquele servidor.
+      - **Renomear e Excluir:** Restrito exclusivamente a quem gravou, Administradores do servidor e Super Admin.
 - **Sistema de Boas-Vindas do Servidor (Welcome System):**
   - Disponível em **Configurações do Servidor > Boas-Vindas** para o Dono (`owner_id`) e Administradores do servidor.
   - Permite ativar ou desativar o envio automático (`welcome_enabled`), escolher o canal de texto de destino (`welcome_channel_id`) e personalizar o texto de boas-vindas (`welcome_message`) com suporte às variáveis `{user}` (que menciona `@NomeDoUsuario`) e `{server}` (nome do servidor), iniciando com um modelo padrão pronto.
@@ -168,15 +194,37 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
     - Quando um canal de voz passa a ter participantes ativos, um cronômetro é exibido em verde (`#23a55a`) à direita do nome do canal na barra lateral de canais (`ChannelSidebar`).
     - O cronômetro inicia no momento em que o primeiro membro ingressa na call e avança continuamente no padrão Discord (`MM:SS` ou `HH:MM:SS` quando ultrapassar 1 hora).
     - **Regra de Persistência e Reset:** Enquanto houver pelo menos 1 participante na sala de voz, o cronômetro mantém o mesmo tempo de início ininterrupto (mesmo que membros entrem e saiam). Ele só é resetado e desaparece se todos os membros saírem da call (sala esvaziada). Ao iniciar uma nova call no canal, o contador começa novamente do zero.
+  - **Persistência da Conexão de Voz na Navegação e Menu Lateral:**
+    - Ao clicar no botão de 3 tracinhos no topo da lista de servidores (`toggle-app-sidebar-btn`), a barra lateral do sistema (`Sidebar`) se abre e a área direita exibe a tela inicial de Boas-Vindas (`DashboardWelcome`) sem exibir os chats ou canais do Discord.
+    - O módulo `DiscordApp` permanece montado em segundo plano (`display: none`), mantendo a conexão WebRTC, áudio bidirecional e presença de voz 100% ininterruptos. O usuário continua ouvindo e falando na call sem sofrer desconexão.
+    - Ao clicar novamente em "Comunidades (Discord)" no menu lateral, a interface do Discord reaparece imediatamente na mesma sala e canal.
 - **Armazenamento em Nuvem 100% Backblaze B2 (Zero Acúmulo no HD) e Exclusão Física de Mídias:**
   - Quando o Backblaze B2 (`B2_ENDPOINT_URL`, `B2_KEY_ID`, `B2_APPLICATION_KEY` e `B2_BUCKET_NAME`) está configurado no `.env`, todos os anexos de mensagens (canais e DMs), notas de áudio, ícones/banners de servidor e avatares são enviados diretamente da memória RAM para o bucket Backblaze B2 (`discord_media/`), **sem manter cópia permanente no HD local do servidor/VPS**.
   - O disco local (`backend/uploads/discord/`) atua exclusivamente como fallback automático quando o Backblaze B2 não está configurado (ex.: ambiente de desenvolvimento local) ou em caso de indisponibilidade temporária da nuvem.
   - Na leitura (`GET /api/v1/discord/attachments/{filename}`), quando o arquivo está no Backblaze B2, o backend responde com redirecionamento temporário (`307 Temporary Redirect`) para URL pré-assinada do Backblaze B2 (ou CDN configurada), preservando `Content-Disposition` seguro (`inline` para mídias seguras e `attachment` para documentos) sem baixar o arquivo para o HD do servidor.
   - Ao excluir uma mensagem (em canal ou DM), um canal, um servidor inteiro ou substituir ícone/banner/avatar, o sistema verifica se mais nenhum registro no banco referencia aquele anexo (protegendo mensagens encaminhadas) e realiza a **exclusão física real** do objeto no Backblaze B2 (`delete_object`) e no fallback local.
+- **Emojis Customizados por Servidor (Custom Server Emojis):**
+  - Donos do servidor (`owner_id`), administradores e superadmins podem fazer upload e gerenciar emojis customizados na aba **Configurações do Servidor > Emojis** (`ServerEmojisTab`).
+  - Suporta arquivos nos formatos PNG, JPG, GIF e WEBP de até 5 MB por emoji.
+  - O nome do emoji (atalho) é padronizado e validado (`^[a-zA-Z0-9_]{2,32}$`), sendo único por servidor (dois emojis com o mesmo nome no mesmo servidor são rejeitados com `400 Bad Request`).
+  - A exclusão de um emoji requer confirmação via popup modal centralizado com backdrop escuro translúcido e remove fisicamente o arquivo do armazenamento (Backblaze B2 ou fallback local) e o registro no banco de dados.
+  - Todos os membros do servidor podem utilizar os emojis customizados digitando `:nome_do_emoji:` no chat ou selecionando diretamente na seção destacada do servidor no `EmojiPickerPopover`.
+  - No feed de mensagens, os atalhos `:nome_do_emoji:` são automaticamente renderizados como imagens inline estilizadas (`discord-custom-emoji-inline`).
 
 
 
-- **Lista Lateral de Membros e Gestão de Presença Visual (Online / Offline e Glassmorphism):**
+- **Soundboard na Sala de Voz (Voice Channel Soundboard):**
+  - Usuários conectados a qualquer canal de voz têm acesso ao botão **Soundboard** (`open-soundboard-btn`) no cabeçalho superior do canal de voz, abrindo um popover flutuante (`SoundboardPopover`).
+  - **Sons Padrão Nativos:** Inclui uma biblioteca de efeitos sonoros clássicos sintetizados em tempo real via Web Audio API (zero consumo de rede e sem atraso): Quack (Pato cômico), Airhorn (Corneta clássica), Ba Dum Tss (Bateria de piada), Grilos, Aplausos, Sad Trombone, Ding e Level Up (8-bit).
+  - **Sons Customizados do Servidor:**
+    - Donos do servidor (`owner_id`), administradores e superadmins podem fazer upload de novos efeitos sonoros na aba **Configurações do Servidor > Soundboard** (`ServerSoundboardTab`).
+    - Suporta arquivos de áudio nos formatos MP3, WAV e OGG de até 2 MB com nome (2 a 32 caracteres), emoji associado e ajuste de volume padrão.
+    - Exclusão com confirmação via popup modal centralizado com backdrop escuro translúcido.
+  - **Transmissão e Execução em Tempo Real:**
+    - Ao clicar em qualquer som, o evento é transmitido em tempo real para todos os membros da sala de voz via WebSocket (`voice:soundboard`) e endpoint REST fallback (`/channels/{channel_id}/soundboard/play`).
+    - Todos os participantes conectados ouvem o efeito sonoro reproduzido automaticamente e recebem notificação visual flutuante informando quem tocou o som e qual foi o efeito.
+    - O Soundboard respeita o estado **Ensurdecido** (`is_deafened`) do usuário (não toca áudio se estiver ensurdecido) e conta com controle independente de volume ajustável com persistência no `localStorage`.
+
   - A gaveta lateral de membros do servidor (`MemberListSidebar`) separa de forma clara os usuários conectados daqueles desconectados:
     - **Membros Online no Topo:** Ficam agrupados por suas respectivas categorias de cargos (ex: `Administração — X` e `Membros — Y`), exibindo a contagem de membros ativos naquele grupo.
     - **Seção Dedicada 'Offline — Z' no Rodapé:** Todos os membros desconectados (`is_online === false`) são agrupados no final da lista em uma seção cinza dedicada com contador numérico de ausentes.
@@ -214,6 +262,9 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
   - **Eliminação de N+1 Queries no Histórico de Mensagens:** As consultas às mensagens de canais de texto e DMs executam carregamento relacional eager com `joinedload(Message.author)` e `joinedload(DMMessage.sender)`, garantindo que 50 mensagens sejam lidas em uma única query otimizada no banco de dados.
   - **Proporção Nativa sem Cortes Visuais:** No feed do chat, imagens e capturas de tela respeitam a proporção original de aspecto com `object-fit: contain`, evitando cortes nas bordas de imagens panorâmicas e horizontais.
   - **Cadência Saudável de Polling:** Polling de segurança de canais de voz ocorre a cada 15 segundos (e pausa com a aba oculta), preservando a saúde do worker Uvicorn e mantendo o WebSocket de mensageria estável sem desconexões espúrias.
+- **Resiliência de Conexão com Banco de Dados e Logs em Produção (Docker / Portainer / Swarm):**
+  - **Pool de Conexão do SQLAlchemy:** O `create_engine` opera com `pool_pre_ping=True` e `pool_recycle=300`, eliminando o erro de conexões ociosas descartadas pelo PostgreSQL (`server closed the connection unexpectedly`) e garantindo reconexão imediata e transparente.
+  - **Descoberta Dinâmica de Logs:** O serviço de logs descobre automaticamente os IDs e nomes dos contêineres através de labels do Compose e Swarm (`com.docker.compose.service`, `com.docker.stack.namespace`, `com.docker.swarm.service.name`), resolvendo o problema de `404 Not Found` no Portainer e contêineres com nomes dinâmicos de stack.
 
 ---
 

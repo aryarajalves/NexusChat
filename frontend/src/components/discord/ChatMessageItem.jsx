@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { formatBrasiliaDateTime, renderContentWithMentions } from './chatUtils';
 import EmojiPickerPopover from './EmojiPickerPopover';
+import { useServerEmojis } from '../../context/ServerEmojisContext';
 import {
   MessageAttachmentPreview,
   MessageReactionsRow,
@@ -51,6 +52,7 @@ export default function ChatMessageItem({
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [popoverPlacement, setPopoverPlacement] = useState('bottom');
   const actionsRef = useRef(null);
+  const { emojis: customEmojis, emojisMap } = useServerEmojis();
 
   useEffect(() => {
     if (!isEmojiPickerOpen && !isMoreMenuOpen && !isFullEmojiPickerOpen) return;
@@ -206,7 +208,7 @@ export default function ChatMessageItem({
           ) : (
             msg.content && (
               <div className="chat-text-content" data-testid={`message-content-${msg.id}`}>
-                {renderContentWithMentions(msg.content, currentUserName, onStartDM, members)}
+                {renderContentWithMentions(msg.content, currentUserName, onStartDM, members, emojisMap)}
                 {msg.is_edited && (
                   <span className="chat-message-edited" data-testid={`message-edited-badge-${msg.id}`}>
                     (editado)
@@ -350,6 +352,7 @@ export default function ChatMessageItem({
         {isFullEmojiPickerOpen && (
           <EmojiPickerPopover
             placement={popoverPlacement === 'bottom' ? 'reaction-bottom' : 'reaction'}
+            customEmojis={customEmojis}
             onSelectEmoji={(emoji) => {
               if (onToggleReaction) onToggleReaction(channelId, msg.id, emoji);
               setIsFullEmojiPickerOpen(false);

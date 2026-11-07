@@ -6,7 +6,7 @@ import {
   Loader2,
   FileText,
 } from 'lucide-react';
-import { formatBrasiliaDateTime } from './chatUtils';
+import { formatBrasiliaDateTime, renderContentWithMentions } from './chatUtils';
 
 export default function ThreadSidePanel({
   isOpen,
@@ -115,7 +115,7 @@ export default function ThreadSidePanel({
                       {formatBrasiliaDateTime(rootMsg.created_at)}
                     </span>
                   </div>
-                  <div className="thread-msg-text">{rootMsg.content}</div>
+                  <div className="thread-msg-text">{renderContentWithMentions(rootMsg.content)}</div>
                   {rootMsg.attachment_url && (
                     <div style={{ marginTop: '6px' }}>
                       <a
@@ -161,7 +161,7 @@ export default function ThreadSidePanel({
                         {formatBrasiliaDateTime(tMsg.created_at)}
                       </span>
                     </div>
-                    <div className="thread-msg-text">{tMsg.content}</div>
+                    <div className="thread-msg-text">{renderContentWithMentions(tMsg.content)}</div>
                   </div>
                 </div>
               ))}

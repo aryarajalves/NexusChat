@@ -1,0 +1,426 @@
+/* ==========================================================================
+   Galeria de Gravações do Canal de Voz (Backblaze B2 Cloud Library)
+   Design System: Discord / Nexus Chat Premium Glassmorphism
+   ========================================================================== */
+
+.voice-gallery-dialog {
+  background: #313338;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 680px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.voice-gallery-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  background: #2b2d31;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.voice-gallery-header-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.voice-gallery-icon-pill {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(88, 101, 242, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #5865f2;
+}
+
+.voice-gallery-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #f2f3f5;
+}
+
+.voice-gallery-subtitle {
+  margin: 2px 0 0 0;
+  font-size: 12px;
+  color: #949ba4;
+}
+
+.voice-gallery-close-btn {
+  background: transparent;
+  border: none;
+  color: #b5bac1;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.voice-gallery-close-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f2f3f5;
+}
+
+.voice-gallery-body {
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+.voice-gallery-loading,
+.voice-gallery-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  gap: 12px;
+  color: #949ba4;
+}
+
+.voice-gallery-empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #72767d;
+  margin-bottom: 6px;
+}
+
+.voice-gallery-empty-text {
+  font-size: 14px;
+  color: #b5bac1;
+  max-width: 360px;
+}
+
+/* Card de Gravação Individual */
+.voice-recording-card {
+  background: #2b2d31;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: border-color 0.2s ease;
+}
+
+.voice-recording-card:hover {
+  border-color: rgba(88, 101, 242, 0.35);
+}
+
+.voice-recording-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.voice-recording-card-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.voice-recording-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f2f3f5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.voice-recording-rename-input {
+  background: #1e1f22;
+  border: 1px solid #5865f2;
+  border-radius: 6px;
+  padding: 4px 8px;
+  color: #f2f3f5;
+  font-size: 14px;
+  flex: 1;
+  outline: none;
+}
+
+.voice-recording-rename-btn {
+  background: transparent;
+  border: none;
+  color: #949ba4;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.voice-recording-rename-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #5865f2;
+}
+
+.voice-recording-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #949ba4;
+}
+
+.voice-recording-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #1e1f22;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.voice-recording-badge-type {
+  background: rgba(88, 101, 242, 0.15);
+  color: #5865f2;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.voice-recording-player-box {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #1e1f22;
+}
+
+.voice-recording-player-box video {
+  width: 100%;
+  max-height: 260px;
+  display: block;
+  background: #000;
+  border-radius: 8px;
+}
+
+.voice-recording-player-box audio {
+  width: 100%;
+  display: block;
+  height: 40px;
+}
+
+.voice-recording-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.voice-recording-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.voice-recording-action-btn.btn-download {
+  background: #23a55a;
+  color: #ffffff;
+}
+
+.voice-recording-action-btn.btn-download:hover {
+  background: #1f9450;
+}
+
+.voice-recording-action-btn.btn-delete {
+  background: rgba(237, 66, 69, 0.12);
+  color: #ed4245;
+}
+
+.voice-recording-action-btn.btn-delete:hover {
+  background: #ed4245;
+  color: #ffffff;
+}
+
+/* Modal de Confirmação de Exclusão (Regra de Popups) */
+.delete-confirm-popup {
+  background: #313338;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 440px;
+  padding: 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(237, 66, 69, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: modalFadeIn 0.15s ease;
+}
+
+.delete-confirm-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #ed4245;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.delete-confirm-message {
+  margin: 0;
+  font-size: 14px;
+  color: #dbdee1;
+  line-height: 1.5;
+}
+
+.delete-confirm-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+/* Player Customizado de Áudio (Estilo Discord Glassmorphism) */
+.voice-audio-custom-player {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.voice-audio-native-hidden {
+  display: none !important;
+}
+
+.voice-audio-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #111214;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.voice-audio-play-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #5865f2;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(88, 101, 242, 0.4);
+}
+
+.voice-audio-play-btn:hover {
+  background: #4752c4;
+  transform: scale(1.05);
+}
+
+.voice-audio-play-btn:active {
+  transform: scale(0.95);
+}
+
+.voice-audio-icon-btn {
+  background: transparent;
+  border: none;
+  color: #949ba4;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.voice-audio-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f2f3f5;
+}
+
+.voice-audio-timeline-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.voice-audio-timeline-slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #3f4147;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.voice-audio-timeline-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #5865f2;
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(88, 101, 242, 0.6);
+  transition: transform 0.1s ease;
+}
+
+.voice-audio-timeline-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.3);
+}
+
+.voice-audio-time-display {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #949ba4;
+  font-family: monospace;
+  font-weight: 500;
+  flex-shrink: 0;
+  min-width: 72px;
+  justify-content: flex-end;
+}
+

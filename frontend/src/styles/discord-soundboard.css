@@ -1,0 +1,420 @@
+/* discord-soundboard.css - Estilos do Soundboard e Efeitos de Áudio do Discord */
+
+/* 1. Popover Flutuante do Soundboard na Sala de Voz */
+.discord-soundboard-popover {
+  position: absolute;
+  top: 60px;
+  right: 16px;
+  width: 360px;
+  max-width: min(360px, 92vw);
+  max-height: calc(100vh - 120px);
+  background: #2b2d31;
+  border: 1px solid #1e1f22;
+  border-radius: 12px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  z-index: 999;
+  user-select: none;
+  animation: soundboardFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+@keyframes soundboardFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.soundboard-popover-header {
+  padding: 14px 14px 10px 14px;
+  background: #232428;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.soundboard-popover-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.soundboard-popover-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #f2f3f5;
+}
+
+.soundboard-popover-close-btn {
+  background: transparent;
+  border: none;
+  color: #949ba4;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.soundboard-popover-close-btn:hover {
+  color: #f2f3f5;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.soundboard-search-and-vol {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.soundboard-search-box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: #1e1f22;
+  border-radius: 6px;
+  padding: 0 10px;
+  height: 32px;
+  border: 1px solid transparent;
+}
+
+.soundboard-search-box:focus-within {
+  border-color: #5865f2;
+}
+
+.soundboard-search-icon {
+  color: #949ba4;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+.soundboard-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #dbdee1;
+  font-size: 13px;
+}
+
+.soundboard-search-input::placeholder {
+  color: #80848e;
+}
+
+.soundboard-vol-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #1e1f22;
+  padding: 0 8px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+.soundboard-vol-slider {
+  width: 60px;
+  height: 4px;
+  accent-color: #5865f2;
+  cursor: pointer;
+}
+
+.soundboard-popover-body {
+  padding: 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.soundboard-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.soundboard-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #949ba4;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px;
+}
+
+.soundboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.soundboard-card {
+  background: #1e1f22;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+  text-align: left;
+}
+
+.soundboard-card:hover {
+  background: #35373c;
+  transform: translateY(-2px);
+  border-color: rgba(88, 101, 242, 0.4);
+}
+
+.soundboard-card:active {
+  transform: translateY(0);
+}
+
+.soundboard-card-emoji {
+  font-size: 20px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.soundboard-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #dbdee1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.soundboard-empty {
+  padding: 30px 16px;
+  text-align: center;
+  color: #80848e;
+  font-size: 13px;
+}
+
+/* 2. Aba de Configurações do Soundboard no Servidor */
+.server-soundboard-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 10px 0;
+  color: #dbdee1;
+}
+
+.server-sound-upload-card {
+  background: #2b2d31;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 18px;
+}
+
+.server-sound-upload-grid {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .server-sound-upload-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.server-sound-dropzone {
+  border: 2px dashed rgba(88, 101, 242, 0.4);
+  border-radius: 8px;
+  background: rgba(88, 101, 242, 0.04);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.server-sound-dropzone:hover {
+  border-color: #5865f2;
+  background: rgba(88, 101, 242, 0.08);
+}
+
+.server-sound-dropzone-empty span {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #dbdee1;
+  margin-top: 6px;
+}
+
+.server-sound-dropzone-empty small {
+  color: #949ba4;
+  font-size: 11px;
+}
+
+.server-sound-file-selected {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #23a55a;
+  word-break: break-all;
+}
+
+.server-sound-inputs-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.server-sound-row {
+  display: flex;
+  gap: 10px;
+}
+
+.server-sound-emoji-input {
+  text-align: center;
+  font-size: 18px;
+}
+
+.server-sound-vol-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.server-sound-submit-btn {
+  background: #5865f2;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+  transition: background 0.15s ease;
+}
+
+.server-sound-submit-btn:hover:not(:disabled) {
+  background: #4752c4;
+}
+
+.server-sound-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.server-sounds-list-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.server-sound-subheading {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #949ba4;
+  letter-spacing: 0.04em;
+}
+
+.server-sound-empty {
+  padding: 24px;
+  background: #2b2d31;
+  border-radius: 8px;
+  text-align: center;
+  color: #80848e;
+  font-size: 13.5px;
+}
+
+.server-sounds-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.server-sound-item-card {
+  background: #2b2d31;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.15s ease;
+}
+
+.server-sound-item-card:hover {
+  background: #313338;
+}
+
+.server-sound-item-emoji {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.server-sound-item-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.server-sound-item-name {
+  font-size: 13.5px;
+  color: #f2f3f5;
+  font-weight: 600;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.server-sound-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.server-sound-action-btn,
+.server-sound-delete-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #949ba4;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.server-sound-action-btn:hover {
+  color: #5865f2;
+  background: rgba(88, 101, 242, 0.15);
+}
+
+.server-sound-delete-btn:hover {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.15);
+}

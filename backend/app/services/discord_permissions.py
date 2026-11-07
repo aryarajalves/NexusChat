@@ -67,6 +67,10 @@ def ensure_channel_access(channel_id: int, user: User, db: Session) -> Channel:
             detail="Canal não encontrado"
         )
 
+    # Super Admin do sistema sempre tem acesso global irrestrito
+    if getattr(user, "is_superuser", False) or getattr(user, "role", "") == "SUPER_ADMIN":
+        return channel
+
     if not can_user_access_channel(channel, user.id, db):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -74,6 +78,38 @@ def ensure_channel_access(channel_id: int, user: User, db: Session) -> Channel:
         )
 
     return channel
+
+def ensure_server_access(server_id: int, user: User, db: Session) -> Server:
+    """
+    Garante que o servidor existe e que o usuário tem permissão para acessá-lo
+    (seja como Super Admin, dono do servidor ou membro regular).
+    Lança HTTPException 404 se não existir e 403 se o usuário não for membro.
+    """
+    server = db.query(Server).filter(Server.id == server_id).first()
+    if not server:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Servidor não encontrado"
+        )
+
+    if getattr(user, "is_superuser", False) or getattr(user, "role", "") == "SUPER_ADMIN":
+        return server
+
+    if server.owner_id == user.id:
+        return server
+
+    member = db.query(ServerMember).filter(
+        ServerMember.server_id == server.id,
+        ServerMember.user_id == user.id
+    ).first()
+
+    if not member:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você não tem permissão para acessar este servidor."
+        )
+
+    return server
 
 def get_accessible_channel_recipients(channel: Channel, db: Session) -> List[int]:
     """

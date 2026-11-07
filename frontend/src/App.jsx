@@ -52,6 +52,8 @@ function App() {
   };
 
   const handleToggleAppSidebarFromDiscord = () => {
+    // Abre a barra lateral do sistema e exibe a tela inicial de Boas-Vindas
+    // Mantendo o DiscordApp montado em segundo plano (display: none) para não desconectar a call de voz
     setIsSidebarHidden(false);
     setActiveTab('');
     localStorage.removeItem('active_tab');
@@ -251,7 +253,13 @@ function App() {
             onSelectTab={handleSelectTab}
           />
         )}
-        {activeTab === 'discord' && (
+        {/* Mantém o DiscordApp montado continuamente em segundo plano para que as conexões WebRTC de voz não caiam */}
+        <div
+          style={{
+            display: activeTab === 'discord' ? 'contents' : 'none',
+          }}
+          data-testid="discord-app-wrapper"
+        >
           <DiscordApp
             currentUser={user}
             onUserUpdated={handleUserUpdated}
@@ -259,13 +267,16 @@ function App() {
             isAppSidebarHidden={isSidebarHidden}
             onLogout={handlePromptLogout}
           />
-        )}
+        </div>
         {isSuperAdmin && (
           <>
             {activeTab === 'users' && <UserManagement currentUser={user} />}
-            {activeTab === 'backup' && <AutomatedBackup currentUser={user} />}
-            {activeTab === 'logs' && <LogManagement currentUser={user} />}
-            {activeTab === 'infrastructure' && <InfrastructureManagement currentUser={user} />}
+            {(activeTab === 'infrastructure' || activeTab === 'logs' || activeTab === 'backup') && (
+              <InfrastructureManagement
+                currentUser={user}
+                initialMainTab={activeTab === 'logs' ? 'logs' : activeTab === 'backup' ? 'backup' : undefined}
+              />
+            )}
           </>
         )}
         {!isSuperAdmin && activeTab && activeTab !== 'discord' && (

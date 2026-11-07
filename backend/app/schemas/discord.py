@@ -292,3 +292,73 @@ class MessageSearchResponse(BaseModel):
     messages: List[MessageResponse] = []
 
 
+# --- Gravações de Canais de Voz ---
+class VoiceRecordingUpdate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=255, description="Novo título da gravação")
+
+
+class VoiceRecordingsBatchDeleteRequest(BaseModel):
+    recording_ids: List[int] = Field(..., min_length=1, description="Lista de IDs das gravações a serem excluídas")
+
+
+class VoiceRecordingsBatchDeleteResponse(BaseModel):
+    deleted_ids: List[int]
+    count: int
+
+
+class VoiceRecordingResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    server_id: int
+    channel_id: int
+    channel_name: Optional[str] = None
+    user_id: int
+    author_name: Optional[str] = None
+    title: str
+    filename: str
+    storage: str
+    file_size: int
+    duration_seconds: int
+    record_type: str
+    stream_url: Optional[str] = None
+    download_url: Optional[str] = None
+    created_at: datetime
+
+
+# --- Emojis Customizados do Servidor ---
+class ServerEmojiResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    server_id: int
+    user_id: Optional[int] = None
+    name: str
+    image_url: str
+    created_at: datetime
+
+
+# --- Soundboard da Sala de Voz ---
+class ServerSoundboardSoundResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    server_id: int
+    user_id: Optional[int] = None
+    name: str
+    emoji: str
+    audio_url: str
+    volume: float = 1.0
+    created_at: datetime
+
+
+class SoundboardPlayRequest(BaseModel):
+    sound_id: Optional[int] = None
+    sound_name: str
+    emoji: Optional[str] = "🔊"
+    audio_url: Optional[str] = None
+    volume: Optional[float] = 1.0
+
+
+
+

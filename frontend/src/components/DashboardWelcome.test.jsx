@@ -38,28 +38,18 @@ describe('DashboardWelcome Component', () => {
     expect(onSelectTab).toHaveBeenCalledWith('discord');
   });
 
-  it('renders quick action buttons for superadmin and calls onSelectTab on click', () => {
-    const onSelectTab = vi.fn();
-    render(<DashboardWelcome user={mockSuperAdmin} onSelectTab={onSelectTab} />);
-
-    expect(screen.getByTestId('quick-action-users')).toBeInTheDocument();
-    expect(screen.getByTestId('quick-action-infrastructure')).toBeInTheDocument();
-    expect(screen.getByTestId('quick-action-logs')).toBeInTheDocument();
-    expect(screen.getByTestId('quick-action-backup')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByTestId('quick-action-users'));
-    expect(onSelectTab).toHaveBeenCalledWith('users');
-
-    fireEvent.click(screen.getByTestId('quick-action-infrastructure'));
-    expect(onSelectTab).toHaveBeenCalledWith('infrastructure');
-  });
-
-  it('does not render admin quick actions for regular users', () => {
-    render(<DashboardWelcome user={mockUser} onSelectTab={vi.fn()} />);
+  it('does not render quick action buttons for any user', () => {
+    const { rerender } = render(<DashboardWelcome user={mockSuperAdmin} onSelectTab={vi.fn()} />);
 
     expect(screen.queryByTestId('quick-action-users')).toBeNull();
     expect(screen.queryByTestId('quick-action-infrastructure')).toBeNull();
-    expect(screen.getByText(/Olá, Membro Normal!/i)).toBeInTheDocument();
-    expect(screen.getByTestId('welcome-enter-discord-btn')).toBeInTheDocument();
+    expect(screen.queryByTestId('quick-action-logs')).toBeNull();
+    expect(screen.queryByTestId('quick-action-backup')).toBeNull();
+    expect(screen.queryByText(/Atalhos Rápidos de Gestão/i)).toBeNull();
+
+    rerender(<DashboardWelcome user={mockUser} onSelectTab={vi.fn()} />);
+    expect(screen.queryByTestId('quick-action-users')).toBeNull();
+    expect(screen.queryByTestId('quick-action-infrastructure')).toBeNull();
+    expect(screen.queryByText(/Olá, Membro Normal!/i)).toBeInTheDocument();
   });
 });

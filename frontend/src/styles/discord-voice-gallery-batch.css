@@ -1,0 +1,180 @@
+/* Estilos para Seleção em Lote, Toolbar e Paginação da Galeria de Gravações */
+
+.voice-gallery-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: rgba(20, 22, 26, 0.7);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.voice-gallery-toolbar-left,
+.voice-gallery-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.voice-gallery-select-all-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: #dbdee1;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.voice-gallery-select-all-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+.voice-gallery-text-link-btn {
+  background: transparent;
+  border: none;
+  color: #5865f2;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.voice-gallery-text-link-btn:hover {
+  color: #7983f5;
+}
+
+.voice-gallery-selected-badge {
+  background: rgba(88, 101, 242, 0.2);
+  color: #5865f2;
+  border: 1px solid rgba(88, 101, 242, 0.4);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 12px;
+}
+
+.voice-gallery-bulk-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+/* Checkbox Customizado no Card */
+.voice-recording-checkbox-wrap {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  margin-right: 8px;
+  user-select: none;
+  position: relative;
+}
+
+.voice-recording-checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.voice-recording-custom-checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 2px solid #4e5058;
+  background: rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.voice-recording-checkbox:checked + .voice-recording-custom-checkbox {
+  background: #5865f2;
+  border-color: #5865f2;
+  color: #ffffff;
+  box-shadow: 0 0 8px rgba(88, 101, 242, 0.5);
+}
+
+.voice-recording-checkbox-wrap:hover .voice-recording-custom-checkbox {
+  border-color: #80848e;
+}
+
+.voice-recording-card.voice-recording-card-selected {
+  border-color: rgba(88, 101, 242, 0.6);
+  background: rgba(88, 101, 242, 0.05);
+  box-shadow: 0 0 10px rgba(88, 101, 242, 0.15);
+}
+
+/* Paginação (Máximo 20 itens) */
+.voice-gallery-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: rgba(18, 20, 24, 0.85);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 13px;
+  color: #949ba4;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.voice-gallery-pagination-info strong {
+  color: #f2f3f5;
+}
+
+.voice-gallery-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.voice-gallery-page-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #2b2d31;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #dbdee1;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.voice-gallery-page-btn:hover:not(:disabled) {
+  background: #35373c;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.voice-gallery-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.voice-gallery-page-indicator {
+  font-size: 12px;
+  color: #b5bac1;
+}
+
+.voice-gallery-page-indicator strong {
+  color: #ffffff;
+}

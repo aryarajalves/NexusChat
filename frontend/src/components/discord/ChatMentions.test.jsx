@@ -266,4 +266,34 @@ describe('ChatMessageItem Mention Rendering & Highlighting', () => {
 
     expect(handleStartDM).toHaveBeenCalledWith(10);
   });
+
+  it('renders clickable links in message content with target _blank and security rel', () => {
+    const msg = {
+      id: 54,
+      content: 'Confira nosso repositório em https://github.com/aryarajalves e www.google.com!',
+      author_id: 2,
+      author_name: 'Carlos',
+      created_at: '2026-10-28T18:00:00Z',
+    };
+
+    render(
+      <ChatMessageItem
+        msg={msg}
+        channelId={1}
+        currentUserId={currentUser.id}
+        currentUser={currentUser}
+      />
+    );
+
+    const links = screen.getAllByTestId('chat-message-link');
+    expect(links.length).toBe(2);
+
+    expect(links[0]).toHaveAttribute('href', 'https://github.com/aryarajalves');
+    expect(links[0]).toHaveAttribute('target', '_blank');
+    expect(links[0]).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(links[0]).toHaveClass('chat-message-link');
+
+    expect(links[1]).toHaveAttribute('href', 'https://www.google.com');
+    expect(links[1]).toHaveAttribute('target', '_blank');
+  });
 });

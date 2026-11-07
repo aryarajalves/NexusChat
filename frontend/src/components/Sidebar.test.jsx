@@ -17,15 +17,15 @@ describe('Sidebar Component', () => {
     expect(screen.getByText('INFRAESTRUTURA & DADOS')).toBeInTheDocument();
   });
 
-  it('renders "Backup Automático", "Gerenciamento de logs" and "Gestão de Usuário" buttons only for superadmin', () => {
+  it('renders "Infraestrutura & Dados" and "Gestão de Usuário" buttons only for superadmin', () => {
     // Superadmin vê os botões
     const superAdminUser = { name: 'Super Admin', email: 'admin@test.com', role: 'superadmin' };
     const { unmount } = render(<Sidebar user={superAdminUser} />);
     expect(screen.queryByText('Meus vídeos')).not.toBeInTheDocument();
-    expect(screen.getByText('Backup Automático')).toBeInTheDocument();
-    expect(screen.getByText('Gerenciamento de logs')).toBeInTheDocument();
-    expect(screen.getByText('Infraestrutura e Recursos')).toBeInTheDocument();
     expect(screen.getByText('Gestão de Usuário')).toBeInTheDocument();
+    expect(screen.getByText('Infraestrutura & Dados')).toBeInTheDocument();
+    expect(screen.queryByText('Backup Automático')).not.toBeInTheDocument();
+    expect(screen.queryByText('Gerenciamento de logs')).not.toBeInTheDocument();
     unmount();
 
     // Usuário comum NÃO vê os botões de gestão e infraestrutura
@@ -34,10 +34,10 @@ describe('Sidebar Component', () => {
     expect(screen.getByText('APLICAÇÃO')).toBeInTheDocument();
     expect(screen.queryByText('GESTÃO')).not.toBeInTheDocument();
     expect(screen.queryByText('INFRAESTRUTURA & DADOS')).not.toBeInTheDocument();
+    expect(screen.queryByText('Gestão de Usuário')).not.toBeInTheDocument();
+    expect(screen.queryByText('Infraestrutura & Dados')).not.toBeInTheDocument();
     expect(screen.queryByText('Backup Automático')).not.toBeInTheDocument();
     expect(screen.queryByText('Gerenciamento de logs')).not.toBeInTheDocument();
-    expect(screen.queryByText('Infraestrutura e Recursos')).not.toBeInTheDocument();
-    expect(screen.queryByText('Gestão de Usuário')).not.toBeInTheDocument();
   });
 
   it('renders user profile details and logout button', () => {
@@ -59,17 +59,25 @@ describe('Sidebar Component', () => {
     const superAdminUser = { name: 'Super Admin', email: 'admin@test.com', role: 'superadmin' };
     render(<Sidebar user={superAdminUser} activeTab="users" onSelectTab={onSelectTabMock} />);
 
-    const backupBtn = screen.getByTestId('nav-item-backup');
-    fireEvent.click(backupBtn);
-    expect(onSelectTabMock).toHaveBeenCalledWith('backup');
+    const infraBtn = screen.getByTestId('nav-item-infrastructure');
+    fireEvent.click(infraBtn);
+    expect(onSelectTabMock).toHaveBeenCalledWith('infrastructure');
   });
 
-  it('sets active class properly on "Infraestrutura e Recursos" tab', () => {
+  it('sets active class properly on "Infraestrutura & Dados" tab when activeTab is infrastructure, logs or backup', () => {
     const superAdminUser = { name: 'Super Admin', email: 'admin@test.com', role: 'superadmin' };
-    render(<Sidebar user={superAdminUser} activeTab="infrastructure" />);
+    const { rerender } = render(<Sidebar user={superAdminUser} activeTab="infrastructure" />);
 
     const infraBtn = screen.getByTestId('nav-item-infrastructure');
     expect(infraBtn).toHaveClass('active');
-    expect(infraBtn).toHaveTextContent('Infraestrutura e Recursos');
+    expect(infraBtn).toHaveTextContent('Infraestrutura & Dados');
+
+    // Logs also activates infrastructure tab
+    rerender(<Sidebar user={superAdminUser} activeTab="logs" />);
+    expect(screen.getByTestId('nav-item-infrastructure')).toHaveClass('active');
+
+    // Backup also activates infrastructure tab
+    rerender(<Sidebar user={superAdminUser} activeTab="backup" />);
+    expect(screen.getByTestId('nav-item-infrastructure')).toHaveClass('active');
   });
 });

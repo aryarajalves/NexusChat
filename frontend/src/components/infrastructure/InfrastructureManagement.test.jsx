@@ -137,4 +137,45 @@ describe('InfrastructureManagement Component', () => {
       expect(api.updateAlertConfigApi).toHaveBeenCalled();
     });
   });
+  it('allows switching between main tabs: Recursos, Logs e Backup Automático', async () => {
+    // Mock global fetch for LogManagement and AutomatedBackup
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (typeof url === 'string' && url.includes('/logs')) {
+        return Promise.resolve({ ok: true, json: async () => ({ logs: [] }) });
+      }
+      if (typeof url === 'string' && url.includes('/backups/list')) {
+        return Promise.resolve({ ok: true, json: async () => [] });
+      }
+      if (typeof url === 'string' && url.includes('/dashboard-stats')) {
+        return Promise.resolve({ ok: true, json: async () => ({}) });
+      }
+      if (typeof url === 'string' && url.includes('/backup')) {
+        return Promise.resolve({ ok: true, json: async () => [] });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('infra-main-tabs')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('main-tab-resources')).toHaveClass('active');
+    expect(screen.getByText('Infraestrutura & Recursos do Servidor')).toBeInTheDocument();
+
+    // Alterna para Gerenciamento de Logs
+    fireEvent.click(screen.getByTestId('main-tab-logs'));
+    await waitFor(() => {
+      expect(screen.getByTestId('log-management-page')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('main-tab-logs')).toHaveClass('active');
+
+    // Alterna para Backup Automático
+    fireEvent.click(screen.getByTestId('main-tab-backup'));
+    await waitFor(() => {
+      expect(screen.getByTestId('automated-backup-page')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('main-tab-backup')).toHaveClass('active');
+  });
 });

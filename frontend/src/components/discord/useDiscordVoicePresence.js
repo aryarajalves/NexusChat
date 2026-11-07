@@ -102,6 +102,8 @@ export default function useDiscordVoicePresence({
                     user_id: currentLoggedUser.id,
                     user_name: currentLoggedUser.name,
                   });
+                } else if (currentLoggedUser && currentConnectedId) {
+                  map.delete(currentLoggedUser.id);
                 }
                 next[chId] = Array.from(map.values());
               });
@@ -141,19 +143,28 @@ export default function useDiscordVoicePresence({
   }, [token, channels]);
 
   // 3. Mantém o usuário conectado na lista de participantes da sala de voz sem poluir com usuários de texto
+  // e assegura a unicidade: remove o usuário de qualquer outra sala caso tenha trocado de canal
   useEffect(() => {
     if (connectedVoiceChannelId && currentUser) {
       setVoiceChannelUsers((prev) => {
-        const currentList = prev[connectedVoiceChannelId] || [];
-        const alreadyIn = currentList.some((u) => (u.user_id || u.id) === currentUser.id);
-        if (alreadyIn) return prev;
-        return {
-          ...prev,
-          [connectedVoiceChannelId]: [
-            ...currentList,
-            { user_id: currentUser.id, user_name: currentUser.name },
-          ],
-        };
+        const next = {};
+        const currentUserId = currentUser.id;
+        Object.entries(prev).forEach(([chId, uList]) => {
+          if (String(chId) === String(connectedVoiceChannelId)) {
+            const alreadyIn = (uList || []).some((u) => (u.user_id || u.id) === currentUserId);
+            next[chId] = alreadyIn
+              ? uList
+              : [...(uList || []), { user_id: currentUserId, user_name: currentUser.name }];
+          } else {
+            next[chId] = (uList || []).filter((u) => (u.user_id || u.id) !== currentUserId);
+          }
+        });
+        if (!next[connectedVoiceChannelId]) {
+          next[connectedVoiceChannelId] = [
+            { user_id: currentUserId, user_name: currentUser.name },
+          ];
+        }
+        return next;
       });
 
       setVoiceChannelCallTimes((prev) => {
@@ -188,6 +199,8 @@ export default function useDiscordVoicePresence({
           user_id: currentUserRef.current.id,
           user_name: currentUserRef.current.name,
         });
+      } else if (currentUserRef.current && connectedVoiceChannelIdRef.current) {
+        map.delete(currentUserRef.current.id);
       }
       return {
         ...prev,

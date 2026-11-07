@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, UniqueConstraint, Index
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, UniqueConstraint, Index, Float
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -286,5 +286,67 @@ class DMReadState(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "conversation_id", name="uq_dm_read_state_user_conversation"),
     )
+
+
+class VoiceRecording(Base):
+    __tablename__ = "voice_recordings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    server_id = Column(Integer, ForeignKey("servers.id", ondelete="CASCADE"), nullable=False, index=True)
+    channel_id = Column(Integer, ForeignKey("channels.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    filename = Column(String(255), nullable=False)
+    s3_key = Column(String(500), nullable=True)
+    storage = Column(String(32), default="b2", nullable=False)
+    file_size = Column(Integer, default=0, nullable=False)
+    duration_seconds = Column(Integer, default=0, nullable=False)
+    record_type = Column(String(20), default="video", nullable=False)  # "audio" | "video"
+    created_at = Column(DateTime, default=utc_now)
+
+    server = relationship("Server")
+    channel = relationship("Channel")
+    user = relationship("User")
+
+
+class ServerEmoji(Base):
+    __tablename__ = "server_emojis"
+
+    id = Column(Integer, primary_key=True, index=True)
+    server_id = Column(Integer, ForeignKey("servers.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    name = Column(String(50), nullable=False)
+    image_url = Column(String(500), nullable=False)
+    created_at = Column(DateTime, default=utc_now)
+
+    server = relationship("Server", backref="emojis")
+    user = relationship("User")
+
+    __table_args__ = (
+        UniqueConstraint("server_id", "name", name="uq_server_emoji_server_name"),
+    )
+
+
+class ServerSoundboardSound(Base):
+    __tablename__ = "server_soundboard_sounds"
+
+    id = Column(Integer, primary_key=True, index=True)
+    server_id = Column(Integer, ForeignKey("servers.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    name = Column(String(64), nullable=False)
+    emoji = Column(String(16), default="🔊", nullable=False)
+    audio_url = Column(String(500), nullable=False)
+    volume = Column(Float, default=1.0, nullable=False)
+    created_at = Column(DateTime, default=utc_now)
+
+    server = relationship("Server", backref="soundboard_sounds")
+    user = relationship("User")
+
+    __table_args__ = (
+        UniqueConstraint("server_id", "name", name="uq_server_soundboard_server_name"),
+    )
+
+
+
 
 

@@ -211,7 +211,7 @@ describe('App Component', () => {
     expect(localStorage.getItem('active_tab')).toBeNull();
   });
 
-  it('clears active tab and unselects community when opening system sidebar from discord', async () => {
+  it('toggles system sidebar from discord without unmounting discord or leaving voice', async () => {
     localStorage.setItem('auth_token', 'mock_token');
     localStorage.setItem(
       'auth_user',
@@ -242,21 +242,25 @@ describe('App Component', () => {
 
     // Agora no Discord, sidebar do sistema escondida
     expect(screen.queryByRole('complementary', { name: /menu lateral/i })).not.toBeInTheDocument();
+    expect(screen.getByTestId('discord-app-wrapper')).toBeInTheDocument();
 
-    // Clica no botão do menu para exibir a barra lateral
+    // Clica no botão dos 3 tracinhos para exibir a barra lateral do sistema
     const toggleBtn = screen.getByTestId('toggle-app-sidebar-btn');
     fireEvent.click(toggleBtn);
 
-    // Agora o menu lateral aparece
+    // Abre o menu lateral do sistema e exibe a tela de Boas-Vindas à direita (sem os chats do Discord)
     expect(screen.getByRole('complementary', { name: /menu lateral/i })).toBeInTheDocument();
-
-    // A tela de boas-vindas sofisticada é renderizada no lugar da tela vazia
     expect(screen.getByTestId('dashboard-welcome-container')).toBeInTheDocument();
-    expect(screen.getByTestId('welcome-enter-discord-btn')).toBeInTheDocument();
 
-    // O botão comunidade NÃO está selecionado
-    const communityBtn = screen.getByTestId('nav-item-discord');
-    expect(communityBtn).not.toHaveClass('active');
+    // O DiscordApp continua montado continuamente em segundo plano (display: none) para não derrubar a call de voz!
+    const discordWrapper = screen.getByTestId('discord-app-wrapper');
+    expect(discordWrapper).toBeInTheDocument();
+    expect(discordWrapper).toHaveStyle({ display: 'none' });
+
+    // Ao clicar em 'Comunidades (Discord)', o usuário retorna instantaneamente para o Discord
+    fireEvent.click(screen.getByTestId('nav-item-discord'));
+    expect(discordWrapper).toHaveStyle({ display: 'contents' });
+    expect(screen.queryByTestId('dashboard-welcome-container')).not.toBeInTheDocument();
   });
 });
 

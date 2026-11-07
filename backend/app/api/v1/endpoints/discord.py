@@ -28,24 +28,16 @@ from app.services.storage import (
 from app.core.rate_limiter import check_rate_limit
 from app.core.upload_security import validate_uploaded_file, get_content_disposition_for_file
 from .discord_helpers import (
-    ensure_utc,
-    format_message_reactions,
-    format_bulk_message_reactions,
-    build_message_response,
-    get_server_member,
-    ensure_member,
-    ensure_admin_or_owner,
-    validate_channel_name_unique
+    ensure_utc, format_message_reactions, format_bulk_message_reactions,
+    build_message_response, get_server_member, ensure_member,
+    ensure_admin_or_owner, validate_channel_name_unique
 )
 from app.services.discord_permissions import (
-    can_user_access_channel,
-    ensure_channel_access,
-    get_accessible_channel_recipients,
-    build_channel_response
+    can_user_access_channel, ensure_channel_access,
+    get_accessible_channel_recipients, build_channel_response
 )
 from app.services.discord_welcome import (
-    handle_member_joined_server,
-    validate_and_apply_welcome_settings,
+    handle_member_joined_server, validate_and_apply_welcome_settings,
 )
 
 router = APIRouter(prefix="/discord", tags=["Discord Clone"])
@@ -825,19 +817,14 @@ async def channel_websocket_endpoint(
 ):
     """Endpoint WebSocket para mensageria e presença em tempo real por canal."""
     if not token:
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-        return
-
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION); return
     payload = decode_access_token(token)
     if not payload or "sub" not in payload:
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-        return
-
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION); return
     user_id = int(payload["sub"])
     user = db.query(User).filter(User.id == user_id, User.is_active == True).first()
     if not user:
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-        return
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION); return
 
     channel = db.query(Channel).filter(Channel.id == channel_id).first()
     if not channel:
@@ -972,6 +959,20 @@ async def channel_websocket_endpoint(
                         "signal": data.get("signal")
                     },
                     exclude=websocket
+                )
+
+            # 6. Efeito do Soundboard na Sala de Voz
+            elif event_type == "voice:soundboard":
+                sound_data = data.get("sound") or {}
+                await socket_manager.broadcast_to_channel(
+                    channel_id,
+                    {
+                        "event": "voice:soundboard",
+                        "channel_id": channel_id,
+                        "user_id": user.id,
+                        "user_name": user.name,
+                        "sound": sound_data,
+                    }
                 )
 
     except WebSocketDisconnect:

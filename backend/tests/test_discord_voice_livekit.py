@@ -229,3 +229,57 @@ def test_voice_call_timer_persistence_and_reset():
     # Status confirma reset para None
     status_empty = client.get(f"/api/v1/discord/channels/{vch_id}/voice-status", headers=h1).json()
     assert status_empty["call_started_at"] is None
+
+
+def test_switching_voice_channels_removes_user_from_previous_channel():
+    """
+    Garante a regra do Discord de que um usuário não pode estar em dois canais de voz simultaneamente.
+    Ao entrar em um novo canal de voz, o usuário deve ser automaticamente desvinculado do canal anterior.
+    """
+    user_email = "switch_voice_user@teste.com"
+    create_user_helper(user_email, "Switch User")
+    headers = get_auth_token(user_email)
+
+    # 1. Cria servidor
+    res_srv = client.post("/api/v1/discord/servers", json={"name": "Servidor Switch Voice"}, headers=headers)
+    assert res_srv.status_code == 201
+    srv_id = res_srv.json()["id"]
+
+    # 2. Cria dois canais de voz no mesmo servidor
+    res_ch_a = client.post(
+        f"/api/v1/discord/servers/{srv_id}/channels",
+        json={"name": "sala-voz-a", "type": "VOICE"},
+        headers=headers
+    )
+    ch_a_id = res_ch_a.json()["id"]
+
+    res_ch_b = client.post(
+        f"/api/v1/discord/servers/{srv_id}/channels",
+        json={"name": "sala-voz-b", "type": "VOICE"},
+        headers=headers
+    )
+    ch_b_id = res_ch_b.json()["id"]
+
+    # 3. Usuário entra na Sala A
+    res_join_a = client.post(f"/api/v1/discord/channels/{ch_a_id}/voice-join", headers=headers)
+    assert res_join_a.status_code == 200
+    assert res_join_a.json()["total_participants"] == 1
+
+    # Verifica status: Sala A tem 1, Sala B tem 0
+    status_a = client.get(f"/api/v1/discord/channels/{ch_a_id}/voice-status", headers=headers).json()
+    status_b = client.get(f"/api/v1/discord/channels/{ch_b_id}/voice-status", headers=headers).json()
+    assert status_a["total_participants"] == 1
+    assert status_b["total_participants"] == 0
+
+    # 4. Usuário agora entra na Sala B diretamente (switch)
+    res_join_b = client.post(f"/api/v1/discord/channels/{ch_b_id}/voice-join", headers=headers)
+    assert res_join_b.status_code == 200
+    assert res_join_b.json()["total_participants"] == 1
+
+    # 5. Verifica que o usuário SAIU automaticamente da Sala A e agora está APENAS na Sala B
+    status_a_after = client.get(f"/api/v1/discord/channels/{ch_a_id}/voice-status", headers=headers).json()
+    status_b_after = client.get(f"/api/v1/discord/channels/{ch_b_id}/voice-status", headers=headers).json()
+
+    assert status_a_after["total_participants"] == 0, "Usuário duplicado! Deveria ter saído da Sala A."
+    assert status_b_after["total_participants"] == 1, "Usuário deveria estar presente na Sala B."
+

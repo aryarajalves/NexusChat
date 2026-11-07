@@ -24,11 +24,15 @@ export default function useWebRTCVoiceRoom({
   cameraBlurMode = 'none',
   onRemoteScreenShareStarted,
   onRoomVoiceStatesUpdate,
+  onSoundboardPlay,
 }) {
   const [rtcConnected, setRtcConnected] = useState(false);
   const [rtcPeers, setRtcPeers] = useState([]);
   const [remotePeersMedia, setRemotePeersMedia] = useState({});
   const [roomVoiceStates, setRoomVoiceStates] = useState({});
+
+  const onSoundboardPlayRef = useRef(onSoundboardPlay);
+  onSoundboardPlayRef.current = onSoundboardPlay;
 
   const isMutedRef = useRef(isMuted);
   const isDeafenedRef = useRef(isDeafened);
@@ -418,6 +422,8 @@ export default function useWebRTCVoiceRoom({
           if (!payload?.event || payload.event === 'pong') return;
           if (payload.event === 'voice:signal') {
             handleSignal(payload);
+          } else if (payload.event === 'voice:soundboard') {
+            onSoundboardPlayRef.current?.(payload);
           } else if (payload.event === 'voice:state' && payload.user_id) {
             setRoomVoiceStates((prev) => {
               const next = {
@@ -471,5 +477,12 @@ export default function useWebRTCVoiceRoom({
     };
   }, [channelId, token, buildLocalMediaState, cleanupAllPeers, cleanupPeer, getOrCreatePeer, negotiateWithPeer, sendSignal, syncLocalTracksToPeer, syncPublicState]);
 
-  return { rtcConnected, rtcPeers, remotePeersMedia, roomVoiceStates, sendRoomVoiceState };
+  const sendSoundboardPlay = useCallback((sound) => {
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ event: 'voice:soundboard', sound }));
+    }
+  }, []);
+
+  return { rtcConnected, rtcPeers, remotePeersMedia, roomVoiceStates, sendRoomVoiceState, sendSoundboardPlay };
 }

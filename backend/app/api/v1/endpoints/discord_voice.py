@@ -34,7 +34,20 @@ async def get_voice_channel_token(
     Permite transmissão de áudio, vídeo de webcam e compartilhamento de tela.
     """
     channel = ensure_voice_channel_access(channel_id, current_user, db)
-    socket_manager.register_voice_user(channel.id, current_user.id, current_user.name)
+    previous_channels = socket_manager.register_voice_user(channel.id, current_user.id, current_user.name)
+    for prev_ch in previous_channels:
+        prev_participants = socket_manager.get_online_users_in_channel(prev_ch)
+        await socket_manager.broadcast_to_channel(
+            prev_ch,
+            {
+                "event": "presence:leave",
+                "user_id": current_user.id,
+                "user_name": current_user.name,
+                "online_users": prev_participants,
+            },
+        )
+        await socket_manager.broadcast_voice_channel_update(prev_ch)
+
     await socket_manager.broadcast_voice_channel_update(channel.id)
     credentials = get_livekit_voice_credentials(
         channel_id=channel.id,
@@ -53,7 +66,20 @@ async def join_voice_channel(
 ) -> Dict[str, Any]:
     """Registra explicitamente a entrada do usuário na sessão do canal de voz."""
     channel = ensure_voice_channel_access(channel_id, current_user, db)
-    socket_manager.register_voice_user(channel.id, current_user.id, current_user.name)
+    previous_channels = socket_manager.register_voice_user(channel.id, current_user.id, current_user.name)
+    for prev_ch in previous_channels:
+        prev_participants = socket_manager.get_online_users_in_channel(prev_ch)
+        await socket_manager.broadcast_to_channel(
+            prev_ch,
+            {
+                "event": "presence:leave",
+                "user_id": current_user.id,
+                "user_name": current_user.name,
+                "online_users": prev_participants,
+            },
+        )
+        await socket_manager.broadcast_voice_channel_update(prev_ch)
+
     participants = socket_manager.get_online_users_in_channel(channel.id)
     await socket_manager.broadcast_to_channel(
         channel.id,

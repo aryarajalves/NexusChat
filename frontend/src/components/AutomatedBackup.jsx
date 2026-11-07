@@ -11,7 +11,7 @@ import {
   useAutomatedBackup,
 } from './automated-backup';
 
-export default function AutomatedBackup({ currentUser }) {
+export default function AutomatedBackup({ currentUser, embedded = false }) {
   const {
     activeTab,
     handleSelectTab,
@@ -57,7 +57,7 @@ export default function AutomatedBackup({ currentUser }) {
   } = useAutomatedBackup();
 
   return (
-    <div className="backup-page-container" data-testid="automated-backup-page">
+    <div className={`backup-page-container ${embedded ? "backup-page-embedded" : ""}`} data-testid="automated-backup-page">
       {/* Cabeçalho */}
       <div className="backup-page-header">
         <h1>Backup Automático</h1>

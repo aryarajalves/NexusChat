@@ -3,7 +3,7 @@ import { Terminal, RefreshCw, Copy, Check, Filter, ArrowDown, Activity, Sun, Moo
 import { useToast } from '../context/ToastContext';
 import { LogTypeFilter, LogDateFilter, TerminalLogLine, classifyLogLine } from './log-management';
 
-export default function LogManagement({ currentUser }) {
+export default function LogManagement({ currentUser, embedded = false }) {
   // Apenas contêineres de backend e frontend (sem banco de dados postgres)
   const [services] = useState([
     { id: 'backend', name: 'Backend (FastAPI)', container: 'nexus_chat_backend' },
@@ -124,7 +124,7 @@ export default function LogManagement({ currentUser }) {
   };
 
   return (
-    <div className="backup-page-container" data-testid="log-management-page">
+    <div className={`backup-page-container ${embedded ? "backup-page-embedded" : ""}`} data-testid="log-management-page">
       {/* Cabeçalho */}
       <div className="backup-page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

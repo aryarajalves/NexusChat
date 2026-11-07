@@ -266,3 +266,182 @@
 .quick-emoji-more-btn:hover {
   color: #5865f2;
 }
+
+/* Emojis Customizados do Servidor (Renderização Inline nas Mensagens) */
+.discord-custom-emoji-inline {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  vertical-align: -0.25rem;
+  margin: 0 2px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.discord-custom-emoji-inline:hover {
+  transform: scale(1.15);
+}
+
+/* Imagem de emoji no Seletor / Popover */
+.discord-custom-emoji-picker-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  pointer-events: none;
+  display: block;
+}
+
+/* Estilos da Aba de Gerenciamento de Emojis no Servidor */
+.server-emojis-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 10px 0;
+  color: #dbdee1;
+}
+
+.server-emoji-upload-card {
+  background: #2b2d31;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.server-emoji-dropzone {
+  border: 2px dashed rgba(88, 101, 242, 0.4);
+  border-radius: 8px;
+  background: rgba(88, 101, 242, 0.04);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.server-emoji-dropzone:hover {
+  border-color: #5865f2;
+  background: rgba(88, 101, 242, 0.08);
+}
+
+.server-emoji-preview-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.server-emoji-preview-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #1e1f22;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.server-emoji-inputs-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.server-emoji-name-input {
+  flex: 1;
+  background: #1e1f22;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #f2f3f5;
+  font-size: 14px;
+  outline: none;
+}
+
+.server-emoji-name-input:focus {
+  border-color: #5865f2;
+}
+
+.server-emoji-submit-btn {
+  background: #5865f2;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s ease;
+}
+
+.server-emoji-submit-btn:hover:not(:disabled) {
+  background: #4752c4;
+}
+
+.server-emoji-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.server-emojis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+}
+
+.server-emoji-card {
+  background: #2b2d31;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  transition: background 0.15s ease;
+}
+
+.server-emoji-card:hover {
+  background: #313338;
+}
+
+.server-emoji-card img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.server-emoji-card-name {
+  font-size: 12px;
+  color: #dbdee1;
+  font-weight: 500;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.server-emoji-card-delete-btn {
+  background: transparent;
+  border: none;
+  color: #f87171;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.server-emoji-card-delete-btn:hover {
+  background: rgba(248, 113, 113, 0.15);
+}

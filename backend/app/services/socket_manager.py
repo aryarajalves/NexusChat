@@ -208,8 +208,19 @@ class ConnectionManager:
         """Publica evento no barramento de canais (Redis Pub/Sub se ativo, ou in-memory)."""
         await self._publish_event("channel", channel_id, data)
 
-    def register_voice_user(self, channel_id: int, user_id: int, user_name: str, is_muted: bool = True, is_deafened: bool = False):
-        """Registra a presença ativa de um usuário em um canal de voz com seu estado de microfone e inicializa o cronômetro."""
+    def register_voice_user(self, channel_id: int, user_id: int, user_name: str, is_muted: bool = True, is_deafened: bool = False) -> List[int]:
+        """
+        Registra a presença ativa de um usuário em um canal de voz com seu estado de microfone e inicializa o cronômetro.
+        Garante a regra do Discord: um usuário só pode estar em UMA sala de voz por vez.
+        Se já estiver em outra sala, remove da sala anterior e retorna a lista de IDs de salas anteriores afetadas.
+        """
+        previous_channels = [
+            ch_id for ch_id, room_users in list(self.voice_rooms.items())
+            if ch_id != channel_id and user_id in room_users
+        ]
+        for prev_ch in previous_channels:
+            self.unregister_voice_user(prev_ch, user_id)
+
         if channel_id not in self.voice_rooms:
             self.voice_rooms[channel_id] = {}
         if channel_id not in self.voice_room_start_times:
@@ -224,6 +235,7 @@ class ConnectionManager:
             "is_speaking": False
         }
         logger.info(f"[Voz] Usuário {user_name} (ID: {user_id}) registrado na sala #{channel_id} (mutado: {self.voice_rooms[channel_id][user_id]['is_muted']})")
+        return previous_channels
 
     def update_voice_user_state(self, channel_id: int, user_id: int, is_muted: bool, is_deafened: bool, is_speaking: bool = False):
         """Atualiza o estado de microfone/áudio do usuário na sala de voz para consultas em tempo real."""

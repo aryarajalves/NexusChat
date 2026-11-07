@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Volume2, Users, Menu } from 'lucide-react';
+import { Volume2, Users, Menu, Film, Music } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import VoicePipPlayer from './VoicePipPlayer';
 import VoiceStageView from './VoiceStageView';
 import VoiceControlDock from './VoiceControlDock';
 import ShareScreenModal from './ShareScreenModal';
+import VoiceRecordingsGalleryModal from './VoiceRecordingsGalleryModal';
+import SoundboardPopover from './SoundboardPopover';
+import { playSoundboardAudio } from './soundboardSynth';
 import useLiveKitVoice from './useLiveKitVoice';
 import useWebRTCVoiceRoom from './useWebRTCVoiceRoom';
 import { RemoteAudioPool } from './RemoteMediaPlayers';
@@ -24,22 +27,16 @@ export default function VoiceChannelArea({
   isMinimized = false, onReturnToVoice, token, isMuted: externalIsMuted, setIsMuted: externalSetIsMuted,
   isDeafened: externalIsDeafened, setIsDeafened: externalSetIsDeafened, onRoomVoiceStatesUpdate,
 }) {
-  const [internalMuted, setInternalMuted] = useState(false);
-  const [internalDeafened, setInternalDeafened] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [isCameraOn, setIsCameraOn] = useState(false);
-  const [cameraBlurMode, setCameraBlurMode] = useState('none');
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [internalMuted, setInternalMuted] = useState(false), [internalDeafened, setInternalDeafened] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false), [isScreenSharing, setIsScreenSharing] = useState(false), [isCameraOn, setIsCameraOn] = useState(false);
+  const [cameraBlurMode, setCameraBlurMode] = useState('none'), [isShareModalOpen, setIsShareModalOpen] = useState(false), [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [isSoundboardOpen, setIsSoundboardOpen] = useState(false), [serverSounds, setServerSounds] = useState([]);
 
   const isMuted = externalIsMuted !== undefined ? externalIsMuted : internalMuted;
   const isDeafened = externalIsDeafened !== undefined ? externalIsDeafened : internalDeafened;
-  const setIsMuted = externalSetIsMuted || setInternalMuted;
-  const setIsDeafened = externalSetIsDeafened || setInternalDeafened;
+  const setIsMuted = externalSetIsMuted || setInternalMuted, setIsDeafened = externalSetIsDeafened || setInternalDeafened;
 
-  const [micStream, setMicStream] = useState(null);
-  const [screenStream, setScreenStream] = useState(null);
-  const [cameraStream, setCameraStream] = useState(null);
+  const [micStream, setMicStream] = useState(null), [screenStream, setScreenStream] = useState(null), [cameraStream, setCameraStream] = useState(null);
 
   const { isSfuActive } = useLiveKitVoice(channel?.id, token);
   const { addToast } = useToast();
@@ -48,23 +45,25 @@ export default function VoiceChannelArea({
   const screenStreamRef = useRef(null), screenVideoRef = useRef(null);
   const cameraStreamRef = useRef(null), cameraVideoRef = useRef(null);
 
-  const isMutedRef = useRef(isMuted);
-  const isDeafenedRef = useRef(isDeafened);
-  isMutedRef.current = isMuted;
-  isDeafenedRef.current = isDeafened;
+  const isMutedRef = useRef(isMuted), isDeafenedRef = useRef(isDeafened);
+  isMutedRef.current = isMuted; isDeafenedRef.current = isDeafened;
 
   // Quando outro membro da call inicia o compartilhamento de tela, interrompe o nosso automaticamente (apenas 1 tela por vez)
   const handleRemoteScreenShareStarted = useCallback((senderId, senderName) => {
-    if (screenStreamRef.current) {
-      screenStreamRef.current.getTracks?.().forEach((t) => t.stop());
-      screenStreamRef.current = null;
-    }
-    setScreenStream(null);
-    setIsScreenSharing(false);
+    if (screenStreamRef.current) { screenStreamRef.current.getTracks?.().forEach((t) => t.stop()); screenStreamRef.current = null; }
+    setScreenStream(null); setIsScreenSharing(false);
     addToast(`${senderName || 'Outro participante'} iniciou uma transmissão de tela. Sua transmissão foi encerrada.`, 'info');
   }, [addToast]);
 
-  const { rtcPeers, remotePeersMedia, roomVoiceStates, sendRoomVoiceState } = useWebRTCVoiceRoom({
+  const handleRemoteSoundboardPlay = useCallback((payload) => {
+    if (!payload?.sound) return;
+    if (payload.user_id !== currentUser?.id && !isDeafenedRef.current) {
+      playSoundboardAudio(payload.sound);
+    }
+    addToast(`${payload.user_name || 'Alguém'} tocou ${payload.sound.emoji || '🔊'} ${payload.sound.name}`, 'info');
+  }, [currentUser?.id, addToast]);
+
+  const { rtcPeers, remotePeersMedia, roomVoiceStates, sendRoomVoiceState, sendSoundboardPlay } = useWebRTCVoiceRoom({
     channelId: channel?.id,
     token,
     currentUser,
@@ -78,7 +77,26 @@ export default function VoiceChannelArea({
     cameraBlurMode,
     onRemoteScreenShareStarted: handleRemoteScreenShareStarted,
     onRoomVoiceStatesUpdate,
+    onSoundboardPlay: handleRemoteSoundboardPlay,
   });
+
+  useEffect(() => {
+    if (!channel?.server_id || !token) return;
+    fetch(`/api/v1/discord/servers/${channel.server_id}/soundboard`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then((r) => (r.ok ? r.json() : [])).then((data) => setServerSounds(Array.isArray(data) ? data : [])).catch(() => {});
+  }, [channel?.server_id, token]);
+
+  const handleTriggerSound = useCallback((sound, vol) => {
+    if (typeof sendSoundboardPlay === 'function') sendSoundboardPlay(sound);
+    if (channel?.id) {
+      fetch(`/api/v1/discord/channels/${channel.id}/soundboard/play`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ sound_id: sound.id, sound_name: sound.name, emoji: sound.emoji, audio_url: sound.audio_url, volume: vol }),
+      }).catch(() => {});
+    }
+  }, [channel?.id, token, sendSoundboardPlay]);
 
   const emitVoiceState = useCallback(
     (payload) => {
@@ -206,26 +224,19 @@ export default function VoiceChannelArea({
   }, [channel?.id]);
 
   const handleToggleMute = () => {
-    const next = !isMuted;
-    setIsMuted(next);
+    const next = !isMuted; setIsMuted(next);
     addToast(next ? 'Microfone desativado' : 'Microfone ativado', 'info');
   };
 
   const handleToggleDeafen = () => {
-    const next = !isDeafened;
-    setIsDeafened(next);
-    if (next) setIsMuted(true);
+    const next = !isDeafened; setIsDeafened(next); if (next) setIsMuted(true);
     addToast(next ? 'Áudio ensurdecido' : 'Áudio restaurado', 'info');
   };
 
   const handleToggleScreenShare = async () => {
     if (isScreenSharing) {
-      if (screenStreamRef.current) {
-        screenStreamRef.current.getTracks?.().forEach((t) => t.stop());
-        screenStreamRef.current = null;
-      }
-      setScreenStream(null);
-      setIsScreenSharing(false);
+      if (screenStreamRef.current) { screenStreamRef.current.getTracks?.().forEach((t) => t.stop()); screenStreamRef.current = null; }
+      setScreenStream(null); setIsScreenSharing(false);
       addToast('Compartilhamento de tela finalizado', 'info');
     } else {
       setIsShareModalOpen(true);
@@ -235,30 +246,15 @@ export default function VoiceChannelArea({
   const handleConfirmStartScreenShare = async ({ captureAudio }) => {
     try {
       if (!navigator?.mediaDevices?.getDisplayMedia) {
-        addToast('Compartilhamento de tela não suportado neste navegador.', 'error');
-        return;
+        addToast('Compartilhamento de tela não suportado neste navegador.', 'error'); return;
       }
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: Boolean(captureAudio),
-      });
-      screenStreamRef.current = stream;
-      setScreenStream(stream);
-      setIsScreenSharing(true);
-      addToast(
-        captureAudio
-          ? 'Transmissão iniciada com áudio do computador!'
-          : 'Transmissão de tela iniciada (sem som do computador)!',
-        'success'
-      );
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: Boolean(captureAudio) });
+      screenStreamRef.current = stream; setScreenStream(stream); setIsScreenSharing(true);
+      addToast(captureAudio ? 'Transmissão iniciada com áudio do computador!' : 'Transmissão de tela iniciada (sem som do computador)!', 'success');
 
       const firstVideo = stream.getVideoTracks?.()[0];
       if (firstVideo) {
-        firstVideo.onended = () => {
-          screenStreamRef.current = null;
-          setScreenStream(null);
-          setIsScreenSharing(false);
-        };
+        firstVideo.onended = () => { screenStreamRef.current = null; setScreenStream(null); setIsScreenSharing(false); };
       }
     } catch {}
   };
@@ -274,32 +270,16 @@ export default function VoiceChannelArea({
 
   const handleToggleCamera = async () => {
     if (isCameraOn) {
-      if (cameraStreamRef.current) {
-        cameraStreamRef.current.getTracks?.().forEach((t) => t.stop());
-        cameraStreamRef.current = null;
-      }
-      setCameraStream(null);
-      setIsCameraOn(false);
-      addToast('Câmera desligada', 'info');
+      if (cameraStreamRef.current) { cameraStreamRef.current.getTracks?.().forEach((t) => t.stop()); cameraStreamRef.current = null; }
+      setCameraStream(null); setIsCameraOn(false); addToast('Câmera desligada', 'info');
     } else {
       try {
-        if (!navigator?.mediaDevices?.getUserMedia) {
-          addToast('Câmera não suportada neste navegador.', 'error');
-          return;
-        }
+        if (!navigator?.mediaDevices?.getUserMedia) { addToast('Câmera não suportada neste navegador.', 'error'); return; }
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        cameraStreamRef.current = stream;
-        setCameraStream(stream);
-        setIsCameraOn(true);
-        addToast('Câmera ligada com sucesso!', 'success');
-
+        cameraStreamRef.current = stream; setCameraStream(stream); setIsCameraOn(true); addToast('Câmera ligada com sucesso!', 'success');
         const firstVideo = stream.getVideoTracks?.()[0];
         if (firstVideo) {
-          firstVideo.onended = () => {
-            cameraStreamRef.current = null;
-            setCameraStream(null);
-            setIsCameraOn(false);
-          };
+          firstVideo.onended = () => { cameraStreamRef.current = null; setCameraStream(null); setIsCameraOn(false); };
         }
       } catch {
         addToast('Permissão de câmera negada ou câmera indisponível.', 'error');
@@ -318,10 +298,8 @@ export default function VoiceChannelArea({
 
   useEffect(() => {
     return () => {
-      screenStreamRef.current?.getTracks?.().forEach((t) => t.stop());
-      screenStreamRef.current = null;
-      cameraStreamRef.current?.getTracks?.().forEach((t) => t.stop());
-      cameraStreamRef.current = null;
+      screenStreamRef.current?.getTracks?.().forEach((t) => t.stop()); screenStreamRef.current = null;
+      cameraStreamRef.current?.getTracks?.().forEach((t) => t.stop()); cameraStreamRef.current = null;
     };
   }, []);
 
@@ -407,6 +385,26 @@ export default function VoiceChannelArea({
 
               <button
                 type="button"
+                className={`control-icon-btn ${isGalleryOpen ? 'active' : ''}`}
+                onClick={() => setIsGalleryOpen(true)}
+                title="Gravações da Sala"
+                data-testid="toggle-recordings-gallery-btn"
+              >
+                <Film size={20} />
+              </button>
+
+              <button
+                type="button"
+                className={`control-icon-btn ${isSoundboardOpen ? 'active' : ''}`}
+                onClick={() => setIsSoundboardOpen((prev) => !prev)}
+                title="Soundboard"
+                data-testid="open-soundboard-btn"
+              >
+                <Music size={20} />
+              </button>
+
+              <button
+                type="button"
                 className={`control-icon-btn ${showMembers ? 'active' : ''}`}
                 onClick={onToggleMembers}
                 title="Alternar Lista de Membros"
@@ -459,6 +457,23 @@ export default function VoiceChannelArea({
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         onConfirmShare={handleConfirmStartScreenShare}
+      />
+
+      <VoiceRecordingsGalleryModal
+        isOpen={isGalleryOpen}
+        onClose={() => setIsGalleryOpen(false)}
+        channel={channel}
+        currentUser={currentUser}
+      />
+
+      <SoundboardPopover
+        isOpen={isSoundboardOpen}
+        onClose={() => setIsSoundboardOpen(false)}
+        channelId={channel?.id}
+        serverId={channel?.server_id}
+        serverSounds={serverSounds}
+        onTriggerSound={handleTriggerSound}
+        isDeafened={isDeafened}
       />
     </>
   );

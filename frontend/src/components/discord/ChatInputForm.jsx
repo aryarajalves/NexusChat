@@ -13,6 +13,7 @@ import ChatPendingAttachment from './ChatPendingAttachment';
 import ChatVoiceRecorder from './ChatVoiceRecorder';
 import EmojiPickerPopover from './EmojiPickerPopover';
 import MentionAutocompletePopover from './MentionAutocompletePopover';
+import { useServerEmojis } from '../../context/ServerEmojisContext';
 import { formatFileSize } from './chatUtils';
 
 export default function ChatInputForm({
@@ -47,6 +48,7 @@ export default function ChatInputForm({
   const textInputRef = externalInputRef || internalInputRef;
   const inputEmojiRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const { emojis: customEmojis } = useServerEmojis();
 
   // Fecha o seletor de emojis se clicar fora dele
   useEffect(() => {
@@ -353,6 +355,7 @@ export default function ChatInputForm({
       {isInputEmojiOpen && (
         <EmojiPickerPopover
           placement="input"
+          customEmojis={customEmojis}
           onSelectEmoji={(emoji) => {
             setInputText((prev) => prev + emoji);
             setIsInputEmojiOpen(false);

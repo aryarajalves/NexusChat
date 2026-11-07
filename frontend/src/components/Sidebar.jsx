@@ -23,9 +23,7 @@ export default function Sidebar({ activeTab = 'discord', onSelectTab, user, onLo
           {
             title: 'INFRAESTRUTURA & DADOS',
             items: [
-              { id: 'infrastructure', label: 'Infraestrutura e Recursos', icon: Server },
-              { id: 'logs', label: 'Gerenciamento de logs', icon: Terminal },
-              { id: 'backup', label: 'Backup Automático', icon: Database },
+              { id: 'infrastructure', label: 'Infraestrutura & Dados', icon: Server },
             ],
           },
         ]
@@ -66,7 +64,9 @@ export default function Sidebar({ activeTab = 'discord', onSelectTab, user, onLo
               <div className="nav-category-header">{category.title}</div>
               {category.items.map((item) => {
                 const Icon = item.icon;
-                const isActive = activeTab === item.id;
+                const isActive = item.id === 'infrastructure'
+                  ? activeTab === 'infrastructure' || activeTab === 'logs' || activeTab === 'backup'
+                  : activeTab === item.id;
                 return (
                   <button
                     key={item.id}
@@ -98,8 +98,8 @@ export default function Sidebar({ activeTab = 'discord', onSelectTab, user, onLo
               type="button"
               className="logout-button"
               onClick={onLogout}
-              title="Desconectar"
               data-testid="logout-btn"
+              title="Sair da conta"
             >
               <LogOut size={16} />
             </button>

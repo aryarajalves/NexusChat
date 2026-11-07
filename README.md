@@ -36,6 +36,8 @@ Plataforma completa de comunicação e colaboração em tempo real inspirada no 
   - Gravação com webcam sobreposta em *Picture-in-Picture* (PiP) móvel nos 4 cantos da tela ou com livre arrasto;
   - Desfoque de fundo de câmera nativo com segmentação corporal (estilo Google Meet: Desativado, Leve e Intenso);
   - Compartilhamento de tela com controle opcional de captura de áudio do computador;
+  - **Galeria de Gravações na Nuvem (Backblaze B2):** Botão de gravações disponível tanto no canal de voz quanto nos canais de texto com isolamento por servidor, player inline, download com nome customizado, renomeação, exclusão segura e exclusão em lote;
+  - **Soundboard e Emojis Customizados:** Reprodução de efeitos sonoros com sintetizador Web Audio e upload de emojis personalizados por servidor;
   - Efeitos sonoros característicos sintetizados via Web Audio API (mensagens, menções, conexão e desconexão de voz);
   - Modal completo de configurações de usuário (perfil, microfone/alto-falante, volume de efeitos e aparência visual).
 - **📱 Responsividade Mobile e Gavetas Deslizantes (Mobile Drawer Navigation):**
@@ -63,7 +65,8 @@ Plataforma completa de comunicação e colaboração em tempo real inspirada no 
 
 ---
 
-### 💾 4. Gestão, Backups e Monitoramento
+### 💾 4. Gestão, Backups e Monitoramento Unificado
+- **Módulo Unificado "Infraestrutura & Dados":** Painel centralizado com abas de navegação direta para Recursos de Hardware (CPU, RAM, disco e pool DB), Gerenciamento de Logs Docker e Backups Automáticos;
 - **Gestão de Usuários & Convites:** Cadastro manual direto pelo Super Admin ou via links de convite com tempo de expiração e página pública de entrada com preview do servidor (`/invite/:code`);
 - **Backups Automáticos no S3:** Agendamento periódico de dumps compactados do PostgreSQL para o Backblaze B2 com retenção FIFO;
 - **Terminal de Logs Docker:** Monitoramento ao vivo dos contêineres Docker da aplicação com filtragem por data, nível de log e timestamps no Horário de Brasília;

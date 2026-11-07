@@ -90,6 +90,9 @@ export default function VoiceChannelRecorder({
 
   const handleStartAudioRecording = async () => {
     setIsMenuOpen(false);
+    setIsModalOpen(false);
+    setRecordedBlob(null);
+    setRecordedUrl(null);
     try {
       let stream = audioStream;
       if (!stream || stream.getAudioTracks().length === 0) {
@@ -140,6 +143,9 @@ export default function VoiceChannelRecorder({
 
   const handleStartVideoRecording = async () => {
     setIsMenuOpen(false);
+    setIsModalOpen(false);
+    setRecordedBlob(null);
+    setRecordedUrl(null);
     try {
       let stream = screenStream;
       if (!stream || stream.getVideoTracks().length === 0) {
@@ -245,14 +251,19 @@ export default function VoiceChannelRecorder({
     }
   };
 
-  const handleExportFile = (filename) => {
-    if (!recordedUrl) return;
+  const handleExportFile = (filename, exportData) => {
+    const blobToDownload = exportData?.blob || recordedBlob;
+    const downloadUrl = blobToDownload ? URL.createObjectURL(blobToDownload) : recordedUrl;
+    if (!downloadUrl) return;
     const a = document.createElement('a');
-    a.href = recordedUrl;
+    a.href = downloadUrl;
     a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    if (blobToDownload) {
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+    }
     addToast('Gravação exportada com sucesso para o seu computador!', 'success');
     setIsModalOpen(false);
   };
@@ -404,6 +415,7 @@ export default function VoiceChannelRecorder({
       <VoiceRecordingModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
+        channelId={channel?.id}
         channelName={channel?.name || 'voz'}
         recordType={recordType}
         recordedUrl={recordedUrl}

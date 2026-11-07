@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Shield, Users, Sparkles, X, Trash2 } from 'lucide-react';
+import { Settings, Shield, Users, Sparkles, Smile, Music, X, Trash2 } from 'lucide-react';
 import ServerGeneralTab from './ServerGeneralTab';
 import ServerRolesTab from './ServerRolesTab';
 import ServerMembersTab from './ServerMembersTab';
 import ServerWelcomeTab from './ServerWelcomeTab';
+import ServerEmojisTab from './ServerEmojisTab';
+import ServerSoundboardTab from './ServerSoundboardTab';
 
 export default function ServerSettingsModal({
   isOpen,
@@ -103,6 +105,22 @@ export default function ServerSettingsModal({
             >
               <Sparkles size={16} /> Boas-Vindas
             </button>
+            <button
+              type="button"
+              className={`server-settings-nav-btn ${activeTab === 'emojis' ? 'active' : ''}`}
+              onClick={() => setActiveTab('emojis')}
+              data-testid="tab-emojis-btn"
+            >
+              <Smile size={16} /> Emojis
+            </button>
+            <button
+              type="button"
+              className={`server-settings-nav-btn ${activeTab === 'soundboard' ? 'active' : ''}`}
+              onClick={() => setActiveTab('soundboard')}
+              data-testid="tab-soundboard-btn"
+            >
+              <Music size={16} /> Soundboard
+            </button>
             {isOwner && onOpenDeleteServer && (
               <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
                 <button
@@ -163,6 +181,20 @@ export default function ServerSettingsModal({
               channels={channels.length > 0 ? channels : (server?.channels || [])}
               onServerUpdated={onServerUpdated}
               token={token}
+            />
+          )}
+
+          {activeTab === 'emojis' && (
+            <ServerEmojisTab
+              server={server}
+              currentUser={currentUser}
+            />
+          )}
+
+          {activeTab === 'soundboard' && (
+            <ServerSoundboardTab
+              server={server}
+              currentUser={currentUser}
             />
           )}
         </main>

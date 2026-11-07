@@ -1,14 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import {
-  Hash,
-  AtSign,
-  Users,
-  UploadCloud,
-  Pin,
-Menu,
-} from 'lucide-react';
+import { Hash, AtSign, Users, UploadCloud, Pin, Menu, Film } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import VoiceChannelArea from './VoiceChannelArea';
+import VoiceRecordingsGalleryModal from './VoiceRecordingsGalleryModal';
 import ForwardMessageModal from './ForwardMessageModal';
 import ChatMessageItem from './ChatMessageItem';
 import ChatSearchBar from './ChatSearchBar';
@@ -32,6 +26,7 @@ export default function ChatArea({
   const [replyingTo, setReplyingTo] = useState(null);
   const [forwardingMessage, setForwardingMessage] = useState(null);
   const [isPinsOpen, setIsPinsOpen] = useState(false);
+  const [isRecordingsOpen, setIsRecordingsOpen] = useState(false);
   const [activeThreadDetail, setActiveThreadDetail] = useState(null);
   const [loadingThread, setLoadingThread] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -132,18 +127,13 @@ export default function ChatArea({
         if (onThreadUpdate && data?.root_message_id) {
           const lastMsg = data.messages && data.messages.length > 0 ? data.messages[data.messages.length - 1] : null;
           onThreadUpdate(data.root_message_id, {
-            id: data.id,
-            channel_id: data.channel_id,
-            root_message_id: data.root_message_id,
-            creator_id: data.creator_id,
-            creator_name: data.creator_name,
-            name: data.name,
+            id: data.id, channel_id: data.channel_id, root_message_id: data.root_message_id,
+            creator_id: data.creator_id, creator_name: data.creator_name, name: data.name,
             message_count: data.messages?.length || 0,
             last_message_content: lastMsg ? lastMsg.content : null,
             last_message_author: lastMsg ? lastMsg.author_name : null,
             last_message_at: lastMsg ? lastMsg.created_at : data.created_at,
-            created_at: data.created_at,
-            updated_at: data.updated_at,
+            created_at: data.created_at, updated_at: data.updated_at,
           });
         }
       } else {
@@ -182,18 +172,13 @@ export default function ChatArea({
         if (onThreadUpdate && data) {
           const lastMsg = data.messages && data.messages.length > 0 ? data.messages[data.messages.length - 1] : null;
           onThreadUpdate(targetMsg.id, {
-            id: data.id,
-            channel_id: data.channel_id,
-            root_message_id: data.root_message_id,
-            creator_id: data.creator_id,
-            creator_name: data.creator_name,
-            name: data.name,
+            id: data.id, channel_id: data.channel_id, root_message_id: data.root_message_id,
+            creator_id: data.creator_id, creator_name: data.creator_name, name: data.name,
             message_count: data.messages?.length || 0,
             last_message_content: lastMsg ? lastMsg.content : null,
             last_message_author: lastMsg ? lastMsg.author_name : null,
             last_message_at: lastMsg ? lastMsg.created_at : data.created_at,
-            created_at: data.created_at,
-            updated_at: data.updated_at,
+            created_at: data.created_at, updated_at: data.updated_at,
           });
         }
       } else {
@@ -337,6 +322,19 @@ export default function ChatArea({
             )}
           </button>
 
+          {/* Botão de Gravações do Servidor */}
+          {!channel.is_dm && channel.server_id && (
+            <button
+              type="button"
+              className={`topbar-action-btn ${isRecordingsOpen ? 'active' : ''}`}
+              onClick={() => setIsRecordingsOpen(true)}
+              title="Gravações do Servidor"
+              data-testid="toggle-server-recordings-btn"
+            >
+              <Film size={20} />
+            </button>
+          )}
+
           {/* Barra de Busca de Mensagens estilo Discord */}
           <ChatSearchBar
             channel={channel}
@@ -477,6 +475,17 @@ export default function ChatArea({
         onSendThreadMessage={handleSendThreadMessage}
         currentUserId={currentUserId}
       />
+
+      {/* Modal de Galeria de Gravações do Servidor */}
+      {!channel.is_dm && channel.server_id && isRecordingsOpen && (
+        <VoiceRecordingsGalleryModal
+          isOpen={isRecordingsOpen}
+          onClose={() => setIsRecordingsOpen(false)}
+          serverId={channel.server_id}
+          channel={channel}
+          currentUser={currentUser}
+        />
+      )}
     </section>
   );
 }

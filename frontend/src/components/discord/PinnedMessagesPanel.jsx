@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Pin, X, CornerDownRight, Trash2, FileText, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { formatBrasiliaDateTime } from './chatUtils';
+import { formatBrasiliaDateTime, renderContentWithMentions } from './chatUtils';
 
 const PAGE_SIZE = 20;
 
@@ -97,7 +97,7 @@ export default function PinnedMessagesPanel({
                 </div>
 
                 {msg.content && (
-                  <div className="pinned-card-body">{msg.content}</div>
+                  <div className="pinned-card-body">{renderContentWithMentions(msg.content)}</div>
                 )}
 
                 {/* Renderização rica de mídia fixada */}

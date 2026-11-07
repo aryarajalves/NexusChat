@@ -16,7 +16,7 @@ import useDiscordVoicePresence from './useDiscordVoicePresence';
 import useDiscordUserWS from './useDiscordUserWS';
 import useDiscordGlobalVoiceState from './useDiscordGlobalVoiceState';
 import { useToast } from '../../context/ToastContext';
-import { playDiscordSound } from './discordSounds';
+import { playDiscordSound } from './discordSounds'; import { ServerEmojisProvider } from '../../context/ServerEmojisContext';
 
 export default function DiscordApp({
   currentUser,
@@ -300,10 +300,11 @@ export default function DiscordApp({
   }, []);
 
   return (
-    <div
-      className={`discord-container ${isMobileNavOpen ? 'mobile-nav-open' : ''} ${isMobileMembersOpen ? 'mobile-members-open' : ''}`}
-      data-testid="discord-app-root"
-    >
+    <ServerEmojisProvider serverId={activeServerId}>
+      <div
+        className={`discord-container ${isMobileNavOpen ? 'mobile-nav-open' : ''} ${isMobileMembersOpen ? 'mobile-members-open' : ''}`}
+        data-testid="discord-app-root"
+      >
       {isMobileNavOpen && (
         <div
           className="discord-mobile-backdrop"
@@ -368,6 +369,9 @@ export default function DiscordApp({
             setIsMobileNavOpen(false);
             setIsMobileMembersOpen(false);
             handleSelectChannel(chId, (vId) => {
+              if (connectedVoiceChannelId && connectedVoiceChannelId !== vId) {
+                handleDisconnectVoicePresence(connectedVoiceChannelId);
+              }
               setConnectedVoiceChannelId(vId);
               playDiscordSound('voice_join');
             });
@@ -490,5 +494,6 @@ export default function DiscordApp({
         handleConfirmDeleteServer={handleConfirmDeleteServer}
       />
     </div>
+    </ServerEmojisProvider>
   );
 }

@@ -225,4 +225,56 @@ describe('useDiscordVoicePresence hook', () => {
     expect(afterDisconnect[0].user_id).toBe(2);
     unmount();
   });
+
+  it('deve remover currentUser do canal anterior ao trocar de canal de voz (switch channel sem duplicar)', async () => {
+    const mockChannels = [
+      { id: 10, name: 'sala-a', type: 'VOICE' },
+      { id: 20, name: 'sala-b', type: 'VOICE' },
+    ];
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ active_participants: [] }),
+    });
+
+    const currentUser = { id: 1, name: 'Super Admin' };
+
+    const { result, rerender, unmount } = renderHook(
+      (props) => useDiscordVoicePresence(props),
+      {
+        initialProps: {
+          token: 'test-token',
+          channels: mockChannels,
+          connectedVoiceChannelId: 10,
+          currentUser,
+        },
+      }
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // Inicialmente está conectado na Sala 10
+    expect(result.current.voiceChannelUsers[10]?.some((u) => u.user_id === 1)).toBe(true);
+    expect(result.current.voiceChannelUsers[20]?.some((u) => u.user_id === 1)).toBeFalsy();
+
+    // Troca diretamente para a Sala 20
+    act(() => {
+      rerender({
+        token: 'test-token',
+        channels: mockChannels,
+        connectedVoiceChannelId: 20,
+        currentUser,
+      });
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // O usuário foi removido da Sala 10 e está exclusivamente na Sala 20
+    expect(result.current.voiceChannelUsers[10]?.some((u) => u.user_id === 1)).toBe(false);
+    expect(result.current.voiceChannelUsers[20]?.some((u) => u.user_id === 1)).toBe(true);
+    unmount();
+  });
 });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquare, Users, Server, Terminal, Database, ArrowRight, Sparkles } from 'lucide-react';
+import { MessageSquare, ArrowRight, Sparkles } from 'lucide-react';
 
 /**
  * Tela de boas-vindas exibida na área principal quando a barra lateral está aberta
@@ -7,17 +7,7 @@ import { MessageSquare, Users, Server, Terminal, Database, ArrowRight, Sparkles 
  * por uma apresentação visual moderna e refinada no estilo Glassmorphism / Neon.
  */
 export default function DashboardWelcome({ user, onSelectTab }) {
-  const isSuperAdmin = user?.role === 'superadmin';
   const userName = user?.name || 'Usuário';
-
-  const quickActions = isSuperAdmin
-    ? [
-        { id: 'users', label: 'Gestão de Usuários', desc: 'Controle de contas e convites', icon: Users, color: '#3b82f6' },
-        { id: 'infrastructure', label: 'Infraestrutura', desc: 'Hardware, banco e métricas', icon: Server, color: '#10b981' },
-        { id: 'logs', label: 'Logs do Sistema', desc: 'Auditoria e diagnósticos em tempo real', icon: Terminal, color: '#f59e0b' },
-        { id: 'backup', label: 'Backups', desc: 'Snapshots locais e nuvem B2', icon: Database, color: '#8b5cf6' },
-      ]
-    : [];
 
   return (
     <div
@@ -128,7 +118,7 @@ export default function DashboardWelcome({ user, onSelectTab }) {
             transition: 'all 0.2s ease',
             width: '100%',
             maxWidth: '340px',
-            marginBottom: isSuperAdmin ? '32px' : '0',
+            marginBottom: '0',
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-2px)';
@@ -143,82 +133,6 @@ export default function DashboardWelcome({ user, onSelectTab }) {
           <span>Acessar Comunidades (Discord)</span>
           <ArrowRight size={16} />
         </button>
-
-        {/* Atalhos rápidos para o Super Admin */}
-        {isSuperAdmin && (
-          <div style={{ width: '100%', borderTop: '1px solid rgba(255, 255, 255, 0.06)', paddingTop: '24px' }}>
-            <span
-              style={{
-                display: 'block',
-                fontSize: '11px',
-                fontWeight: 700,
-                color: '#64748b',
-                textTransform: 'uppercase',
-                letterSpacing: '0.8px',
-                marginBottom: '14px',
-              }}
-            >
-              Atalhos Rápidos de Gestão
-            </span>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                gap: '12px',
-                width: '100%',
-              }}
-            >
-              {quickActions.map((action) => {
-                const IconComponent = action.icon;
-                return (
-                  <button
-                    key={action.id}
-                    type="button"
-                    onClick={() => onSelectTab && onSelectTab(action.id)}
-                    data-testid={`quick-action-${action.id}`}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '14px 10px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid rgba(255, 255, 255, 0.05)',
-                      borderRadius: '10px',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                      color: '#dbdee1',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-                      e.currentTarget.style.borderColor = action.color;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.02)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.05)';
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '8px',
-                        backgroundColor: `${action.color}15`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: action.color,
-                      }}
-                    >
-                      <IconComponent size={16} />
-                    </div>
-                    <span style={{ fontSize: '12px', fontWeight: 600 }}>{action.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

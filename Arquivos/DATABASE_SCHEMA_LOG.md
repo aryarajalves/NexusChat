@@ -141,15 +141,26 @@ Registro de migrações e atualizações estruturais do banco de dados (PostgreS
 
 ---
 
-### [02/11/2026] - Sistema de Tópicos (Threads) nas Mensagens
+### [04/11/2026] - Sistema de Emojis Customizados do Servidor (Custom Server Emojis)
 - **Tabelas Criadas:**
-  - `message_threads`: Armazena tópicos vinculados a uma mensagem raiz (`id`, `channel_id`, `root_message_id`, `creator_id`, `name`, `created_at`, `updated_at`).
-  - `thread_messages`: Armazena mensagens dentro do tópico (`id`, `thread_id`, `author_id`, `content`, `attachment_url`, `attachment_type`, `attachment_size`, `created_at`, `updated_at`).
-- **Índices Criados:**
-  - `idx_message_threads_channel_id`: Busca rápida de tópicos por canal.
-  - `idx_thread_messages_thread_id_id`: Paginação e busca otimizada de mensagens dentro de uma thread.
-- **Script de Migração:** `backend/scripts/migrate_discord_threads.py`
-- **Automação no Lifespan:** Criado automaticamente no startup em `backend/app/main.py`.
+  - `server_emojis`: Armazena os emojis personalizados carregados no servidor (`id`, `server_id`, `user_id`, `name`, `image_url`, `created_at`).
+- **Constraints e Índices Criados:**
+  - `ix_server_emojis_server_id`: Índice de busca rápida dos emojis do servidor.
+  - `uq_server_emoji_server_name`: Constraint única para impedir duplicidade de nome de emoji dentro do mesmo servidor (`UNIQUE (server_id, name)`).
+- **Script de Migração:** `backend/scripts/migrate_server_emojis.py`
+
+---
+
+### [04/11/2026] - Sistema de Soundboard na Sala de Voz (Voice Channel Soundboard)
+- **Tabelas Criadas:**
+  - `server_soundboard_sounds`: Armazena os efeitos de áudio personalizados carregados no servidor (`id`, `server_id`, `user_id`, `name`, `emoji`, `audio_url`, `volume`, `created_at`).
+- **Constraints e Índices Criados:**
+  - `ix_server_soundboard_server_id`: Índice de busca rápida dos sons do servidor.
+  - `uq_server_soundboard_server_name`: Constraint única para impedir duplicidade de nome de som dentro do mesmo servidor (`UNIQUE (server_id, name)`).
+- **Script de Migração:** `backend/scripts/migrate_server_soundboard.py`
+
+
+
 
 
 

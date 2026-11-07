@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import VoiceRecordingModal from './VoiceRecordingModal';
 import VoiceChannelRecorder from './VoiceChannelRecorder';
 import VoiceChannelArea from './VoiceChannelArea';
@@ -66,7 +66,7 @@ describe('Voice Channel Recording & Export Feature', () => {
   });
 
   describe('VoiceRecordingModal Component', () => {
-    it('renders audio recording preview and metadata correctly', () => {
+    it('renders audio recording preview and metadata correctly', async () => {
       const onClose = vi.fn();
       const onExport = vi.fn();
       const mockBlob = new Blob(['dummy audio content'], { type: 'audio/webm' });
@@ -93,7 +93,9 @@ describe('Voice Channel Recording & Export Feature', () => {
       // Export button click
       const exportBtn = screen.getByTestId('export-recording-btn');
       fireEvent.click(exportBtn);
-      expect(onExport).toHaveBeenCalledWith(expect.stringContaining('gravacao_geral_audio_'), expect.any(Object));
+      await waitFor(() => {
+        expect(onExport).toHaveBeenCalledWith(expect.stringContaining('gravacao_geral_audio_'), expect.any(Object));
+      });
 
       // Discard button click
       const discardBtn = screen.getByTestId('discard-recording-btn');
@@ -213,8 +215,10 @@ describe('Voice Channel Recording & Export Feature', () => {
       const exportBtn = screen.getByTestId('export-recording-btn');
       fireEvent.click(exportBtn);
 
-      // Modal closes after export
-      expect(screen.queryByTestId('voice-recording-modal')).not.toBeInTheDocument();
+      // Modal closes after export completes
+      await waitFor(() => {
+        expect(screen.queryByTestId('voice-recording-modal')).not.toBeInTheDocument();
+      });
     });
     it('supports video recording with movable webcam PiP overlay when camera is on', async () => {
       const mockCameraStream = {

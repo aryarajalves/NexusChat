@@ -15,6 +15,8 @@ export default function EmojiPickerPopover({
   placement = 'input',
   testId = 'chat-input-emoji-picker',
   itemTestIdPrefix = 'input-emoji-select',
+  customEmojis = [],
+  serverName = '',
 }) {
   const [activeTab, setActiveTab] = useState('smileys');
   const [searchQuery, setSearchQuery] = useState('');
@@ -72,8 +74,20 @@ export default function EmojiPickerPopover({
   // Resultados de busca
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return null;
-    return searchEmojis(searchQuery);
-  }, [searchQuery]);
+    const standardMatches = searchEmojis(searchQuery);
+    const q = searchQuery.trim().toLowerCase().replace(/^:|:$/g, '');
+    const customMatches = Array.isArray(customEmojis)
+      ? customEmojis
+          .filter((e) => e && e.name && e.name.toLowerCase().includes(q))
+          .map((e) => ({
+            isCustom: true,
+            emoji: `:${e.name}:`,
+            name: e.name,
+            image_url: e.image_url,
+          }))
+      : [];
+    return [...customMatches, ...standardMatches];
+  }, [searchQuery, customEmojis]);
 
   // Emojis agrupados por categoria
   const categoryGroups = useMemo(() => {
@@ -180,12 +194,16 @@ export default function EmojiPickerPopover({
                     key={item.emoji}
                     type="button"
                     className="emoji-picker-item"
-                    onClick={() => handleSelect(item.emoji, item)}
+                    onClick={() => handleSelect(item.isCustom ? `${item.emoji} ` : item.emoji, item)}
                     onMouseEnter={() => setHoveredItem(item)}
                     title={item.name}
                     data-testid={`${itemTestIdPrefix}-${item.emoji}`}
                   >
-                    {item.emoji}
+                    {item.isCustom ? (
+                      <img src={item.image_url} alt={item.name} className="discord-custom-emoji-picker-img" />
+                    ) : (
+                      item.emoji
+                    )}
                   </button>
                 ))}
               </div>
@@ -194,6 +212,34 @@ export default function EmojiPickerPopover({
         ) : (
           /* Modo Padrão por Categorias */
           <>
+            {/* Seção de Emojis do Servidor */}
+            {Array.isArray(customEmojis) && customEmojis.length > 0 && (
+              <div
+                className="emoji-category-section"
+                data-category-id="server-custom"
+                data-testid="category-section-custom"
+              >
+                <div className="emoji-category-title">
+                  {serverName ? `Emojis de ${serverName}` : 'Emojis do Servidor'} ({customEmojis.length})
+                </div>
+                <div className="emoji-picker-grid">
+                  {customEmojis.map((e) => (
+                    <button
+                      key={`custom-${e.id || e.name}`}
+                      type="button"
+                      className="emoji-picker-item emoji-picker-item-custom"
+                      onClick={() => handleSelect(`:${e.name}: `, { isCustom: true, emoji: `:${e.name}:`, name: e.name, image_url: e.image_url })}
+                      onMouseEnter={() => setHoveredItem({ isCustom: true, emoji: `:${e.name}:`, name: e.name, image_url: e.image_url })}
+                      title={`:${e.name}:`}
+                      data-testid={`${itemTestIdPrefix}-custom-${e.name}`}
+                    >
+                      <img src={e.image_url} alt={e.name} className="discord-custom-emoji-picker-img" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Seção de Recentes */}
             {recentList.length > 0 && (
               <div
@@ -261,7 +307,11 @@ export default function EmojiPickerPopover({
       {/* 4. Rodapé com Prévia do Emoji e Nome */}
       <div className="emoji-picker-footer" data-testid="emoji-picker-footer">
         <span className="emoji-preview-symbol" data-testid="emoji-preview-symbol">
-          {activePreview?.emoji || '😀'}
+          {activePreview?.isCustom ? (
+            <img src={activePreview.image_url} alt={activePreview.name} className="discord-custom-emoji-picker-img" />
+          ) : (
+            activePreview?.emoji || '😀'
+          )}
         </span>
         <div className="emoji-preview-info">
           <span className="emoji-preview-name" data-testid="emoji-preview-name">
