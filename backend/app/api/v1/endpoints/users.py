@@ -18,6 +18,7 @@ from app.core.security import (
 from app.models.user import User, Invite, PasswordResetToken, RegistrationVerification
 from app.services.email import send_verification_email
 from app.services.storage import upload_discord_media_file, cleanup_unreferenced_media
+from app.services.socket_manager import socket_manager
 from app.schemas.user import (
     UserLogin,
     Token,
@@ -115,7 +116,7 @@ def get_me(current_user: User = Depends(get_current_user)):
     return current_user
 
 @router.patch("/profile", response_model=UserResponse)
-def update_profile(
+async def update_profile(
     payload: UserProfileUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -129,6 +130,9 @@ def update_profile(
     db.commit()
     db.refresh(current_user)
     cleanup_unreferenced_media(db, [old_avatar])
+    await socket_manager.broadcast_user_profile_update(
+        current_user.id, current_user.name, current_user.avatar_url
+    )
     return current_user
 
 @router.post("/avatar")
@@ -157,6 +161,9 @@ async def upload_avatar(
     db.commit()
     db.refresh(current_user)
     cleanup_unreferenced_media(db, [old_avatar])
+    await socket_manager.broadcast_user_profile_update(
+        current_user.id, current_user.name, current_user.avatar_url
+    )
     return {"avatar_url": avatar_url, "message": "Avatar atualizado com sucesso!"}
 
 @router.post("/change-password")

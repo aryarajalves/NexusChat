@@ -105,6 +105,14 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
     - Desconexão de canal de voz (duas notas descendentes de saída).
     - Mudo / Desmudo de áudio (cliques sutis de alternância).
   - Permite silenciar todos os efeitos sonoros através do botão de fones de ouvido no rodapé do usuário, persistindo a preferência no `localStorage`.
+- **Controle de Volume Individual por Contato em Canais de Voz (User Volume Slider):**
+  - Ao passar o cursor do mouse sobre qualquer participante remoto conectado a um canal de voz na barra lateral ou no palco de transmissão (ou via clique com o botão direito / menu de contexto), é exibido o botão de ajuste de volume (`🔊`).
+  - O popover no padrão oficial do Discord permite:
+    - Regular o volume do contato de 0% a 200% em tempo real com slider animado.
+    - Exibir a porcentagem numérica atualizada (ex: `100%`, `150%`, `Silenciado`).
+    - Silenciar o contato localmente para si mesmo através do botão "Silenciar" / "Desmutar" (`VolumeX`).
+    - Restaurar rapidamente o volume para o nível normal através do atalho "100% (Padrão)".
+  - A preferência de volume e silenciamento individual é persistida no `localStorage` do navegador por usuário (`discord_user_volumes` e `discord_user_local_mutes`) e aplicada imediatamente aos elementos de reprodução de áudio WebRTC (`RemoteAudioItem`).
 - **Configurações do Servidor & Gestão de Cargos (Roles & Permissions):**
   - O cabeçalho do servidor na barra lateral conta com um menu dropdown (seta para baixo) com atalhos de gerenciamento.
   - Apenas o Dono (`owner_id`) e Administradores do servidor têm acesso ao painel de **Configurações do Servidor**.
@@ -172,6 +180,7 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
   - Ao aceitar um convite de servidor, o evento `server:member_joined` é transmitido via WebSocket para todos os membros do servidor, atualizando imediatamente a lista lateral direita de contatos sem necessidade de recarregar a página.
   - Ao realizar logout ou encerrar todas as conexões WebSocket ativas, o sistema remove automaticamente o usuário de quaisquer salas de voz (`voice_rooms`) e propaga a atualização em tempo real (`presence:leave` e `voice:channel_update`).
   - **Persistência de Estado de Voz (Mudo / Ensurdecido na Barra Lateral):** O estado de microfone mutado (`is_muted`) e fone ensurdecido (`is_deafened`) de cada usuário ativo na sala de voz é armazenado no `socket_manager` e retornado nas consultas `/voice-status` e eventos `voice:channel_update`. Ao atualizar a página (F5) ou visualizar os canais a partir de canais de texto, membros mutados já são exibidos com o ícone de microfone mutado em vermelho na lista lateral antes mesmo de o observador ingressar na call.
+  - **Avatares dos Participantes nos Canais de Voz:** Tanto na listagem de usuários conectados no canal de voz na barra lateral esquerda quanto nos cards da grade principal da sala de voz (quando a câmera estiver desligada), o sistema renderiza automaticamente a foto/logo de avatar de cada participante (`avatar_url`), mantendo a inicial como fallback apenas se o usuário não tiver imagem cadastrada, acompanhada de halo verde neon reativo quando o participante estiver falando.
 - **Transmissão em Tempo Real de Voz, Câmera e Compartilhamento de Tela (WebRTC Mesh + Sinalização WebSocket):**
   - Canais de voz estabelecem malha nativa W3C WebRTC (`RTCPeerConnection` com Perfect Negotiation + servidores STUN públicos Google/Cloudflare) sinalizada em tempo real pelo evento `voice:signal` do WebSocket seguro do canal (`/api/v1/discord/ws/channels/{channel_id}`).
   - **Áudio de Voz Bidirecional:** O microfone de cada participante é transmitido ao vivo para os demais membros e reproduzido automaticamente via pool invisível de elementos `<audio>` (`RemoteAudioPool`), respeitando o botão local **Ensurdecer** (`Deafen`) e o alto-falante selecionado nas configurações do usuário, mantendo o áudio ativo mesmo em modo minimizado **Picture-in-Picture (PiP)**.
@@ -190,6 +199,30 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
     - Ao compartilhar a tela (com suporte opcional a áudio do sistema/aba), a transmissão assume automaticamente o **Palco Principal Central (Spotlight)** com tamanho ampliado proporcional (16:9), ocupando a maior parte da área do canal.
     - **Tira de Miniaturas no Topo (Filmstrip):** As câmeras de todos os participantes online (incluindo a do próprio apresentador e dos demais membros da sala) são compactadas e alinhadas em uma barra horizontal limpa no topo da tela compartilhada, impedindo que os cards de vídeo roubem o espaço da transmissão.
     - **Proteção Anti-Espelho (Infinity Mirror Prevention):** O próprio usuário que está compartilhando a tela não tem acesso ao botão de maximizar nem ao duplo clique de maximização na sua própria janela de transmissão, prevenindo o efeito de túnel/espelho infinito. Usuários espectadores que estão assistindo à apresentação continuam com o botão e o atalho de maximizar ativos normalmente.
+  - **Anotações e Rabiscos em Tempo Real no Compartilhamento de Tela (Screen Annotation & Collaborative Drawing):**
+    - Durante o compartilhamento de tela (transmissão ao vivo no palco), o apresentador e os participantes contam com uma camada visual sobreposta (`<canvas>` overlay transparente) que permite desenhar e apontar diretamente sobre a transmissão.
+    - **Ferramentas Disponíveis:**
+      - **Caneta Livre:** Desenho à mão livre com traço suave e espessura ajustável.
+      - **Ponteiro Laser com Fade-out:** Traço luminoso com rastro que desaparece suavemente após 2 segundos, ideal para guiar os espectadores sem poluir a tela.
+      - **Setas Direcionais:** Desenho de vetores com ponta de seta para apontar botões, menus ou erros.
+      - **Retângulos de Destaque:** Caixas de demarcação para contornar áreas e formulários de interesse.
+      - **Borracha / Desfazer (Undo) / Limpar Tudo (Clear):** Gestão rápida de traços locais e limpeza global.
+      - **Paleta de Cores:** Cores de alta visibilidade (Vermelho neon, Amarelo vibrante, Verde neon, Azul ciano e Branco puro).
+    - **Identificação do Autor do Traço (Remote Author Tag):**
+      - Quando um participante remoto desenha ou aponta, uma etiqueta flutuante sutil contendo o nome do usuário surge sobre o traço e desaparece suavemente após 2 segundos.
+    - **Modo Colaborativo Controlado pelo Apresentador:**
+      - O apresentador tem o controle no botão da barra de ferramentas: **Colaborativo** (todos os participantes que estão assistindo podem rabiscar e ajudar) ou **Apenas Você** (bloqueia o desenho de espectadores).
+      - Os traços são transmitidos em tempo real via WebSocket (`screen:draw`) utilizando coordenadas relativas normalizadas (0.0 a 1.0), garantindo precisão milimétrica em qualquer resolução ou redimensionamento de janela.
+    - **Gravação Queimada Diretamente no Vídeo (Burned-in Video Recording):**
+      - Todas as anotações, canetas, lasers e marcações são compostas em tempo real sobre o stream gravado (`createCompositeStream`), garantindo que o arquivo final de vídeo exportado (.mp4 ou .webm) ou salvo na nuvem Backblaze B2 contenha exatamente todos os desenhos e explicações visuais.
+    - **Janela Flutuante Always-on-Top (Document Picture-in-Picture):**
+      - Usuários que estão compartilhando a tela (ou assistindo a uma transmissão) contam com o botão de **Janela Flutuante Always-on-Top** no dock inferior e na barra de ferramentas de anotação.
+      - Utiliza a API nativa W3C `documentPictureInPicture` (Chrome 111+ / Edge) para abrir uma janela flutuante no nível do sistema operacional que permanece **sempre visível por cima de qualquer aplicativo do Windows** (Google Chrome, VS Code, Word, área de trabalho).
+      - Na janela flutuante, o usuário visualiza a transmissão ao vivo em tamanho compacto com a camada `<ScreenAnnotationOverlay>` completa:
+        - Pode riscar livremente, usar o laser, setas e retângulos enquanto navega em qualquer outro aplicativo fora do NexusChat.
+        - Os desenhos feitos na janela flutuante são sincronizados imediatamente com todos os membros na sala e gravados no vídeo.
+        - Quando os espectadores desenham na tela compartilhada para indicar algo ("Clica aqui!", "Olha esse botão!"), os riscos e nomes dos autores aparecem instantaneamente na janela flutuante em frente ao apresentador.
+        - Conta com controles rápidos no rodapé da janela para mutar microfone, ensurdecer e desconectar da chamada.
   - **Cronômetro de Duração da Call (Voice Call Timer):**
     - Quando um canal de voz passa a ter participantes ativos, um cronômetro é exibido em verde (`#23a55a`) à direita do nome do canal na barra lateral de canais (`ChannelSidebar`).
     - O cronômetro inicia no momento em que o primeiro membro ingressa na call e avança continuamente no padrão Discord (`MM:SS` ou `HH:MM:SS` quando ultrapassar 1 hora).
@@ -212,6 +245,18 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
   - No feed de mensagens, os atalhos `:nome_do_emoji:` são automaticamente renderizados como imagens inline estilizadas (`discord-custom-emoji-inline`).
 
 
+
+- **Bate-Papo de Texto Integrado aos Canais de Voz (Discord Voice Text Chat):**
+  - Todo canal de voz (`type="VOICE"`) possui um bate-papo de texto dedicado e integrado para que os participantes salvem anotações importantes, links, documentos e combinados realizados durante a call.
+  - **Acesso Universal (Todos os Membros):** Todos os usuários do servidor (tanto membros comuns quanto administradores/owners) têm acesso livre e irrestrito para visualizar o histórico de mensagens, abrir o painel lateral do chat da call e enviar mensagens de texto e anexos.
+  - **Acesso no Canal de Voz (`VoiceChannelArea`):** O cabeçalho superior direito da sala de voz disponibiliza o botão com ícone de balão de conversa (`toggle-voice-chat-btn`), abrindo a gaveta/painel lateral à direita (`VoiceChannelChatSidebar`).
+  - **Acesso na Barra Lateral de Canais (`ChannelSidebar`):** Cada canal de voz exibe um botão de balão de conversa (`open-voice-chat-btn-{id}`) ao lado da engrenagem de configurações, permitindo abrir o chat do canal de voz rapidamente.
+  - **Persistência Permanente:** As mensagens de texto e anexos enviados no chat do canal de voz são gravadas de forma permanente no banco de dados (`channels/{channel_id}/messages`), garantindo que qualquer membro do servidor possa consultar o histórico e as anotações da chamada a qualquer momento, mesmo após a call terminar.
+  - **Recursos Suportados:**
+    - Detecção automática de links web clicáveis;
+    - Upload e envio de arquivos/anexos de até 50 MB;
+    - Carimbo de data/hora no padrão Horário de Brasília (`HH:mm`);
+    - Sincronização e rolagem automática ao enviar novas mensagens.
 
 - **Soundboard na Sala de Voz (Voice Channel Soundboard):**
   - Usuários conectados a qualquer canal de voz têm acesso ao botão **Soundboard** (`open-soundboard-btn`) no cabeçalho superior do canal de voz, abrindo um popover flutuante (`SoundboardPopover`).

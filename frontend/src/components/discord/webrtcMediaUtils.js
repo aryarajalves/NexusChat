@@ -55,6 +55,8 @@ export function classifyPeerMediaEntry(peer) {
     audioStreams: Array.from(peer.audioStreams.values()),
     cameraStream: peerCam,
     screenStream: peerScreen,
+    isScreenSharing: Boolean(ms.isScreenSharing || peerScreen),
+    isCameraOn: Boolean(ms.isCameraOn || peerCam),
     cameraEffect: ms.cameraEffect || 'none',
   };
 }

@@ -141,6 +141,31 @@ describe('Discord Chat & Voice Enhancements', () => {
       fireEvent.click(screen.getByTestId('hover-forward-btn-101'));
       expect(handleForward).toHaveBeenCalledWith(mockMsg);
     });
+
+    it('uses updated currentUser avatar_url for messages authored by current user', () => {
+      const msg = {
+        id: 102,
+        author_id: 1,
+        author_name: 'Super Admin',
+        author_avatar_url: 'https://old-avatar.png',
+        content: 'Olá canal de texto',
+        created_at: '2026-11-08T10:00:00Z',
+      };
+      const currentUser = { id: 1, name: 'Super Admin', avatar_url: 'https://new-avatar.png' };
+
+      render(
+        <ChatMessageItem
+          msg={msg}
+          channelId={10}
+          currentUserId={1}
+          currentUser={currentUser}
+          formatFileSize={() => '0 B'}
+        />
+      );
+
+      const avatarImg = screen.getByTestId('message-author-avatar-img-102');
+      expect(avatarImg).toHaveAttribute('src', 'https://new-avatar.png');
+    });
   });
 
   describe('ChannelSidebar Persistent Voice & Profile Avatar', () => {
@@ -181,6 +206,36 @@ describe('Discord Chat & Voice Enhancements', () => {
       // Clicar em desconectar dispara o evento
       fireEvent.click(screen.getByTestId('sidebar-voice-disconnect-btn'));
       expect(handleDisconnect).toHaveBeenCalled();
+    });
+
+    it('renders avatar image in voice user list when avatar_url is available via members', () => {
+      const mockChannels = [{ id: 10, name: 'geral', type: 'VOICE' }];
+      const mockUser = { id: 1, name: 'Aryaraj', avatar_url: 'https://cdn.example.com/me.png' };
+      const mockMembers = [
+        { user_id: 2, user_name: 'Samuel Sátiro', avatar_url: 'https://cdn.example.com/samuel.png' },
+      ];
+
+      render(
+        <ChannelSidebar
+          server={{ id: 1, name: 'Servidor Teste' }}
+          channels={mockChannels}
+          activeChannelId={10}
+          connectedVoiceChannelId={10}
+          currentUser={mockUser}
+          members={mockMembers}
+          voiceChannelUsers={{ 10: [{ user_id: 2, user_name: 'Samuel Sátiro' }] }}
+          onSelectChannel={vi.fn()}
+        />
+      );
+
+      // Usuário logado e Samuel devem ter imagens de avatar renderizadas na barra lateral esquerda
+      const myAvatarImg = screen.getByTestId('voice-user-avatar-img-1');
+      expect(myAvatarImg).toBeInTheDocument();
+      expect(myAvatarImg).toHaveAttribute('src', 'https://cdn.example.com/me.png');
+
+      const samuelAvatarImg = screen.getByTestId('voice-user-avatar-img-2');
+      expect(samuelAvatarImg).toBeInTheDocument();
+      expect(samuelAvatarImg).toHaveAttribute('src', 'https://cdn.example.com/samuel.png');
     });
   });
 

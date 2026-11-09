@@ -263,6 +263,7 @@ export function useDiscordDMs({
 
   return {
     conversations,
+    setConversations,
     activeDMId,
     setActiveDMId,
     loadConversations,

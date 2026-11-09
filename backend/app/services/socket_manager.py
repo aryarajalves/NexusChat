@@ -208,7 +208,15 @@ class ConnectionManager:
         """Publica evento no barramento de canais (Redis Pub/Sub se ativo, ou in-memory)."""
         await self._publish_event("channel", channel_id, data)
 
-    def register_voice_user(self, channel_id: int, user_id: int, user_name: str, is_muted: bool = True, is_deafened: bool = False) -> List[int]:
+    def register_voice_user(
+        self,
+        channel_id: int,
+        user_id: int,
+        user_name: str,
+        is_muted: bool = True,
+        is_deafened: bool = False,
+        avatar_url: Optional[str] = None,
+    ) -> List[int]:
         """
         Registra a presença ativa de um usuário em um canal de voz com seu estado de microfone e inicializa o cronômetro.
         Garante a regra do Discord: um usuário só pode estar em UMA sala de voz por vez.
@@ -230,19 +238,63 @@ class ConnectionManager:
         self.voice_rooms[channel_id][user_id] = {
             "user_id": user_id,
             "user_name": user_name,
+            "avatar_url": avatar_url if avatar_url is not None else prev_state.get("avatar_url"),
             "is_muted": prev_state.get("is_muted", is_muted),
             "is_deafened": prev_state.get("is_deafened", is_deafened),
-            "is_speaking": False
+            "is_speaking": False,
+            "is_screen_sharing": prev_state.get("is_screen_sharing", False),
         }
         logger.info(f"[Voz] Usuário {user_name} (ID: {user_id}) registrado na sala #{channel_id} (mutado: {self.voice_rooms[channel_id][user_id]['is_muted']})")
         return previous_channels
 
-    def update_voice_user_state(self, channel_id: int, user_id: int, is_muted: bool, is_deafened: bool, is_speaking: bool = False):
-        """Atualiza o estado de microfone/áudio do usuário na sala de voz para consultas em tempo real."""
+    def update_voice_user_profile(self, user_id: int, user_name: str, avatar_url: Optional[str] = None) -> List[int]:
+        """Atualiza o nome e avatar_url do usuário em todas as salas de voz ativas e retorna os IDs dos canais afetados."""
+        affected_channels = []
+        for ch_id, room_users in self.voice_rooms.items():
+            if user_id in room_users:
+                if user_name:
+                    room_users[user_id]["user_name"] = user_name
+                room_users[user_id]["avatar_url"] = avatar_url
+                affected_channels.append(ch_id)
+        for ws, (uid, uname) in list(self.socket_users.items()):
+            if uid == user_id and user_name:
+                self.socket_users[ws] = (uid, user_name)
+        return affected_channels
+
+    async def broadcast_user_profile_update(self, user_id: int, user_name: str, avatar_url: Optional[str] = None):
+        """Propaga em tempo real para todos os usuários conectados a alteração de nome ou foto de perfil."""
+        affected_voice_channels = self.update_voice_user_profile(user_id, user_name, avatar_url)
+        connected_user_ids = list(self.user_sockets.keys())
+        if connected_user_ids:
+            await self.broadcast_to_users(
+                connected_user_ids,
+                {
+                    "event": "user:profile_updated",
+                    "user_id": user_id,
+                    "name": user_name,
+                    "user_name": user_name,
+                    "avatar_url": avatar_url,
+                },
+            )
+        for ch_id in affected_voice_channels:
+            await self.broadcast_voice_channel_update(ch_id)
+
+    def update_voice_user_state(
+        self,
+        channel_id: int,
+        user_id: int,
+        is_muted: bool,
+        is_deafened: bool,
+        is_speaking: bool = False,
+        is_screen_sharing: Optional[bool] = None,
+    ):
+        """Atualiza o estado de microfone/áudio e compartilhamento de tela do usuário na sala de voz."""
         if channel_id in self.voice_rooms and user_id in self.voice_rooms[channel_id]:
             self.voice_rooms[channel_id][user_id]["is_muted"] = is_muted
             self.voice_rooms[channel_id][user_id]["is_deafened"] = is_deafened
             self.voice_rooms[channel_id][user_id]["is_speaking"] = is_speaking
+            if is_screen_sharing is not None:
+                self.voice_rooms[channel_id][user_id]["is_screen_sharing"] = bool(is_screen_sharing)
 
     def unregister_voice_user(self, channel_id: int, user_id: int):
         """Remove a presença de um usuário do canal de voz e reseta o cronômetro se todos saírem."""
@@ -265,9 +317,106 @@ class ConnectionManager:
         """Retorna True se o usuário possuir ao menos uma conexão WebSocket ativa."""
         return bool(self.user_sockets.get(user_id))
 
+    def get_voice_users_in_channel(self, channel_id: int) -> List[Dict[str, Any]]:
+        """Retorna exclusivamente os participantes ativos registrados na sala de voz (voice_rooms)."""
+        if channel_id not in self.voice_rooms:
+            return []
+        return list(self.voice_rooms[channel_id].values())
+
+    async def ensure_voice_ws_registered(self, channel_id: int, channel_type: str, user: Any):
+        """Garante registro em voice_rooms ao conectar ou reconectar WebSocket de canal de voz."""
+        if channel_type != "VOICE":
+            return
+        if user.id not in self.voice_rooms.get(channel_id, {}):
+            prev_chs = self.register_voice_user(
+                channel_id,
+                user.id,
+                user.name,
+                is_muted=True,
+                is_deafened=False,
+                avatar_url=getattr(user, "avatar_url", None),
+            )
+            for prev_ch in prev_chs:
+                await self.broadcast_voice_channel_update(prev_ch)
+        await self.broadcast_voice_channel_update(channel_id)
+
+    async def process_voice_state_ws_event(
+        self,
+        channel_id: int,
+        channel_type: str,
+        user: Any,
+        is_muted: bool,
+        is_deafened: bool,
+        is_speaking: bool,
+        is_screen_sharing: Optional[bool] = None,
+        exclude_ws: Any = None,
+    ):
+        """Processa evento voice:state garantindo auto-recuperação em canais VOICE e propagação em canais TEXT."""
+        target_screen_share = is_screen_sharing
+        if target_screen_share is None and channel_id in self.voice_rooms and user.id in self.voice_rooms[channel_id]:
+            target_screen_share = self.voice_rooms[channel_id][user.id].get("is_screen_sharing", False)
+
+        if channel_type == "VOICE":
+            if user.id not in self.voice_rooms.get(channel_id, {}):
+                self.register_voice_user(
+                    channel_id,
+                    user.id,
+                    user.name,
+                    is_muted=is_muted,
+                    is_deafened=is_deafened,
+                    avatar_url=getattr(user, "avatar_url", None),
+                )
+            self.update_voice_user_state(
+                channel_id,
+                user.id,
+                is_muted,
+                is_deafened,
+                is_speaking,
+                is_screen_sharing=target_screen_share,
+            )
+            await self.broadcast_to_channel(
+                channel_id,
+                {
+                    "event": "voice:state",
+                    "user_id": user.id,
+                    "user_name": user.name,
+                    "is_muted": is_muted,
+                    "is_deafened": is_deafened,
+                    "is_speaking": is_speaking,
+                    "is_screen_sharing": bool(target_screen_share),
+                },
+                exclude=exclude_ws,
+            )
+            await self.broadcast_voice_channel_update(channel_id)
+        else:
+            await self.broadcast_to_channel(
+                channel_id,
+                {
+                    "event": "voice:state",
+                    "user_id": user.id,
+                    "user_name": user.name,
+                    "is_muted": is_muted,
+                    "is_deafened": is_deafened,
+                    "is_speaking": is_speaking,
+                    "is_screen_sharing": bool(target_screen_share),
+                },
+                exclude=exclude_ws,
+            )
+            for vch_id, room_users in list(self.voice_rooms.items()):
+                if user.id in room_users:
+                    self.update_voice_user_state(
+                        vch_id,
+                        user.id,
+                        is_muted,
+                        is_deafened,
+                        is_speaking,
+                        is_screen_sharing=target_screen_share,
+                    )
+                    await self.broadcast_voice_channel_update(vch_id)
+
     async def broadcast_voice_channel_update(self, channel_id: int):
         """Notifica em tempo real todos os usuários conectados sobre a lista atualizada da call e tempo de início."""
-        participants = self.get_online_users_in_channel(channel_id)
+        participants = self.get_voice_users_in_channel(channel_id)
         call_started_at = self.get_call_started_at(channel_id)
         connected_user_ids = list(self.user_sockets.keys())
         if connected_user_ids:
@@ -289,7 +438,7 @@ class ConnectionManager:
         ]
         for ch_id in affected_channels:
             self.unregister_voice_user(ch_id, user_id)
-            participants = self.get_online_users_in_channel(ch_id)
+            participants = self.get_voice_users_in_channel(ch_id)
             await self.broadcast_to_channel(
                 ch_id,
                 {

@@ -1,0 +1,342 @@
+/* discord-voice-chat.css - Bate-papo de texto integrado aos Canais de Voz (Discord Voice Text Chat) */
+
+.voice-channel-body-wrapper {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  height: calc(100% - 48px);
+  position: relative;
+  overflow: hidden;
+}
+
+.voice-channel-stage-column {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Painel Lateral de Bate-papo de Texto da Call */
+.voice-chat-sidebar {
+  width: 380px;
+  max-width: 100%;
+  height: 100%;
+  background: #2b2d31;
+  border-left: 1px solid rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  z-index: 20;
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.35);
+  animation: voiceChatSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes voiceChatSlideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.voice-chat-header {
+  height: 48px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #2b2d31;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+.voice-chat-header-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.voice-chat-header-icon {
+  color: #80848e;
+  flex-shrink: 0;
+}
+
+.voice-chat-header-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f2f3f5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.voice-chat-header-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #23a55a;
+  background: rgba(35, 165, 90, 0.15);
+  border: 1px solid rgba(35, 165, 90, 0.3);
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.voice-chat-close-btn {
+  background: transparent;
+  border: none;
+  color: #949ba4;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.voice-chat-close-btn:hover {
+  color: #dbdee1;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Área de Mensagens */
+.voice-chat-messages-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.voice-chat-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px 12px;
+  margin-top: auto;
+  color: #949ba4;
+  gap: 8px;
+}
+
+.voice-chat-welcome-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(88, 101, 242, 0.15);
+  color: #5865f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.voice-chat-welcome-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f2f3f5;
+}
+
+.voice-chat-welcome-desc {
+  font-size: 12px;
+  color: #949ba4;
+  line-height: 1.4;
+  max-width: 280px;
+}
+
+/* Item de Mensagem */
+.voice-chat-msg-item {
+  display: flex;
+  gap: 10px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.voice-chat-msg-item:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.voice-chat-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #5865f2;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.voice-chat-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.voice-chat-msg-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.voice-chat-msg-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.voice-chat-msg-author {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f2f3f5;
+}
+
+.voice-chat-msg-time {
+  font-size: 10.5px;
+  color: #949ba4;
+}
+
+.voice-chat-msg-text {
+  font-size: 13px;
+  color: #dbdee1;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.voice-chat-msg-text a {
+  color: #00a8fc;
+  text-decoration: none;
+}
+
+.voice-chat-msg-text a:hover {
+  text-decoration: underline;
+}
+
+.voice-chat-attachment {
+  margin-top: 6px;
+  max-width: 260px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.voice-chat-attachment img {
+  max-width: 100%;
+  max-height: 200px;
+  display: block;
+}
+
+/* Barra Inferior de Envio */
+.voice-chat-input-bar {
+  padding: 10px 14px 14px 14px;
+  background: #2b2d31;
+  flex-shrink: 0;
+}
+
+.voice-chat-form {
+  background: #383a40;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 8px;
+  border: 1px solid transparent;
+  transition: border-color 0.15s ease;
+}
+
+.voice-chat-form:focus-within {
+  border-color: rgba(88, 101, 242, 0.7);
+}
+
+.voice-chat-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #dbdee1;
+  font-size: 13px;
+  height: 40px;
+}
+
+.voice-chat-input::placeholder {
+  color: #80848e;
+}
+
+.voice-chat-action-btn {
+  background: transparent;
+  border: none;
+  color: #b5bac1;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.voice-chat-action-btn:hover {
+  color: #f2f3f5;
+}
+
+.voice-chat-send-btn {
+  background: #5865f2;
+  color: #ffffff;
+}
+
+.voice-chat-send-btn:hover {
+  background: #4752c4;
+}
+
+.voice-chat-send-btn:disabled {
+  background: #4e5058;
+  color: #80848e;
+  cursor: not-allowed;
+}
+
+/* Botão de abrir bate-papo no item do canal na barra lateral */
+.channel-action-chat-btn {
+  background: transparent;
+  border: none;
+  color: #949ba4;
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.channel-action-chat-btn:hover {
+  color: #f2f3f5;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 768px) {
+  .voice-chat-sidebar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 50;
+  }
+}

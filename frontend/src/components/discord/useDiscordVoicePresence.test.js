@@ -54,9 +54,11 @@ describe('useDiscordVoicePresence hook', () => {
       {
         user_id: 2,
         user_name: 'Participante 2',
+        avatar_url: null,
         is_muted: true,
         is_deafened: false,
         is_speaking: false,
+        is_screen_sharing: false,
       },
     ]);
     unmount();
@@ -276,5 +278,97 @@ describe('useDiscordVoicePresence hook', () => {
     expect(result.current.voiceChannelUsers[10]?.some((u) => u.user_id === 1)).toBe(false);
     expect(result.current.voiceChannelUsers[20]?.some((u) => u.user_id === 1)).toBe(true);
     unmount();
+  });
+
+  it('deve remover usuário remoto (ex: Hokage) da sala anterior e limpar o timer ao receber voice:channel_update na nova sala', async () => {
+    const mockChannels = [
+      { id: 10, name: 'Sala de Voz', type: 'VOICE' },
+      { id: 20, name: 'gados-de-lula', type: 'VOICE' },
+    ];
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ active_participants: [] }),
+    });
+
+    const currentUser = { id: 1, name: 'Super Admin' };
+
+    const { result, unmount } = renderHook(() =>
+      useDiscordVoicePresence({
+        token: 'test-token',
+        channels: mockChannels,
+        connectedVoiceChannelId: null,
+        currentUser,
+      })
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // 1. Hokage (user_id: 2) entra na Sala 10 (Sala de Voz)
+    act(() => {
+      result.current.handleVoiceChannelUpdate({
+        channel_id: 10,
+        active_participants: [{ user_id: 2, user_name: 'Hokage', avatar_url: '/avatars/hokage.png' }],
+        total_participants: 1,
+        call_started_at: 1700000000,
+      });
+    });
+
+    expect(result.current.voiceChannelUsers[10]).toHaveLength(1);
+    expect(result.current.voiceChannelUsers[10][0].user_name).toBe('Hokage');
+    expect(result.current.voiceChannelCallTimes[10]).toBe(1700000000);
+
+    // 2. Hokage troca rapidamente para a Sala 20 (gados-de-lula)
+    act(() => {
+      result.current.handleVoiceChannelUpdate({
+        channel_id: 20,
+        active_participants: [{ user_id: 2, user_name: 'Hokage', avatar_url: '/avatars/hokage.png' }],
+        total_participants: 1,
+        call_started_at: 1700000010,
+      });
+    });
+
+    // Hokage deve ter saído automaticamente da Sala 10 (sem duplicação visual) e estar apenas na Sala 20
+    expect(result.current.voiceChannelUsers[10]).toHaveLength(0);
+    expect(result.current.voiceChannelUsers[20]).toHaveLength(1);
+    expect(result.current.voiceChannelUsers[20][0].user_name).toBe('Hokage');
+
+    // O timer da Sala 10 vazia deve ter sido limpo e apenas a Sala 20 mantém timer ativo
+    expect(result.current.voiceChannelCallTimes[10]).toBeUndefined();
+    expect(result.current.voiceChannelCallTimes[20]).toBe(1700000010);
+    unmount();
+  });
+
+  it('não deve disparar voice-leave-all no unmount padrão do componente React', async () => {
+    const mockChannels = [{ id: 10, name: 'Sala de Voz', type: 'VOICE' }];
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ active_participants: [] }),
+    });
+    global.fetch = fetchSpy;
+
+    const currentUser = { id: 1, name: 'Super Admin' };
+
+    const { unmount } = renderHook(() =>
+      useDiscordVoicePresence({
+        token: 'test-token',
+        channels: mockChannels,
+        connectedVoiceChannelId: 10,
+        currentUser,
+      })
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    unmount();
+
+    // Valida que o unmount comum NÃO enviou voice-leave-all
+    const leaveAllCalls = fetchSpy.mock.calls.filter(([url]) =>
+      String(url).includes('voice-leave-all')
+    );
+    expect(leaveAllCalls).toHaveLength(0);
   });
 });

@@ -157,13 +157,25 @@ def test_websocket_voice_signal_relay(two_users):
     assert client.post(f"/api/v1/discord/invites/{invite_code}/join", headers=bob_headers).status_code == 200
 
     with client.websocket_connect(f"/api/v1/discord/ws/channels/{voice_id}?token={token}") as sa_ws:
-        sa_ws.receive_json()  # presence:join superadmin
+        initial_sa_events = [sa_ws.receive_json()]
+        if initial_sa_events[0].get("event") == "voice:channel_update":
+            initial_sa_events.append(sa_ws.receive_json())
+        assert any(e.get("event") == "presence:join" for e in initial_sa_events)
 
         with client.websocket_connect(f"/api/v1/discord/ws/channels/{voice_id}?token={bob_token}") as bob_ws:
-            bob_join_for_bob = bob_ws.receive_json()
-            assert bob_join_for_bob["event"] == "presence:join"
-            sa_join_for_sa = sa_ws.receive_json()
-            assert sa_join_for_sa["event"] == "presence:join"
+            bob_events = [bob_ws.receive_json()]
+            if bob_events[0].get("event") == "voice:channel_update":
+                bob_events.append(bob_ws.receive_json())
+            assert any(e.get("event") == "presence:join" for e in bob_events)
+
+            # Consome os eventos gerados pela entrada do Bob que chegam para o Superadmin
+            sa_received = []
+            while True:
+                msg = sa_ws.receive_json()
+                sa_received.append(msg)
+                if msg.get("event") == "presence:join" and msg.get("user_id") == 2:
+                    break
+            assert any(e.get("event") == "presence:join" and e.get("user_id") == 2 for e in sa_received)
 
             # Bob envia sinalização SDP/media-state destinada ao Superadmin
             bob_ws.send_json({
@@ -182,4 +194,16 @@ def test_websocket_voice_signal_relay(two_users):
             assert relayed_to_sa["target_user_id"] == 1
             assert relayed_to_sa["signal"]["type"] == "sdp-offer"
             assert relayed_to_sa["signal"]["mediaState"]["isCameraOn"] is True
+
+            # Bob envia anotação de desenho na tela compartilhada
+            bob_ws.send_json({
+                "event": "screen:draw",
+                "action": "stroke",
+                "payload": {"tool": "pen", "color": "#f23f43", "points": [{"x": 0.1, "y": 0.2}]}
+            })
+            draw_msg = sa_ws.receive_json()
+            assert draw_msg["event"] == "screen:draw"
+            assert draw_msg["action"] == "stroke"
+            assert draw_msg["user_name"] == "Bob Construtor"
+            assert draw_msg["payload"]["tool"] == "pen"
 

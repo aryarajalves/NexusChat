@@ -319,6 +319,13 @@ describe('WebRTC Real-Time Voice, Camera & Screen Share Transmission', () => {
     expect(remoteCamVideo).toBeInTheDocument();
     expect(remoteCamVideo.srcObject).toBe(camStream);
 
+    // Conforme regra do Discord (on-demand), clica em "Assistir Transmissão" para assistir a tela
+    const watchBtn = await screen.findByTestId('watch-stream-btn-2');
+    expect(watchBtn).toBeInTheDocument();
+    await act(async () => {
+      watchBtn.click();
+    });
+
     // Verifica compartilhamento de tela remoto no palco principal
     const remoteScreenBox = await screen.findByTestId('remote-screen-share-2');
     expect(remoteScreenBox).toBeInTheDocument();

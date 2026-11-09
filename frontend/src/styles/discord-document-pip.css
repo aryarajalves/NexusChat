@@ -1,0 +1,206 @@
+/* ==========================================================================
+   DISCORD CLONE - DOCUMENT PICTURE-IN-PICTURE (ALWAYS-ON-TOP ANNOTATION)
+   ========================================================================== */
+
+.document-pip-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  background: #111214;
+  color: #dbdee1;
+  font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  overflow: hidden;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+/* Cabeçalho do Janela Flutuante */
+.document-pip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 38px;
+  padding: 0 12px;
+  background: #1e1f22;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 100;
+}
+
+.document-pip-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+}
+
+.document-pip-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: rgba(242, 63, 67, 0.18);
+  border: 1px solid rgba(242, 63, 67, 0.45);
+  color: #f23f43;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.document-pip-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f23f43;
+  box-shadow: 0 0 8px #f23f43;
+  animation: pipPulse 1.2s infinite ease-in-out;
+}
+
+@keyframes pipPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+.document-pip-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: #949ba4;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.document-pip-close-btn:hover {
+  background: rgba(242, 63, 67, 0.2);
+  color: #f23f43;
+}
+
+/* Área de Vídeo e Canvas de Desenho */
+.document-pip-content {
+  flex: 1;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #000000;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.document-pip-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000000;
+  display: block;
+}
+
+/* Barra Inferior com Controles de Chamada */
+.document-pip-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 12px;
+  background: #1e1f22;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 100;
+}
+
+.document-pip-hint {
+  font-size: 11px;
+  color: #949ba4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60%;
+}
+
+.document-pip-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.document-pip-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #2b2d31;
+  color: #dbdee1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.document-pip-btn:hover {
+  background: #35373c;
+  color: #ffffff;
+}
+
+.document-pip-btn.btn-red {
+  background: #f23f43;
+  color: #ffffff;
+}
+
+.document-pip-btn.btn-red:hover {
+  background: #da373b;
+}
+
+.document-pip-btn.btn-active-red {
+  background: rgba(242, 63, 67, 0.25);
+  color: #f23f43;
+  border: 1px solid rgba(242, 63, 67, 0.45);
+}
+
+.document-pip-fallback-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(88, 101, 242, 0.15);
+  border-bottom: 1px solid rgba(88, 101, 242, 0.35);
+  font-size: 11px;
+  color: #c9cdfb;
+}
+
+.document-pip-no-stream {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  color: #949ba4;
+  height: 100%;
+}
+
+.document-pip-no-stream h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.document-pip-no-stream p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  max-width: 340px;
+}

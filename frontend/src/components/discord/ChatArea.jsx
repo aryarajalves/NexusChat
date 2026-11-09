@@ -255,8 +255,10 @@ export default function ChatArea({
       <VoiceChannelArea
         channel={channel}
         currentUser={currentUser}
+        currentUserRole={currentUserRole}
         onlineUsers={onlineUsers}
         voiceStates={voiceStates}
+        members={members}
         onSendVoiceState={onSendVoiceState}
         onDisconnectVoice={onDisconnectVoice}
         onDisconnect={onDisconnectVoice}
@@ -474,6 +476,8 @@ export default function ChatArea({
         loading={loadingThread}
         onSendThreadMessage={handleSendThreadMessage}
         currentUserId={currentUserId}
+        currentUser={currentUser}
+        members={members}
       />
 
       {/* Modal de Galeria de Gravações do Servidor */}

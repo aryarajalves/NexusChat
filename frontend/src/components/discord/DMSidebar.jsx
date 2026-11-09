@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Plus, Search, Mic, MicOff, Headphones, VolumeX, Settings, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MessageSquare, Plus, Search, Mic, MicOff, Headphones, VolumeX, Settings, X, ChevronLeft, ChevronRight, Volume2, PhoneOff, AudioLines } from 'lucide-react';
 
 export default function DMSidebar({
   conversations = [],
@@ -14,6 +14,11 @@ export default function DMSidebar({
   onToggleVoiceMute,
   isVoiceDeafened = false,
   onToggleVoiceDeafen,
+  isNoiseSuppressionEnabled = true,
+  onToggleNoiseSuppression,
+  connectedVoiceChannel = null,
+  connectedVoiceServerName = null,
+  onDisconnectVoice,
   onOpenUserSettings,
 }) {
   const [filterText, setFilterText] = useState('');
@@ -268,6 +273,48 @@ export default function DMSidebar({
           </div>
         )}
       </div>
+
+      {/* Barra de Status de Conexão de Voz Flutuante no Rodapé (quando em call) */}
+      {connectedVoiceChannel && (
+        <div className="discord-voice-connection-status" data-testid="dm-voice-status-bar">
+          <div className="voice-connection-info" title="Canal de Voz Conectado">
+            <div className="voice-connection-title">
+              <Volume2 size={15} className="voice-conn-icon" />
+              <span>Voz Conectada</span>
+            </div>
+            <div className="voice-connection-channel-name">
+              {connectedVoiceChannel.name} / {connectedVoiceServerName || 'Servidor'}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <button
+              type="button"
+              className={`control-icon-btn ${isNoiseSuppressionEnabled ? 'active' : 'muted'}`}
+              onClick={onToggleNoiseSuppression}
+              title={
+                isNoiseSuppressionEnabled
+                  ? 'Supressão de Ruído Ativada (Clique para desativar)'
+                  : 'Supressão de Ruído Desativada (Clique para ativar)'
+              }
+              data-testid="dm-noise-suppression-btn"
+              style={{
+                color: isNoiseSuppressionEnabled ? '#23a55a' : '#949ba4',
+              }}
+            >
+              <AudioLines size={16} />
+            </button>
+            <button
+              type="button"
+              className="voice-disconnect-btn"
+              onClick={onDisconnectVoice}
+              title="Desconectar da Voz"
+              data-testid="dm-voice-disconnect-btn"
+            >
+              <PhoneOff size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Barra de Perfil do Usuário Logado */}
       <div className="discord-user-bar" data-testid="dm-user-profile-bar">

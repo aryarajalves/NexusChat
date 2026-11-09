@@ -229,16 +229,17 @@
   flex-direction: row;
   flex-wrap: nowrap;
   overflow-x: auto;
-  gap: 10px;
+  gap: 14px;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   width: 100%;
   max-width: 100%;
-  padding: 2px 4px;
+  padding: 4px 8px;
   z-index: 10;
   flex-shrink: 0;
-  height: 80px;
-  max-height: 80px;
+  height: auto;
+  min-height: 82px;
+  max-height: 120px;
   scrollbar-width: thin;
 }
 
@@ -263,9 +264,10 @@
 }
 
 .voice-participants-grid.filmstrip-mode .voice-avatar-circle {
-  width: 36px;
-  height: 36px;
-  font-size: 14px;
+  width: 34px;
+  height: 34px;
+  font-size: 13px;
+  margin-bottom: 12px;
 }
 
 .voice-participants-grid.filmstrip-mode .voice-camera-tile-wrapper {

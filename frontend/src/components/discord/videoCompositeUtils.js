@@ -51,9 +51,13 @@ export function createCompositeStream({
   cameraStream,
   audioStream,
   getPipPosition,
+  getAnnotationCanvas,
 }) {
-  if (!cameraStream || cameraStream.getVideoTracks().length === 0) {
-    // Sem câmera, retorna stream de tela padrão mesclado com microfone
+  const hasActiveCamera = cameraStream && cameraStream.getVideoTracks().length > 0;
+  const hasAnnotation = Boolean(getAnnotationCanvas);
+
+  if (!hasActiveCamera && !hasAnnotation) {
+    // Sem câmera e sem anotação, retorna stream de tela padrão mesclado com microfone
     if (audioStream && audioStream.getAudioTracks().length > 0) {
       const track = audioStream.getAudioTracks()[0];
       if (!screenStream.getAudioTracks().some((t) => t.id === track.id)) {
@@ -99,15 +103,17 @@ export function createCompositeStream({
     if (p?.catch) p.catch(() => {});
   } catch {}
 
-  const cameraVideo = document.createElement('video');
-  cameraVideo.muted = true;
-  cameraVideo.autoplay = true;
-  cameraVideo.playsInline = true;
-  cameraVideo.srcObject = cameraStream;
-  try {
-    const p = cameraVideo.play();
-    if (p?.catch) p.catch(() => {});
-  } catch {}
+  const cameraVideo = hasActiveCamera ? document.createElement('video') : null;
+  if (cameraVideo) {
+    cameraVideo.muted = true;
+    cameraVideo.autoplay = true;
+    cameraVideo.playsInline = true;
+    cameraVideo.srcObject = cameraStream;
+    try {
+      const p = cameraVideo.play();
+      if (p?.catch) p.catch(() => {});
+    } catch {}
+  }
 
   let animationFrameId = null;
   let isRunning = true;
@@ -123,44 +129,56 @@ export function createCompositeStream({
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    // 2. Calcula posição da webcam e desenha overlay Picture-in-Picture
-    const pos = getPipPosition
-      ? getNormalizedPipCoords(getPipPosition(), canvas.width, canvas.height)
-      : getNormalizedPipCoords({ corner: PIP_CORNERS.BOTTOM_RIGHT });
-
-    const pipX = canvas.width * pos.x;
-    const pipY = canvas.height * pos.y;
-    const pipW = canvas.width * pos.width;
-    const pipH = canvas.height * pos.height;
-
-    // Desenha borda arredondada e vídeo da câmera
-    ctx.save();
-    ctx.beginPath();
-    const r = 10;
-    if (typeof ctx.roundRect === 'function') {
-      ctx.roundRect(pipX, pipY, pipW, pipH, r);
-    } else {
-      ctx.rect(pipX, pipY, pipW, pipH);
+    // 2. Se houver anotações/desenho na tela, desenha o canvas por cima da tela
+    if (getAnnotationCanvas) {
+      try {
+        const annotCanvas = typeof getAnnotationCanvas === 'function' ? getAnnotationCanvas() : getAnnotationCanvas;
+        if (annotCanvas) {
+          ctx.drawImage(annotCanvas, 0, 0, canvas.width, canvas.height);
+        }
+      } catch {}
     }
-    ctx.clip();
 
-    try {
-      ctx.drawImage(cameraVideo, pipX, pipY, pipW, pipH);
-    } catch {}
-    ctx.restore();
+    // 3. Calcula posição da webcam e desenha overlay Picture-in-Picture
+    if (hasActiveCamera && cameraVideo) {
+      const pos = getPipPosition
+        ? getNormalizedPipCoords(getPipPosition(), canvas.width, canvas.height)
+        : getNormalizedPipCoords({ corner: PIP_CORNERS.BOTTOM_RIGHT });
 
-    // Borda neon Discord Blurple
-    ctx.save();
-    ctx.beginPath();
-    if (typeof ctx.roundRect === 'function') {
-      ctx.roundRect(pipX, pipY, pipW, pipH, r);
-    } else {
-      ctx.rect(pipX, pipY, pipW, pipH);
+      const pipX = canvas.width * pos.x;
+      const pipY = canvas.height * pos.y;
+      const pipW = canvas.width * pos.width;
+      const pipH = canvas.height * pos.height;
+
+      // Desenha borda arredondada e vídeo da câmera
+      ctx.save();
+      ctx.beginPath();
+      const r = 10;
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(pipX, pipY, pipW, pipH, r);
+      } else {
+        ctx.rect(pipX, pipY, pipW, pipH);
+      }
+      ctx.clip();
+
+      try {
+        ctx.drawImage(cameraVideo, pipX, pipY, pipW, pipH);
+      } catch {}
+      ctx.restore();
+
+      // Borda neon Discord Blurple
+      ctx.save();
+      ctx.beginPath();
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(pipX, pipY, pipW, pipH, r);
+      } else {
+        ctx.rect(pipX, pipY, pipW, pipH);
+      }
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#5865f2';
+      ctx.stroke();
+      ctx.restore();
     }
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = '#5865f2';
-    ctx.stroke();
-    ctx.restore();
 
     animationFrameId = requestAnimationFrame(drawFrame);
   };
@@ -187,8 +205,10 @@ export function createCompositeStream({
     try {
       screenVideo.pause();
       screenVideo.srcObject = null;
-      cameraVideo.pause();
-      cameraVideo.srcObject = null;
+      if (cameraVideo) {
+        cameraVideo.pause();
+        cameraVideo.srcObject = null;
+      }
     } catch {}
   };
 

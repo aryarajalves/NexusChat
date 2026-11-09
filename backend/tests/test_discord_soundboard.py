@@ -179,3 +179,49 @@ def test_soundboard_play_and_delete(setup_server_soundboard_scenario):
     )
     assert del_res.status_code == 200
     assert del_res.json()["message"] == "Som excluído com sucesso."
+
+
+def test_update_soundboard_sound(setup_server_soundboard_scenario):
+    """Testa atualização de nome e emoji do som do soundboard por administrador."""
+    data = setup_server_soundboard_scenario
+    server_id = data["server_id"]
+    owner_headers = get_auth_token("owner_sound@teste.com")
+    member_headers = get_auth_token("member_sound@teste.com")
+
+    # 1. Upload do som inicial
+    fake_audio = io.BytesIO(b"RIFF....WAVEfmt ")
+    res = client.post(
+        f"/api/v1/discord/servers/{server_id}/soundboard",
+        headers=owner_headers,
+        data={"name": "Som Original", "emoji": "📢", "volume": "0.8"},
+        files={"file": ("sound.wav", fake_audio, "audio/wav")},
+    )
+    assert res.status_code == 201
+    sound_id = res.json()["id"]
+
+    # 2. Membro comum tenta renomear -> deve ser barrado com 403 Forbidden
+    res_forbidden = client.patch(
+        f"/api/v1/discord/servers/{server_id}/soundboard/{sound_id}",
+        headers=member_headers,
+        json={"name": "Tentativa Hacker", "emoji": "💀"},
+    )
+    assert res_forbidden.status_code == 403
+
+    # 3. Administrador renomeia o som
+    res_update = client.patch(
+        f"/api/v1/discord/servers/{server_id}/soundboard/{sound_id}",
+        headers=owner_headers,
+        json={"name": "Som Renomeado", "emoji": "⚡"},
+    )
+    assert res_update.status_code == 200
+    updated_body = res_update.json()
+    assert updated_body["name"] == "Som Renomeado"
+    assert updated_body["emoji"] == "⚡"
+
+    # 4. Verifica na listagem geral do servidor
+    res_list = client.get(f"/api/v1/discord/servers/{server_id}/soundboard", headers=owner_headers)
+    assert res_list.status_code == 200
+    sound_in_list = next((s for s in res_list.json() if s["id"] == sound_id), None)
+    assert sound_in_list is not None
+    assert sound_in_list["name"] == "Som Renomeado"
+    assert sound_in_list["emoji"] == "⚡"

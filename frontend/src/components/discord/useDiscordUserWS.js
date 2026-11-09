@@ -12,6 +12,7 @@ export default function useDiscordUserWS({
   onServerMemberJoined,
   onVoiceChannelUpdate,
   onUserPresence,
+  onUserProfileUpdated,
 }) {
   const wsRef = useRef(null);
   const heartbeatRef = useRef(null);
@@ -21,6 +22,7 @@ export default function useDiscordUserWS({
   const onServerMemberJoinedRef = useRef(onServerMemberJoined);
   const onVoiceChannelUpdateRef = useRef(onVoiceChannelUpdate);
   const onUserPresenceRef = useRef(onUserPresence);
+  const onUserProfileUpdatedRef = useRef(onUserProfileUpdated);
   const intentionalCloseRef = useRef(false);
 
   useEffect(() => {
@@ -42,6 +44,10 @@ export default function useDiscordUserWS({
   useEffect(() => {
     onUserPresenceRef.current = onUserPresence;
   }, [onUserPresence]);
+
+  useEffect(() => {
+    onUserProfileUpdatedRef.current = onUserProfileUpdated;
+  }, [onUserProfileUpdated]);
 
   useEffect(() => {
     if (!token) {
@@ -110,6 +116,8 @@ export default function useDiscordUserWS({
               onVoiceChannelUpdateRef.current(payload);
             } else if (payload.event === 'user:presence' && onUserPresenceRef.current) {
               onUserPresenceRef.current(payload);
+            } else if (payload.event === 'user:profile_updated' && onUserProfileUpdatedRef.current) {
+              onUserProfileUpdatedRef.current(payload);
             }
           } catch (_) {}
         };

@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Volume2, MicOff, Headphones, Activity, Maximize2, Minimize2, Sparkles } from 'lucide-react';
+import { Volume2, Activity, Maximize2, Minimize2, EyeOff } from 'lucide-react';
 import { RemoteVideoView } from './RemoteMediaPlayers';
 import { getSelfieSegmentation, renderMeetBlurFrame } from './meetBackgroundBlur';
+import ScreenAnnotationOverlay from './ScreenAnnotationOverlay';
+import VoiceParticipantTile from './VoiceParticipantTile';
 
 export default function VoiceStageView({
   channel,
   currentUser,
-  participants,
+  participants = [],
   mergedVoiceStates = {},
   remotePeersMedia = {},
   isSpeaking,
@@ -18,9 +20,22 @@ export default function VoiceStageView({
   onChangeCameraBlurMode,
   onSetVideoRef,
   onSetCameraVideoRef,
+  isCollaborative = false,
+  onToggleCollaborative,
+  onSendDraw,
+  incomingDrawEvent,
+  onRegisterAnnotationCanvas,
+  isAnnotationActive,
+  onToggleAnnotation,
+  onOpenDocumentPip,
+  onToggleScreenShare,
 }) {
   const [isMaximized, setIsMaximized] = useState(false);
   const [showEffectsPopover, setShowEffectsPopover] = useState(false);
+  // watchedStreamId: null (não está assistindo nada), 'local' (própria tela) ou userId numérico (tela de outro participante)
+  const [watchedStreamId, setWatchedStreamId] = useState(isScreenSharing ? 'local' : null);
+  const prevIsScreenSharingRef = useRef(Boolean(isScreenSharing));
+
   const localScreenBoxRef = useRef(null);
   const remoteScreenBoxRef = useRef(null);
   const meetCanvasRef = useRef(null);
@@ -32,6 +47,53 @@ export default function VoiceStageView({
       onSetCameraVideoRef(el);
     }
   };
+
+  // Quando o próprio usuário inicia ou encerra seu compartilhamento de tela
+  useEffect(() => {
+    if (isScreenSharing && !prevIsScreenSharingRef.current) {
+      setWatchedStreamId('local');
+    } else if (!isScreenSharing && watchedStreamId === 'local') {
+      setWatchedStreamId(null);
+    }
+    prevIsScreenSharingRef.current = isScreenSharing;
+  }, [isScreenSharing, watchedStreamId]);
+
+  const remoteScreenShares = participants
+    .filter((p) => {
+      const uid = Number(p.user_id);
+      if (uid === Number(currentUser?.id)) return false;
+      const media = remotePeersMedia?.[uid] || {};
+      const state = mergedVoiceStates?.[uid] || {};
+      return Boolean(
+        media.screenStream ||
+        media.isScreenSharing ||
+        state.is_screen_sharing ||
+        state.isScreenSharing ||
+        p.is_screen_sharing
+      );
+    })
+    .map((p) => {
+      const uid = Number(p.user_id);
+      const media = remotePeersMedia?.[uid] || {};
+      return {
+        ...media,
+        userId: uid,
+        userName: p.user_name || media.userName,
+      };
+    });
+
+  // Se o participante que estava sendo assistido parar de compartilhar a tela, sai automaticamente da visualização
+  useEffect(() => {
+    if (watchedStreamId !== null && watchedStreamId !== 'local') {
+      const stillSharing = remoteScreenShares.some(
+        (s) => Number(s.userId) === Number(watchedStreamId)
+      );
+      if (!stillSharing) {
+        setWatchedStreamId(null);
+        setIsMaximized(false);
+      }
+    }
+  }, [remoteScreenShares, watchedStreamId]);
 
   useEffect(() => {
     if (cameraBlurMode === 'none' || !isCameraOn) return;
@@ -62,7 +124,7 @@ export default function VoiceStageView({
             try {
               await segmenter.send({ image: video });
             } catch {
-              // Frame individual ignorado com segurança
+              // Ignorado com segurança
             } finally {
               isProcessing = false;
             }
@@ -82,31 +144,38 @@ export default function VoiceStageView({
     };
   }, [cameraBlurMode, isCameraOn]);
 
-  const remoteScreenShares = Object.entries(remotePeersMedia || {})
-    .filter(([_, peer]) => Boolean(peer?.screenStream))
-    .map(([uid, peer]) => ({ ...peer, userId: peer?.userId || uid }));
-  // Apenas uma transmissão é exibida no palco por vez (a mais recente ativa)
-  const activeRemoteScreenPeer = !isScreenSharing && remoteScreenShares.length > 0
-    ? remoteScreenShares[remoteScreenShares.length - 1]
-    : null;
-  const hasActiveScreenShare = Boolean(isScreenSharing || activeRemoteScreenPeer);
+  const activeRemoteScreenPeer =
+    watchedStreamId !== null && watchedStreamId !== 'local'
+      ? remoteScreenShares.find((s) => Number(s.userId) === Number(watchedStreamId)) || null
+      : null;
+
+  const isWatchingLocalScreen = Boolean(isScreenSharing && watchedStreamId === 'local');
+  const hasActiveScreenShare = Boolean(isWatchingLocalScreen || activeRemoteScreenPeer);
   const isMyOwnScreen = Boolean(
-    isScreenSharing ||
-    (activeRemoteScreenPeer && Number(activeRemoteScreenPeer.userId) === Number(currentUser?.id))
+    isWatchingLocalScreen ||
+      (activeRemoteScreenPeer && Number(activeRemoteScreenPeer.userId) === Number(currentUser?.id))
   );
+
+  const handleStopWatchingStream = () => {
+    setWatchedStreamId(null);
+    if (isMaximized) {
+      setIsMaximized(false);
+      if (typeof document !== 'undefined' && document.fullscreenElement && typeof document.exitFullscreen === 'function') {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+  };
 
   const toggleMaximize = async () => {
     const nextMax = !isMaximized;
     setIsMaximized(nextMax);
 
-    const targetEl = isScreenSharing ? localScreenBoxRef.current : remoteScreenBoxRef.current;
+    const targetEl = isWatchingLocalScreen ? localScreenBoxRef.current : remoteScreenBoxRef.current;
     if (nextMax) {
       if (targetEl && typeof targetEl.requestFullscreen === 'function' && !document.fullscreenElement) {
         try {
           await targetEl.requestFullscreen();
-        } catch (_) {
-          // Mantém maximizado via CSS viewport fixed
-        }
+        } catch (_) {}
       }
     } else {
       if (typeof document !== 'undefined' && document.fullscreenElement && typeof document.exitFullscreen === 'function') {
@@ -141,7 +210,7 @@ export default function VoiceStageView({
 
   const renderScreenShares = (isSpotlight = false) => (
     <div className={`voice-screen-shares-row ${isSpotlight ? 'spotlight-mode' : ''}`}>
-      {isScreenSharing && (
+      {isWatchingLocalScreen && (
         <div
           ref={localScreenBoxRef}
           className="voice-screen-share-box local-stream"
@@ -155,11 +224,43 @@ export default function VoiceStageView({
             className="voice-screen-video"
             data-testid="screen-share-video"
           />
+          <ScreenAnnotationOverlay
+            isScreenSharing={true}
+            isPresenter={true}
+            currentUserId={currentUser?.id}
+            currentUserName={currentUser?.name || 'Você'}
+            isCollaborative={isCollaborative}
+            onToggleCollaborative={onToggleCollaborative}
+            onSendDraw={onSendDraw}
+            incomingDrawEvent={incomingDrawEvent}
+            onRegisterAnnotationCanvas={onRegisterAnnotationCanvas}
+            isAnnotationActive={isAnnotationActive}
+            onToggleAnnotation={onToggleAnnotation}
+            onOpenDocumentPip={onOpenDocumentPip}
+          />
           <div className="voice-screen-label">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Activity size={14} />
               <span>Transmissão ao vivo de {currentUser?.name || 'Você'}</span>
             </div>
+            <button
+              type="button"
+              className="voice-screen-badge-max-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (typeof onToggleScreenShare === 'function') {
+                  onToggleScreenShare();
+                } else {
+                  handleStopWatchingStream();
+                }
+              }}
+              title="Parar de transmitir tela"
+              data-testid="stop-own-screen-share-btn"
+              style={{ background: 'rgba(242, 63, 67, 0.25)', borderColor: 'rgba(242, 63, 67, 0.5)' }}
+            >
+              <EyeOff size={12} />
+              <span>Parar Transmissão</span>
+            </button>
           </div>
         </div>
       )}
@@ -173,17 +274,56 @@ export default function VoiceStageView({
           onDoubleClick={isMyOwnScreen ? undefined : toggleMaximize}
           title={isMyOwnScreen ? 'Sua própria transmissão ao vivo' : 'Clique duas vezes para maximizar/restaurar'}
         >
-          <RemoteVideoView
-            stream={activeRemoteScreenPeer.screenStream}
-            muted
-            className="voice-screen-video"
-            testId={`remote-screen-video-${activeRemoteScreenPeer.userId}`}
+          {activeRemoteScreenPeer.screenStream ? (
+            <RemoteVideoView
+              stream={activeRemoteScreenPeer.screenStream}
+              muted
+              className="voice-screen-video"
+              testId={`remote-screen-video-${activeRemoteScreenPeer.userId}`}
+            />
+          ) : (
+            <div
+              className="voice-screen-video"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                minHeight: '320px',
+                color: '#949ba4',
+                gap: '12px',
+                background: '#1e1f22',
+              }}
+              data-testid={`remote-screen-loading-${activeRemoteScreenPeer.userId}`}
+            >
+              <Activity size={32} className="animate-spin text-discord-blue" />
+              <span>Conectando à transmissão ao vivo de {activeRemoteScreenPeer.userName || 'usuário'}...</span>
+            </div>
+          )}
+          <ScreenAnnotationOverlay
+            isScreenSharing={false}
+            isRemoteScreen={true}
+            isPresenter={isMyOwnScreen}
+            currentUserId={currentUser?.id}
+            currentUserName={currentUser?.name || 'Você'}
+            isCollaborative={isCollaborative}
+            onToggleCollaborative={onToggleCollaborative}
+            onSendDraw={onSendDraw}
+            incomingDrawEvent={incomingDrawEvent}
+            onRegisterAnnotationCanvas={onRegisterAnnotationCanvas}
+            isAnnotationActive={isAnnotationActive}
+            onToggleAnnotation={onToggleAnnotation}
+            onOpenDocumentPip={onOpenDocumentPip}
           />
           {!isMyOwnScreen && (
             <button
               type="button"
               className="voice-screen-maximize-btn"
-              onClick={(e) => { e.stopPropagation(); toggleMaximize(); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleMaximize();
+              }}
               title={isMaximized ? 'Restaurar tamanho' : 'Maximizar tela'}
               data-testid="voice-screen-maximize-btn"
             >
@@ -194,20 +334,44 @@ export default function VoiceStageView({
           <div className="voice-screen-label">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Activity size={14} />
-              <span>Transmissão ao vivo de {isMyOwnScreen ? `${currentUser?.name || 'Você'} (Você)` : (activeRemoteScreenPeer.userName || 'Membro')}</span>
+              <span>
+                Transmissão ao vivo de{' '}
+                {isMyOwnScreen
+                  ? `${currentUser?.name || 'Você'} (Você)`
+                  : activeRemoteScreenPeer.userName || 'Membro'}
+              </span>
             </div>
-            {!isMyOwnScreen && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {!isMyOwnScreen && (
+                <button
+                  type="button"
+                  className="voice-screen-badge-max-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleMaximize();
+                  }}
+                  title={isMaximized ? 'Restaurar tamanho' : 'Maximizar tela'}
+                  data-testid="voice-screen-badge-max-btn"
+                >
+                  {isMaximized ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+                  <span>{isMaximized ? 'Restaurar' : 'Maximizar'}</span>
+                </button>
+              )}
               <button
                 type="button"
                 className="voice-screen-badge-max-btn"
-                onClick={(e) => { e.stopPropagation(); toggleMaximize(); }}
-                title={isMaximized ? 'Restaurar tamanho' : 'Maximizar tela'}
-                data-testid="voice-screen-badge-max-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStopWatchingStream();
+                }}
+                title="Sair da transmissão e voltar para os cards"
+                data-testid="close-watched-stream-btn"
+                style={{ background: 'rgba(242, 63, 67, 0.3)', borderColor: 'rgba(242, 63, 67, 0.55)' }}
               >
-                {isMaximized ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
-                <span>{isMaximized ? 'Restaurar' : 'Maximizar'}</span>
+                <EyeOff size={12} />
+                <span>Sair da Transmissão</span>
               </button>
-            )}
+            </div>
           </div>
         </div>
       )}
@@ -225,139 +389,45 @@ export default function VoiceStageView({
         const speaking = isMe ? isSpeaking : state.is_speaking;
         const muted = isMe ? isMuted : state.is_muted;
         const deaf = isMe ? isDeafened : state.is_deafened;
-        const initial = (p.user_name || 'U').charAt(0).toUpperCase();
         const remoteCameraStream = !isMe ? remotePeersMedia?.[p.user_id]?.cameraStream : null;
         const remoteEffect = !isMe ? remotePeersMedia?.[p.user_id]?.cameraEffect || 'none' : 'none';
         const hasCamera = Boolean((isMe && isCameraOn) || (!isMe && remoteCameraStream));
+        const remoteMedia = remotePeersMedia?.[p.user_id] || {};
+        const hasRemoteScreen = !isMe && Boolean(
+          remoteMedia.screenStream ||
+          remoteMedia.isScreenSharing ||
+          state.is_screen_sharing ||
+          state.isScreenSharing ||
+          p.is_screen_sharing
+        );
+        const hasScreenShare = Boolean((isMe && isScreenSharing) || hasRemoteScreen);
+        const isWatchingThisStream = isMe
+          ? isWatchingLocalScreen
+          : Number(watchedStreamId) === Number(p.user_id);
 
         return (
-          <div
+          <VoiceParticipantTile
             key={p.user_id}
-            className={`voice-participant-tile ${speaking ? 'speaking' : ''} ${hasCamera ? 'has-camera' : ''}`}
-            data-testid={`voice-user-tile-${p.user_id}`}
-          >
-            {isMe && isCameraOn ? (
-              <div
-                className={`voice-camera-tile-wrapper ${cameraBlurMode !== 'none' ? `camera-blur-${cameraBlurMode}` : ''}`}
-                data-testid="user-camera-preview"
-              >
-                <video
-                  ref={handleCameraVideoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="voice-camera-video"
-                  data-testid="user-camera-video"
-                />
-                {cameraBlurMode !== 'none' && (
-                  <canvas
-                    ref={meetCanvasRef}
-                    className="voice-camera-meet-canvas"
-                    data-testid="user-camera-meet-canvas"
-                  />
-                )}
-                {cameraBlurMode !== 'none' && (
-                  <div
-                    className={`camera-portrait-bloom-overlay ${cameraBlurMode}`}
-                    data-testid={`camera-bloom-overlay-${cameraBlurMode}`}
-                  />
-                )}
-                {onChangeCameraBlurMode && (
-                  <button
-                    type="button"
-                    className={`camera-effect-tile-btn ${cameraBlurMode !== 'none' ? 'active' : ''}`}
-                    onClick={() => setShowEffectsPopover((prev) => !prev)}
-                    title="Ajustar desfoque de fundo / foco no rosto"
-                    data-testid="camera-effects-tile-btn"
-                  >
-                    <Sparkles size={12} />
-                    <span>{cameraBlurMode === 'none' ? 'Desfoque' : cameraBlurMode === 'light' ? 'Leve' : 'Intenso'}</span>
-                  </button>
-                )}
-                {showEffectsPopover && onChangeCameraBlurMode && (
-                  <div className="camera-effects-popover" data-testid="camera-effects-tile-popover">
-                    <div className="camera-effects-popover-header">
-                      <Sparkles size={13} color="#5865f2" /> Efeitos de Fundo
-                    </div>
-                    <button
-                      type="button"
-                      className={`camera-effect-option-btn ${cameraBlurMode === 'none' ? 'active' : ''}`}
-                      onClick={() => { onChangeCameraBlurMode('none'); setShowEffectsPopover(false); }}
-                      data-testid="tile-effect-option-none"
-                    >
-                      <span>Desativado (Normal)</span>
-                      {cameraBlurMode === 'none' && <span className="camera-effect-badge-indicator">Ativo</span>}
-                    </button>
-                    <button
-                      type="button"
-                      className={`camera-effect-option-btn ${cameraBlurMode === 'light' ? 'active' : ''}`}
-                      onClick={() => { onChangeCameraBlurMode('light'); setShowEffectsPopover(false); }}
-                      data-testid="tile-effect-option-light"
-                    >
-                      <span>Desfoque Leve (Foco Suave)</span>
-                      {cameraBlurMode === 'light' && <span className="camera-effect-badge-indicator">Ativo</span>}
-                    </button>
-                    <button
-                      type="button"
-                      className={`camera-effect-option-btn ${cameraBlurMode === 'intense' ? 'active' : ''}`}
-                      onClick={() => { onChangeCameraBlurMode('intense'); setShowEffectsPopover(false); }}
-                      data-testid="tile-effect-option-intense"
-                    >
-                      <span>Desfoque Intenso (Modo Retrato)</span>
-                      {cameraBlurMode === 'intense' && <span className="camera-effect-badge-indicator">Ativo</span>}
-                    </button>
-                  </div>
-                )}
-                <div className="voice-camera-name-tag">
-                  <span>{p.user_name} (Você)</span>
-                  {speaking && <span className="speaking-tag-dot" />}
-                  {muted && <MicOff size={12} className="voice-icon-muted" title="Mutado" />}
-                  {deaf && <Headphones size={12} className="voice-icon-deaf" title="Ensurdecido" />}
-                </div>
-              </div>
-            ) : remoteCameraStream ? (
-              <div
-                className={`voice-camera-tile-wrapper ${remoteEffect !== 'none' ? `camera-blur-${remoteEffect}` : ''}`}
-                data-testid={`remote-camera-preview-${p.user_id}`}
-              >
-                <RemoteVideoView
-                  stream={remoteCameraStream}
-                  muted
-                  className="voice-camera-video remote-camera"
-                  testId={`remote-camera-video-${p.user_id}`}
-                />
-                {remoteEffect !== 'none' && (
-                  <div
-                    className={`camera-portrait-bloom-overlay ${remoteEffect}`}
-                    data-testid={`remote-camera-bloom-overlay-${p.user_id}`}
-                  />
-                )}
-                <div className="voice-camera-name-tag">
-                  <span>{p.user_name}</span>
-                  {speaking && <span className="speaking-tag-dot" />}
-                  {muted && <MicOff size={12} className="voice-icon-muted" title="Mutado" />}
-                  {deaf && <Headphones size={12} className="voice-icon-deaf" title="Ensurdecido" />}
-                </div>
-              </div>
-            ) : (
-              <div className={`voice-avatar-circle ${speaking ? 'speaking-halo' : ''}`}>
-                <span>{initial}</span>
-                {speaking && <div className="speaking-pulse-ring" />}
-              </div>
-            )}
-
-            {!hasCamera && (
-              <div className="voice-participant-name-row">
-                <span className="voice-participant-name">
-                  {p.user_name} {isMe ? '(Você)' : ''}
-                </span>
-                <div className="voice-status-icons">
-                  {muted && <MicOff size={14} className="voice-icon-muted" title="Mutado" />}
-                  {deaf && <Headphones size={14} className="voice-icon-deaf" title="Ensurdecido" />}
-                </div>
-              </div>
-            )}
-          </div>
+            p={p}
+            isMe={isMe}
+            speaking={speaking}
+            muted={muted}
+            deaf={deaf}
+            hasCamera={hasCamera}
+            isCameraOn={isCameraOn}
+            cameraBlurMode={cameraBlurMode}
+            onChangeCameraBlurMode={onChangeCameraBlurMode}
+            showEffectsPopover={showEffectsPopover}
+            setShowEffectsPopover={setShowEffectsPopover}
+            handleCameraVideoRef={handleCameraVideoRef}
+            meetCanvasRef={meetCanvasRef}
+            remoteCameraStream={remoteCameraStream}
+            remoteEffect={remoteEffect}
+            hasScreenShare={hasScreenShare}
+            isWatchingThisStream={isWatchingThisStream}
+            onWatchStream={(streamTarget) => setWatchedStreamId(streamTarget)}
+            onStopWatchingStream={handleStopWatchingStream}
+          />
         );
       })}
     </div>

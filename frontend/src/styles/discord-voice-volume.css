@@ -1,0 +1,226 @@
+/* ==========================================================================
+   DISCORD CLONE - CONTROLE DE VOLUME INDIVIDUAL DE CONTATOS (discord-voice-volume.css)
+   ========================================================================== */
+
+/* Botão de volume que aparece no hover do contato no canal de voz */
+.voice-user-volume-trigger {
+  opacity: 0;
+  pointer-events: none;
+  background: transparent;
+  border: none;
+  color: #949ba4;
+  padding: 3px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease, color 0.15s ease, background 0.15s ease;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.voice-user-item:hover .voice-user-volume-trigger,
+.voice-user-volume-trigger.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.voice-user-volume-trigger:hover,
+.voice-user-volume-trigger.is-open {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.voice-user-volume-trigger.is-muted {
+  color: #ed4245;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Popover Flutuante de Ajuste de Volume no Padrão Discord */
+.voice-user-volume-popover {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 9999;
+  width: 240px;
+  background: #2b2d31;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 12px 14px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  user-select: none;
+  animation: popover-fade-in 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes popover-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.voice-user-volume-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.voice-user-volume-title-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.voice-user-volume-icon {
+  color: #5865f2;
+  flex-shrink: 0;
+}
+
+.voice-user-volume-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f2f3f5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.voice-user-volume-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #1e1f22;
+  color: #57f287;
+  letter-spacing: 0.3px;
+}
+
+.voice-user-volume-badge.is-muted {
+  color: #ed4245;
+  background: rgba(237, 66, 69, 0.15);
+}
+
+/* Slider de Volume Estilo Discord */
+.voice-user-volume-slider-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.voice-user-volume-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.voice-user-volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #1e1f22;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.voice-user-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  transition: transform 0.1s ease, background 0.1s ease;
+}
+
+.voice-user-volume-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  background: #5865f2;
+}
+
+.voice-user-volume-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  transition: transform 0.1s ease, background 0.1s ease;
+}
+
+.voice-user-volume-slider::-moz-range-thumb:hover {
+  transform: scale(1.15);
+  background: #5865f2;
+}
+
+/* Ações e Botões Rápidos */
+.voice-user-volume-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.voice-user-volume-mute-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid transparent;
+  color: #dbdee1;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.voice-user-volume-mute-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.voice-user-volume-mute-btn.is-muted {
+  background: #ed4245;
+  color: #ffffff;
+}
+
+.voice-user-volume-mute-btn.is-muted:hover {
+  background: #da373a;
+}
+
+.voice-user-volume-reset-btn {
+  background: transparent;
+  border: none;
+  color: #949ba4;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: color 0.12s ease, text-decoration 0.12s ease;
+}
+
+.voice-user-volume-reset-btn:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}

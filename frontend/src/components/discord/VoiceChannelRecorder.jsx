@@ -12,6 +12,7 @@ export default function VoiceChannelRecorder({
   cameraStream,
   isCameraOn = false,
   currentUserName = 'Você',
+  getAnnotationCanvas,
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -161,13 +162,14 @@ export default function VoiceChannelRecorder({
       let recordingStream = stream;
       const hasActiveCamera = isCameraOn || (cameraStream && cameraStream.getVideoTracks().length > 0);
 
-      // Composição Picture-in-Picture se a webcam estiver ativada
-      if (includeWebcam && hasActiveCamera && cameraStream) {
+      // Composição Picture-in-Picture se a webcam ou anotação estiver ativada
+      if ((includeWebcam && hasActiveCamera && cameraStream) || getAnnotationCanvas) {
         const composite = createCompositeStream({
           screenStream: stream,
-          cameraStream,
+          cameraStream: includeWebcam && hasActiveCamera ? cameraStream : null,
           audioStream,
           getPipPosition: () => pipPositionRef.current,
+          getAnnotationCanvas,
         });
         recordingStream = composite.stream;
         compositeStopRef.current = composite.stop;

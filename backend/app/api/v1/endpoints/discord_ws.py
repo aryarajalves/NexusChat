@@ -73,7 +73,8 @@ async def user_notification_websocket(
                 del socket_manager.user_sockets[user.id]
         socket_manager.socket_users.pop(websocket, None)
 
-        if not socket_manager.is_user_online(user.id):
+        is_still_in_channels = any(uid == user.id for uid, _ in socket_manager.socket_users.values())
+        if not socket_manager.is_user_online(user.id) and not is_still_in_channels:
             await socket_manager.remove_user_from_all_voice_rooms(user.id, user.name)
             online_ids = list(socket_manager.user_sockets.keys())
             if online_ids:

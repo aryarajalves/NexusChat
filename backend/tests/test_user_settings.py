@@ -66,3 +66,50 @@ def test_change_password_flow():
         headers=headers
     )
     assert weak_res.status_code == 422
+
+
+def test_user_profile_and_avatar_realtime_broadcast():
+    """Garante que trocar a foto de perfil ou nome propaga user:profile_updated em tempo real no WebSocket /ws/me e atualiza voice_rooms."""
+    from app.services.socket_manager import socket_manager
+
+    token = get_auth_token()
+    headers = {"Authorization": f"Bearer {token}"}
+    me = client.get("/api/v1/auth/me", headers=headers).json()
+    user_id = me["id"]
+    original_name = me["name"]
+
+    # Registra o usuário em uma sala de voz ativa
+    socket_manager.register_voice_user(999, user_id, original_name, avatar_url=None)
+
+    with client.websocket_connect(f"/api/v1/discord/ws/me?token={token}") as ws:
+        # Atualiza avatar e nome no perfil
+        new_avatar = "/api/v1/discord/attachments/avatar_realtime_test.png"
+        update_res = client.patch(
+            "/api/v1/auth/profile",
+            json={"name": "Hokage Atualizado", "avatar_url": new_avatar},
+            headers=headers,
+        )
+        assert update_res.status_code == 200
+
+        # Recebe eventos WebSocket em tempo real
+        received_events = []
+        for _ in range(2):
+            received_events.append(ws.receive_json())
+
+        profile_ev = next((e for e in received_events if e.get("event") == "user:profile_updated"), None)
+        assert profile_ev is not None
+        assert profile_ev["user_id"] == user_id
+        assert profile_ev["name"] == "Hokage Atualizado"
+        assert profile_ev["avatar_url"] == new_avatar
+
+        voice_ev = next((e for e in received_events if e.get("event") == "voice:channel_update"), None)
+        assert voice_ev is not None
+        assert voice_ev["channel_id"] == 999
+        participant = next((p for p in voice_ev["active_participants"] if p["user_id"] == user_id), None)
+        assert participant is not None
+        assert participant["avatar_url"] == new_avatar
+        assert participant["user_name"] == "Hokage Atualizado"
+
+    # Limpa estado
+    socket_manager.unregister_voice_user(999, user_id)
+    client.patch("/api/v1/auth/profile", json={"name": original_name, "avatar_url": None}, headers=headers)

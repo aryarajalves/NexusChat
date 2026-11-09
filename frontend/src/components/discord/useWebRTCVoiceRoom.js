@@ -25,46 +25,32 @@ export default function useWebRTCVoiceRoom({
   onRemoteScreenShareStarted,
   onRoomVoiceStatesUpdate,
   onSoundboardPlay,
+  onScreenDraw,
 }) {
   const [rtcConnected, setRtcConnected] = useState(false);
   const [rtcPeers, setRtcPeers] = useState([]);
   const [remotePeersMedia, setRemotePeersMedia] = useState({});
   const [roomVoiceStates, setRoomVoiceStates] = useState({});
 
-  const onSoundboardPlayRef = useRef(onSoundboardPlay);
-  onSoundboardPlayRef.current = onSoundboardPlay;
+  const onSoundboardPlayRef = useRef(onSoundboardPlay); onSoundboardPlayRef.current = onSoundboardPlay;
+  const onScreenDrawRef = useRef(onScreenDraw); onScreenDrawRef.current = onScreenDraw;
 
-  const isMutedRef = useRef(isMuted);
-  const isDeafenedRef = useRef(isDeafened);
-  const cameraBlurModeRef = useRef(cameraBlurMode);
+  const isMutedRef = useRef(isMuted), isDeafenedRef = useRef(isDeafened), cameraBlurModeRef = useRef(cameraBlurMode);
   useEffect(() => {
-    isMutedRef.current = isMuted;
-    isDeafenedRef.current = isDeafened;
-    cameraBlurModeRef.current = cameraBlurMode;
+    isMutedRef.current = isMuted; isDeafenedRef.current = isDeafened; cameraBlurModeRef.current = cameraBlurMode;
   }, [isMuted, isDeafened, cameraBlurMode]);
 
-  const wsRef = useRef(null);
-  const heartbeatRef = useRef(null);
-  const reconnectTimerRef = useRef(null);
-  const intentionalCloseRef = useRef(false);
-  const isMountedRef = useRef(true);
-  const peersRef = useRef(new Map());
-
-  const currentUserRef = useRef(currentUser);
-  const micStreamRef = useRef(micStream);
-  const cameraStreamRef = useRef(cameraStream);
-  const screenStreamRef = useRef(screenStream);
-  const isCameraOnRef = useRef(isCameraOn);
-  const isScreenSharingRef = useRef(isScreenSharing);
+  const wsRef = useRef(null), heartbeatRef = useRef(null), reconnectTimerRef = useRef(null);
+  const intentionalCloseRef = useRef(false), isMountedRef = useRef(true), peersRef = useRef(new Map());
+  const currentUserRef = useRef(currentUser), micStreamRef = useRef(micStream);
+  const cameraStreamRef = useRef(cameraStream), screenStreamRef = useRef(screenStream);
+  const isCameraOnRef = useRef(isCameraOn), isScreenSharingRef = useRef(isScreenSharing);
   const onRemoteScreenShareStartedRef = useRef(onRemoteScreenShareStarted);
   const onRoomVoiceStatesUpdateRef = useRef(onRoomVoiceStatesUpdate);
 
-  currentUserRef.current = currentUser;
-  micStreamRef.current = micStream;
-  cameraStreamRef.current = cameraStream;
-  screenStreamRef.current = screenStream;
-  isCameraOnRef.current = isCameraOn;
-  isScreenSharingRef.current = isScreenSharing;
+  currentUserRef.current = currentUser; micStreamRef.current = micStream;
+  cameraStreamRef.current = cameraStream; screenStreamRef.current = screenStream;
+  isCameraOnRef.current = isCameraOn; isScreenSharingRef.current = isScreenSharing;
   onRemoteScreenShareStartedRef.current = onRemoteScreenShareStarted;
   onRoomVoiceStatesUpdateRef.current = onRoomVoiceStatesUpdate;
 
@@ -309,24 +295,22 @@ export default function useWebRTCVoiceRoom({
       if (!peer) return;
       if (signal.mediaState) {
         peer.mediaState = { ...peer.mediaState, ...signal.mediaState };
-        if (signal.mediaState.isScreenSharing) {
-          onRemoteScreenShareStartedRef.current?.(senderId, payload.sender_name || signal.user_name);
-        }
-        if (signal.mediaState.isMuted !== undefined || signal.mediaState.isDeafened !== undefined) {
-          setRoomVoiceStates((prev) => {
-            const next = {
-              ...prev,
-              [senderId]: {
-                ...prev[senderId],
-                is_muted: Boolean(signal.mediaState.isMuted),
-                is_deafened: Boolean(signal.mediaState.isDeafened),
-                is_speaking: false,
-              },
-            };
-            onRoomVoiceStatesUpdateRef.current?.(next);
-            return next;
-          });
-        }
+        if (signal.mediaState.isScreenSharing) onRemoteScreenShareStartedRef.current?.(senderId, payload.sender_name || signal.user_name);
+        setRoomVoiceStates((prev) => {
+          const next = {
+            ...prev,
+            [senderId]: {
+              ...prev[senderId],
+              is_muted: signal.mediaState.isMuted !== undefined ? Boolean(signal.mediaState.isMuted) : (prev[senderId]?.is_muted ?? false),
+              is_deafened: signal.mediaState.isDeafened !== undefined ? Boolean(signal.mediaState.isDeafened) : (prev[senderId]?.is_deafened ?? false),
+              is_speaking: false,
+              is_screen_sharing: signal.mediaState.isScreenSharing !== undefined ? Boolean(signal.mediaState.isScreenSharing) : (prev[senderId]?.is_screen_sharing ?? false),
+            },
+          };
+          onRoomVoiceStatesUpdateRef.current?.(next);
+          return next;
+        });
+        syncPublicState();
       }
 
       if (signal.type === 'peer-join') {
@@ -394,6 +378,7 @@ export default function useWebRTCVoiceRoom({
 
       ws.onopen = () => {
         if (!isMountedRef.current) return;
+        cleanupAllPeers();
         setRtcConnected(true);
         sendSignal(null, {
           type: 'peer-join',
@@ -422,6 +407,8 @@ export default function useWebRTCVoiceRoom({
           if (!payload?.event || payload.event === 'pong') return;
           if (payload.event === 'voice:signal') {
             handleSignal(payload);
+          } else if (payload.event === 'screen:draw') {
+            onScreenDrawRef.current?.(payload);
           } else if (payload.event === 'voice:soundboard') {
             onSoundboardPlayRef.current?.(payload);
           } else if (payload.event === 'voice:state' && payload.user_id) {
@@ -432,11 +419,31 @@ export default function useWebRTCVoiceRoom({
                   is_muted: payload.is_muted,
                   is_deafened: payload.is_deafened,
                   is_speaking: payload.is_speaking,
+                  is_screen_sharing: payload.is_screen_sharing ?? prev[payload.user_id]?.is_screen_sharing ?? false,
                 },
               };
               onRoomVoiceStatesUpdateRef.current?.(next);
               return next;
             });
+          } else if (payload.event === 'presence:join' && Array.isArray(payload.online_users)) {
+            const myId = Number(currentUserRef.current?.id);
+            let added = false;
+            payload.online_users.forEach((u) => {
+              const uid = Number(u.user_id || u.id);
+              if (uid && uid !== myId && !peersRef.current.has(uid)) {
+                const peer = getOrCreatePeer(uid, u.user_name || u.name);
+                if (peer) {
+                  added = true;
+                  sendSignal(uid, {
+                    type: 'peer-ready',
+                    user_id: myId,
+                    user_name: currentUserRef.current?.name,
+                    mediaState: buildLocalMediaState(),
+                  });
+                }
+              }
+            });
+            if (added) syncPublicState();
           } else if (payload.event === 'presence:leave' && Array.isArray(payload.online_users)) {
             const activeIds = new Set(payload.online_users.map((u) => Number(u.user_id || u.id)));
             let removed = false;
@@ -479,10 +486,13 @@ export default function useWebRTCVoiceRoom({
 
   const sendSoundboardPlay = useCallback((sound) => {
     const ws = wsRef.current;
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ event: 'voice:soundboard', sound }));
-    }
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ event: 'voice:soundboard', sound }));
   }, []);
 
-  return { rtcConnected, rtcPeers, remotePeersMedia, roomVoiceStates, sendRoomVoiceState, sendSoundboardPlay };
+  const sendScreenDraw = useCallback((action, payload) => {
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ event: 'screen:draw', action, payload }));
+  }, []);
+
+  return { rtcConnected, rtcPeers, remotePeersMedia, roomVoiceStates, sendRoomVoiceState, sendSoundboardPlay, sendScreenDraw };
 }

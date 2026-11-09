@@ -5,23 +5,25 @@ import {
   Lock,
   Plus,
   UserPlus,
-  Mic,
   Headphones,
-  VolumeX,
-  PhoneOff,
   MicOff,
   ChevronDown,
   Settings,
   Trash2,
+  MessageSquare,
 } from 'lucide-react';
 import VoiceCallTimer from './VoiceCallTimer';
+import ChannelSidebarFooter from './ChannelSidebarFooter';
+import VoiceUserItem from './VoiceUserItem';
 
 export default function ChannelSidebar({
   server,
   channels = [],
+  members = [],
   activeChannelId,
   connectedVoiceChannelId,
   onSelectChannel,
+  onOpenVoiceChat,
   onOpenCreateChannel,
   onOpenInvite,
   currentUser,
@@ -31,6 +33,8 @@ export default function ChannelSidebar({
   voiceChannelUsers = {},
   voiceChannelCallTimes = {},
   onDisconnectVoice,
+  isNoiseSuppressionEnabled = true,
+  onToggleNoiseSuppression,
   channelUnreads = {},
   isSoundMuted = false,
   onToggleSoundMute,
@@ -38,6 +42,10 @@ export default function ChannelSidebar({
   onToggleVoiceMute,
   isVoiceDeafened = false,
   onToggleVoiceDeafen,
+  userVolumes = {},
+  userLocalMutes = {},
+  onSetUserVolume,
+  onToggleUserLocalMute,
   onOpenServerSettings,
   onOpenUserSettings,
   onOpenDeleteServer,
@@ -285,32 +293,42 @@ export default function ChannelSidebar({
 
               // Obtém participantes deste canal de voz
               const channelUsers = voiceChannelUsers[ch.id] || [];
+              const memberMap = new Map();
+              (members || []).forEach((m) => { const mid = Number(m.user_id || m.id); if (mid) memberMap.set(mid, m); });
               let displayUsers = [];
 
+              const mapUser = (u, forceMe = false) => {
+                const uid = u.user_id || u.id;
+                const m = memberMap.get(Number(uid));
+                const isMe = forceMe || Number(uid) === Number(currentUser?.id);
+                return {
+                  user_id: uid,
+                  user_name: u.user_name || u.name || m?.user_name || m?.name,
+                  avatar_url: isMe ? currentUser?.avatar_url : (u.avatar_url || m?.avatar_url || null),
+                  is_muted: u.is_muted,
+                  is_deafened: u.is_deafened,
+                  is_speaking: u.is_speaking,
+                  is_screen_sharing: u.is_screen_sharing,
+                };
+              };
+
               if (isConnected) {
-                // Combina participantes da sala de voz com usuários do socket (apenas se o socket ativo for o canal de voz)
                 const map = new Map();
-                channelUsers.forEach((u) => {
-                  const uid = u.user_id || u.id;
-                  if (uid) map.set(uid, { user_id: uid, user_name: u.user_name || u.name, is_muted: u.is_muted, is_deafened: u.is_deafened });
-                });
-                if (isActive) {
-                  (onlineUsers || []).forEach((u) => {
-                    const uid = u.user_id || u.id;
-                    if (uid) map.set(uid, { user_id: uid, user_name: u.user_name || u.name, is_muted: u.is_muted, is_deafened: u.is_deafened });
+                channelUsers.forEach((u) => { const uid = u.user_id || u.id; if (uid) map.set(uid, mapUser(u)); });
+                if (currentUser) {
+                  map.set(currentUser.id, {
+                    user_id: currentUser.id,
+                    user_name: currentUser.name,
+                    avatar_url: currentUser.avatar_url || null,
+                    is_muted: isVoiceMuted,
+                    is_deafened: isVoiceDeafened,
                   });
                 }
-                if (currentUser) {
-                  map.set(currentUser.id, { user_id: currentUser.id, user_name: currentUser.name, is_muted: isVoiceMuted, is_deafened: isVoiceDeafened });
-                }
-                displayUsers = Array.from(map.values());
+                displayUsers = Array.from(map.values()).sort((a, b) => Number(a.user_id) - Number(b.user_id));
               } else {
                 const map = new Map();
-                channelUsers.forEach((u) => {
-                  const uid = u.user_id || u.id;
-                  if (uid) map.set(uid, { user_id: uid, user_name: u.user_name || u.name, is_muted: u.is_muted, is_deafened: u.is_deafened });
-                });
-                displayUsers = Array.from(map.values());
+                channelUsers.forEach((u) => { const uid = u.user_id || u.id; if (uid) map.set(uid, mapUser(u)); });
+                displayUsers = Array.from(map.values()).sort((a, b) => Number(a.user_id) - Number(b.user_id));
               }
 
               return (
@@ -334,8 +352,24 @@ export default function ChannelSidebar({
                       callStartedAt={voiceChannelCallTimes?.[ch.id]}
                       isActive={displayUsers.length > 0}
                     />
-                    {isOwnerOrAdmin && (
-                      <div className="channel-item-actions">
+                    <div className="channel-item-actions">
+                      <button
+                        type="button"
+                        className="channel-action-chat-btn"
+                        title="Abrir Bate-Papo da Call"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (typeof onOpenVoiceChat === 'function') {
+                            onOpenVoiceChat(ch.id);
+                          } else {
+                            onSelectChannel(ch.id);
+                          }
+                        }}
+                        data-testid={`open-voice-chat-btn-${ch.id}`}
+                      >
+                        <MessageSquare size={13} />
+                      </button>
+                      {isOwnerOrAdmin && (
                         <button
                           type="button"
                           className="channel-action-settings-btn"
@@ -348,8 +382,8 @@ export default function ChannelSidebar({
                         >
                           <Settings size={14} />
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
 
                   {/* Usuários Conectados no Canal de Voz */}
@@ -357,37 +391,19 @@ export default function ChannelSidebar({
                     <div className="voice-channel-users-list" data-testid={`voice-channel-users-${ch.id}`}>
                       {displayUsers.map((u) => {
                         const uid = u.user_id || u.id;
-                        const isMe = Number(uid) === Number(currentUser?.id);
-                        const uname = u.user_name || u.name || (isMe ? (currentUser?.name || 'Você') : 'Membro');
-                        const userState = voiceStates[uid] || voiceStates[Number(uid)] || voiceStates[String(uid)] || {};
-                        const isSpeaking = isMe ? false : Boolean(userState.is_speaking);
-                        const isMuted = isMe ? isVoiceMuted : Boolean(userState.is_muted !== undefined ? userState.is_muted : (u.is_muted ?? true));
-                        const isDeafened = isMe ? isVoiceDeafened : Boolean(userState.is_deafened !== undefined ? userState.is_deafened : u.is_deafened);
-                        const initial = (uname || 'U').trim().charAt(0).toUpperCase();
-
                         return (
-                          <div
+                          <VoiceUserItem
                             key={uid}
-                            className={`voice-user-item ${isSpeaking ? 'speaking' : ''}`}
-                            data-testid={`voice-user-item-${uid}`}
-                          >
-                            <div
-                              className={`voice-user-avatar ${
-                                isSpeaking ? 'speaking-halo' : ''
-                              }`}
-                            >
-                              {initial}
-                            </div>
-                            <span className="voice-user-name">{uname}</span>
-                            <div className="voice-user-icons" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              {isMuted && (
-                                <MicOff size={13} className="voice-user-muted-icon" title="Microfone Mutado" data-testid={`voice-user-muted-${uid}`} />
-                              )}
-                              {isDeafened && (
-                                <Headphones size={13} className="voice-user-deaf-icon" title="Áudio Desativado (Ensurdecido)" data-testid={`voice-user-deaf-${uid}`} />
-                              )}
-                            </div>
-                          </div>
+                            user={u}
+                            currentUser={currentUser}
+                            voiceStates={voiceStates}
+                            isVoiceMuted={isVoiceMuted}
+                            isVoiceDeafened={isVoiceDeafened}
+                            userVolumes={userVolumes}
+                            userLocalMutes={userLocalMutes}
+                            onSetUserVolume={onSetUserVolume}
+                            onToggleUserLocalMute={onToggleUserLocalMute}
+                          />
                         );
                       })}
                     </div>
@@ -399,87 +415,22 @@ export default function ChannelSidebar({
         )}
       </div>
 
-      {/* Barra de Status de Conexão de Voz Flutuante no Rodapé */}
-      {connectedVoiceChannel && (
-        <div className="discord-voice-connection-status" data-testid="discord-voice-status-bar">
-          <div
-            className="voice-connection-info"
-            onClick={() => onSelectChannel(connectedVoiceChannel.id)}
-            title="Ir para o Canal de Voz"
-            role="button"
-            tabIndex={0}
-          >
-            <div className="voice-connection-title">
-              <Volume2 size={15} className="voice-conn-icon" />
-              <span>Voz Conectada</span>
-            </div>
-            <div className="voice-connection-channel-name">
-              {connectedVoiceChannel.name} / {server?.name || 'Servidor'}
-            </div>
-          </div>
-          <button
-            type="button"
-            className="voice-disconnect-btn"
-            onClick={onDisconnectVoice}
-            title="Desconectar da Voz"
-            data-testid="sidebar-voice-disconnect-btn"
-          >
-            <PhoneOff size={16} />
-          </button>
-        </div>
-      )}
-
-      {/* Card do Usuário Logado no Rodapé */}
-      <div className="discord-user-bar">
-        <div className="discord-user-info" data-testid="user-profile-bar" onClick={onOpenUserSettings} title="Abrir Configurações de Usuário">
-          <div className="discord-avatar-wrapper">
-            {currentUser?.avatar_url ? (
-              <img
-                src={currentUser.avatar_url}
-                alt={currentUser.name}
-                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
-              />
-            ) : (
-              userInitial
-            )}
-            <span className="discord-online-badge" />
-          </div>
-          <div className="discord-user-names">
-            <span className="discord-name-text">{currentUser?.name || 'Usuário'}</span>
-            <span className="discord-status-text">Online</span>
-          </div>
-        </div>
-
-        <div className="discord-user-controls">
-          <button
-            type="button"
-            className={`control-icon-btn ${isVoiceMuted ? 'muted' : ''}`}
-            onClick={onToggleVoiceMute}
-            title={isVoiceMuted ? 'Ativar Microfone' : 'Silenciar Microfone'}
-            data-testid="mic-btn"
-          >
-            {isVoiceMuted ? <MicOff size={16} /> : <Mic size={16} />}
-          </button>
-          <button
-            type="button"
-            className={`control-icon-btn ${isVoiceDeafened || isSoundMuted ? 'muted' : ''}`}
-            onClick={onToggleVoiceDeafen || onToggleSoundMute}
-            title={isVoiceDeafened ? 'Desativar Ensurdecer' : isSoundMuted ? 'Ativar Efeitos Sonoros' : 'Silenciar Efeitos Sonoros'}
-            data-testid="audio-btn"
-          >
-            {isVoiceDeafened || isSoundMuted ? <VolumeX size={16} /> : <Headphones size={16} />}
-          </button>
-          <button
-            type="button"
-            className="control-icon-btn"
-            onClick={onOpenUserSettings}
-            title="Configurações do Usuário"
-            data-testid="user-settings-btn"
-          >
-            <Settings size={16} />
-          </button>
-        </div>
-      </div>
+      <ChannelSidebarFooter
+        connectedVoiceChannel={connectedVoiceChannel}
+        server={server}
+        onSelectChannel={onSelectChannel}
+        onDisconnectVoice={onDisconnectVoice}
+        isNoiseSuppressionEnabled={isNoiseSuppressionEnabled}
+        onToggleNoiseSuppression={onToggleNoiseSuppression}
+        currentUser={currentUser}
+        onOpenUserSettings={onOpenUserSettings}
+        isVoiceMuted={isVoiceMuted}
+        onToggleVoiceMute={onToggleVoiceMute}
+        isVoiceDeafened={isVoiceDeafened}
+        onToggleVoiceDeafen={onToggleVoiceDeafen}
+        isSoundMuted={isSoundMuted}
+        onToggleSoundMute={onToggleSoundMute}
+      />
     </aside>
   );
 }

@@ -202,25 +202,74 @@ export function playSynthesizedSound(soundId, volume = 0.8) {
   }
 }
 
+// Duração estimada (em ms) dos efeitos sonoros sintetizados nativos (com margem de reverberação para garantir que terminou)
+export const SYNTH_SOUND_DURATIONS = {
+  def_quack: 450,
+  def_airhorn: 800,
+  def_badumtss: 1200,
+  def_cricket: 1100,
+  def_applause: 1500,
+  def_sadtrombone: 1800,
+  def_ding: 1000,
+  def_levelup: 800,
+};
+
+export function getSoundDuration(sound) {
+  if (!sound) return 800;
+  if (sound.isDefault || String(sound.id || '').startsWith('def_')) {
+    return SYNTH_SOUND_DURATIONS[sound.id] || 600;
+  }
+  return 3000;
+}
+
 /**
- * Função unificada para tocar qualquer som do soundboard (nativo ou customizado via URL)
+ * Função unificada para tocar qualquer som do soundboard (nativo ou customizado via URL).
+ * Recebe callback onEnded opcional para notificar o término da reprodução.
  */
-export function playSoundboardAudio(sound, globalVolume = 1.0) {
-  if (!sound) return;
-  const vol = Math.max(0.1, Math.min((sound.volume ?? 1.0) * globalVolume, 1.0));
+export function playSoundboardAudio(sound, globalVolume = 1.0, onEnded = null) {
+  if (!sound) {
+    onEnded?.();
+    return null;
+  }
+  const vol = Math.max(0.05, Math.min((sound.volume ?? 1.0) * globalVolume, 1.0));
 
   if (sound.isDefault || String(sound.id || '').startsWith('def_')) {
     playSynthesizedSound(sound.id, vol);
-    return;
+    const duration = SYNTH_SOUND_DURATIONS[sound.id] || 600;
+    if (onEnded) {
+      setTimeout(onEnded, duration);
+    }
+    return null;
   }
 
   if (sound.audio_url) {
     try {
       const audio = new Audio(sound.audio_url);
       audio.volume = vol;
-      audio.play().catch(() => {});
+
+      let called = false;
+      const finish = () => {
+        if (!called) {
+          called = true;
+          onEnded?.();
+        }
+      };
+
+      audio.addEventListener('ended', finish, { once: true });
+      audio.addEventListener('error', finish, { once: true });
+      const fallbackTimer = setTimeout(finish, 20000);
+
+      audio.play().catch(() => {
+        clearTimeout(fallbackTimer);
+        finish();
+      });
+      return audio;
     } catch {
-      // Ignora erro de autoplay
+      onEnded?.();
+      return null;
     }
+  } else {
+    onEnded?.();
+    return null;
   }
 }

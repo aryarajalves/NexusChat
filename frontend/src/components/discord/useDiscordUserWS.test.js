@@ -95,4 +95,36 @@ describe('useDiscordUserWS hook', () => {
       JSON.stringify({ type: 'ping', event: 'ping' })
     );
   });
+
+  it('encaminha evento user:profile_updated para o callback onUserProfileUpdated em tempo real', () => {
+    const handleProfileUpdated = vi.fn();
+
+    renderHook(() =>
+      useDiscordUserWS({
+        token: 'me-jwt-token',
+        onUserProfileUpdated: handleProfileUpdated,
+      })
+    );
+
+    act(() => {
+      mockWebSocketInstance.onmessage({
+        data: JSON.stringify({
+          event: 'user:profile_updated',
+          user_id: 42,
+          name: 'Hokage',
+          user_name: 'Hokage',
+          avatar_url: 'https://cdn.example.com/hokage-new.png',
+        }),
+      });
+    });
+
+    expect(handleProfileUpdated).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'user:profile_updated',
+        user_id: 42,
+        name: 'Hokage',
+        avatar_url: 'https://cdn.example.com/hokage-new.png',
+      })
+    );
+  });
 });

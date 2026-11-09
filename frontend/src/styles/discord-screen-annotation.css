@@ -1,0 +1,249 @@
+/* ==========================================================================
+   DISCORD CLONE - SCREEN ANNOTATION & LIVE DRAWING OVERLAY
+   ========================================================================== */
+
+/* Contêiner de Overlay sobre a Área de Compartilhamento de Tela */
+.screen-annotation-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 60;
+  overflow: hidden;
+}
+
+.screen-annotation-container.drawing-active {
+  pointer-events: auto;
+}
+
+/* Canvas de Desenho */
+.screen-annotation-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.screen-annotation-canvas.cursor-pen {
+  cursor: crosshair;
+}
+
+.screen-annotation-canvas.cursor-laser {
+  cursor: grab;
+}
+
+.screen-annotation-canvas.cursor-eraser {
+  cursor: cell;
+}
+
+/* Barra de Ferramentas Flutuante (Glassmorphism Neon) */
+.screen-annotation-toolbar {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(20, 21, 24, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(88, 101, 242, 0.45);
+  border-radius: 28px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.75), 0 0 16px rgba(88, 101, 242, 0.3);
+  pointer-events: auto;
+  z-index: 85;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.screen-annotation-toolbar:hover {
+  border-color: rgba(88, 101, 242, 0.4);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7), 0 0 16px rgba(88, 101, 242, 0.35);
+}
+
+/* Botões da Barra de Ferramentas */
+.annotation-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #dbdee1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.annotation-tool-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  transform: scale(1.06);
+}
+
+.annotation-tool-btn.active {
+  background: #5865f2;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(88, 101, 242, 0.6);
+}
+
+.annotation-tool-btn.laser-active {
+  background: #f23f43;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(242, 63, 67, 0.7);
+}
+
+/* Divisores */
+.annotation-divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  margin: 0 3px;
+}
+
+/* Seletor de Cores */
+.annotation-colors-wrap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.annotation-color-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.annotation-color-dot:hover {
+  transform: scale(1.2);
+}
+
+.annotation-color-dot.active {
+  border-color: #ffffff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+  transform: scale(1.15);
+}
+
+/* Badge de Modo Colaborativo */
+.annotation-collab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 16px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: #949ba4;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.annotation-collab-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f2f3f5;
+}
+
+.annotation-collab-btn.collab-on {
+  background: rgba(87, 242, 135, 0.15);
+  border-color: rgba(87, 242, 135, 0.5);
+  color: #57f287;
+  box-shadow: 0 0 10px rgba(87, 242, 135, 0.25);
+}
+
+/* Etiqueta Flutuante de Quem Está Riscando */
+.annotation-author-tag {
+  position: absolute;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  transform: translate(12px, 12px);
+  z-index: 45;
+  white-space: nowrap;
+  animation: authorTagFadeOut 2.5s forwards ease-out;
+}
+
+@keyframes authorTagFadeOut {
+  0% { opacity: 1; transform: translate(12px, 12px) scale(1); }
+  75% { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(12px, 8px) scale(0.95); }
+}
+
+/* Ponto Laser Animado */
+.annotation-laser-dot {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 10%, #f23f43 70%);
+  box-shadow: 0 0 16px #f23f43, 0 0 28px #f23f43;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 46;
+  animation: laserPulse 0.4s infinite alternate ease-in-out;
+}
+
+@keyframes laserPulse {
+  from { transform: translate(-50%, -50%) scale(0.85); box-shadow: 0 0 10px #f23f43; }
+  to { transform: translate(-50%, -50%) scale(1.2); box-shadow: 0 0 20px #f23f43, 0 0 30px #f23f43; }
+}
+
+/* Mini Botão de Ativação Rápida de Caneta no Canto da Tela */
+.annotation-quick-toggle-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: rgba(22, 23, 27, 0.92);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(88, 101, 242, 0.55);
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 75;
+  pointer-events: auto;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 10px rgba(88, 101, 242, 0.3);
+  transition: all 0.2s ease;
+}
+
+.annotation-quick-toggle-btn:hover {
+  background: #35373c;
+  color: #ffffff;
+  border-color: #5865f2;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6), 0 0 16px rgba(88, 101, 242, 0.55);
+  transform: translateY(-1px);
+}
+
+.annotation-quick-toggle-btn.active {
+  background: #5865f2;
+  color: #ffffff;
+  border-color: #5865f2;
+  box-shadow: 0 0 16px rgba(88, 101, 242, 0.65);
+}
+
+.close-toolbar-btn:hover {
+  background: rgba(242, 63, 67, 0.2) !important;
+  color: #f23f43 !important;
+}

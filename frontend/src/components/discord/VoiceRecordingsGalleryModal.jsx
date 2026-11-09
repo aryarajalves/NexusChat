@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { X, Film, RefreshCw, Loader2 } from 'lucide-react';
+import { X, Film, RefreshCw, Loader2, Filter, RotateCcw } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import VoiceRecordingCard from './VoiceRecordingCard';
 import VoiceRecordingsToolbar from './VoiceRecordingsToolbar';
+import VoiceRecordingsFilterBar from './VoiceRecordingsFilterBar';
 import VoiceRecordingsPagination from './VoiceRecordingsPagination';
 import VoiceRecordingDeleteModal from './VoiceRecordingDeleteModal';
 import VoiceRecordingsBatchDeleteModal from './VoiceRecordingsBatchDeleteModal';
@@ -30,6 +31,20 @@ export default function VoiceRecordingsGalleryModal({
   const [currentPage, setCurrentPage] = useState(1);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isBatchDeleting, setIsBatchDeleting] = useState(false);
+
+  // Estados dos filtros avançados
+  const [filterChannelId, setFilterChannelId] = useState('');
+  const [filterAuthorId, setFilterAuthorId] = useState('');
+  const [filterOnlyAdmins, setFilterOnlyAdmins] = useState(false);
+  const [filterDate, setFilterDate] = useState('');
+
+  const handleClearFilters = useCallback(() => {
+    setFilterChannelId('');
+    setFilterAuthorId('');
+    setFilterOnlyAdmins(false);
+    setFilterDate('');
+    setCurrentPage(1);
+  }, []);
 
   // Estado do popup de exclusão individual
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -83,20 +98,59 @@ export default function VoiceRecordingsGalleryModal({
       fetchRecordings();
       setCurrentPage(1);
       setSelectedIds([]);
+      handleClearFilters();
     } else {
       setEditingId(null);
       setDeleteTarget(null);
       setIsBatchModalOpen(false);
       setSelectedIds([]);
+      handleClearFilters();
     }
-  }, [isOpen, fetchRecordings]);
+  }, [isOpen, fetchRecordings, handleClearFilters]);
+
+  // Listas únicas de canais e autores disponíveis para os seletores
+  const availableChannels = useMemo(() => {
+    const map = new Map();
+    recordings.forEach((r) => { if (r.channel_id && r.channel_name) map.set(String(r.channel_id), r.channel_name); });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [recordings]);
+
+  const availableAuthors = useMemo(() => {
+    const map = new Map();
+    recordings.forEach((r) => { if (r.user_id && r.author_name) map.set(String(r.user_id), r.author_name); });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [recordings]);
+
+  // Aplicação dos Filtros (Sala, Autor, Só Admins e Data)
+  const filteredRecordings = useMemo(() => {
+    return recordings.filter((rec) => {
+      if (filterChannelId && String(rec.channel_id) !== String(filterChannelId)) {
+        return false;
+      }
+      if (filterAuthorId && String(rec.user_id) !== String(filterAuthorId)) {
+        return false;
+      }
+      if (filterOnlyAdmins && !rec.is_admin_author) {
+        return false;
+      }
+      if (filterDate) {
+        const recDateStr = rec.created_at ? new Date(rec.created_at).toISOString().slice(0, 10) : '';
+        if (recDateStr !== filterDate) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [recordings, filterChannelId, filterAuthorId, filterOnlyAdmins, filterDate]);
+
+  const hasActiveFilters = Boolean(filterChannelId || filterAuthorId || filterOnlyAdmins || filterDate);
 
   // Cálculos de Paginação (Máx 20 por página)
-  const totalPages = Math.ceil(recordings.length / ITEMS_PER_PAGE) || 1;
+  const totalPages = Math.ceil(filteredRecordings.length / ITEMS_PER_PAGE) || 1;
   const paginatedRecordings = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return recordings.slice(start, start + ITEMS_PER_PAGE);
-  }, [recordings, currentPage]);
+    return filteredRecordings.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredRecordings, currentPage]);
 
   useEffect(() => {
     if (currentPage > totalPages && totalPages > 0) {
@@ -168,7 +222,7 @@ export default function VoiceRecordingsGalleryModal({
   };
 
   const handleSelectEntireChannel = () => {
-    setSelectedIds(recordings.map((r) => r.id));
+    setSelectedIds(filteredRecordings.map((r) => r.id));
   };
 
   const handleClearSelection = () => {
@@ -308,9 +362,27 @@ export default function VoiceRecordingsGalleryModal({
             </div>
           </div>
 
+          {/* Barra de Filtros Avançados */}
+          <VoiceRecordingsFilterBar
+            channels={availableChannels}
+            authors={availableAuthors}
+            selectedChannelId={filterChannelId}
+            onSelectChannelId={(cid) => { setFilterChannelId(cid); setCurrentPage(1); }}
+            selectedAuthorId={filterAuthorId}
+            onSelectAuthorId={(aid) => { setFilterAuthorId(aid); setCurrentPage(1); }}
+            onlyAdmins={filterOnlyAdmins}
+            onToggleOnlyAdmins={() => { setFilterOnlyAdmins((p) => !p); setCurrentPage(1); }}
+            selectedDate={filterDate}
+            onSelectDate={(d) => { setFilterDate(d); setCurrentPage(1); }}
+            onClearFilters={handleClearFilters}
+            hasActiveFilters={hasActiveFilters}
+            totalCount={recordings.length}
+            filteredCount={filteredRecordings.length}
+          />
+
           {/* Barra de Seleção e Ações em Lote */}
           <VoiceRecordingsToolbar
-            recordingsCount={recordings.length}
+            recordingsCount={filteredRecordings.length}
             selectedCount={selectedIds.length}
             itemsPerPage={ITEMS_PER_PAGE}
             isAllCurrentPageSelected={isAllCurrentPageSelected}
@@ -338,6 +410,26 @@ export default function VoiceRecordingsGalleryModal({
                   Quando você ou um administrador gravar o áudio ou vídeo nesta sala e salvar no servidor, o conteúdo ficará disponível aqui para streaming e download.
                 </p>
               </div>
+            ) : filteredRecordings.length === 0 ? (
+              <div className="voice-gallery-empty" data-testid="voice-gallery-empty-filtered">
+                <div className="voice-gallery-empty-icon">
+                  <Filter size={28} />
+                </div>
+                <strong>Nenhuma gravação encontrada</strong>
+                <p className="voice-gallery-empty-text">
+                  Nenhum vídeo gravado corresponde aos filtros selecionados. Tente ajustar ou limpar os filtros para ver outras gravações.
+                </p>
+                <button
+                  type="button"
+                  className="voice-gallery-clear-filters-btn"
+                  onClick={handleClearFilters}
+                  style={{ marginTop: 12, padding: '6px 14px', fontSize: 13 }}
+                  data-testid="empty-clear-filters-btn"
+                >
+                  <RotateCcw size={14} />
+                  <span>Limpar filtros</span>
+                </button>
+              </div>
             ) : (
               paginatedRecordings.map((rec) => (
                 <VoiceRecordingCard
@@ -364,11 +456,11 @@ export default function VoiceRecordingsGalleryModal({
           </div>
 
           {/* Paginação */}
-          {recordings.length > 0 && (
+          {filteredRecordings.length > 0 && (
             <VoiceRecordingsPagination
               currentPage={currentPage}
               totalPages={totalPages}
-              totalItems={recordings.length}
+              totalItems={filteredRecordings.length}
               itemsPerPage={ITEMS_PER_PAGE}
               onPageChange={(p) => setCurrentPage(p)}
             />

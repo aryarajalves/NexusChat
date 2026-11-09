@@ -238,15 +238,17 @@ describe('Sistema de Boas-Vindas e Sincronização Realtime', () => {
       });
     });
 
-    expect(result.current.voiceChannelUsers[50]).toEqual([
-      { user_id: 1, user_name: 'Super Admin' },
-    ]);
+    expect(result.current.voiceChannelUsers[50][0].user_id).toBe(1);
+    expect(result.current.voiceChannelUsers[50][0].user_name).toBe('Super Admin');
 
-    // Ao desmontar (ex: logout), dispara /voice-leave-all
-    unmount();
+    // Ao fechar aba/navegador (beforeunload), dispara /voice-leave-all
+    act(() => {
+      window.dispatchEvent(new Event('beforeunload'));
+    });
     expect(global.fetch).toHaveBeenCalledWith(
       '/api/v1/discord/channels/voice-leave-all',
       expect.objectContaining({ method: 'POST' })
     );
+    unmount();
   });
 });

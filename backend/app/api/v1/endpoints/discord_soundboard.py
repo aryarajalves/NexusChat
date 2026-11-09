@@ -13,7 +13,11 @@ from app.core.database import get_db
 from app.core.logger import logger
 from app.models.user import User
 from app.models.discord import Server, ServerMember, ServerRole, ServerSoundboardSound, Channel
-from app.schemas.discord import ServerSoundboardSoundResponse, SoundboardPlayRequest
+from app.schemas.discord import (
+    ServerSoundboardSoundResponse,
+    ServerSoundboardSoundUpdate,
+    SoundboardPlayRequest,
+)
 from app.api.v1.endpoints.users import get_current_user
 from app.services.storage import upload_discord_media_file, delete_discord_media_file
 from app.services.socket_manager import socket_manager
@@ -183,6 +187,64 @@ async def create_server_sound(
         f"Som '{clean_name}' cadastrado no servidor #{server_id} pelo usuário #{current_user.id} ({audio_url})"
     )
     return new_sound
+
+
+@router.patch(
+    "/servers/{server_id}/soundboard/{sound_id}",
+    response_model=ServerSoundboardSoundResponse,
+)
+def update_server_sound(
+    server_id: int,
+    sound_id: int,
+    payload: ServerSoundboardSoundUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Atualiza o nome, emoji ou volume de um som do soundboard."""
+    ensure_can_manage_soundboard(server_id, current_user, db)
+
+    sound = (
+        db.query(ServerSoundboardSound)
+        .filter(ServerSoundboardSound.id == sound_id, ServerSoundboardSound.server_id == server_id)
+        .first()
+    )
+    if not sound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Som não encontrado.")
+
+    if payload.name is not None:
+        clean_name = payload.name.strip()
+        if len(clean_name) < 2 or len(clean_name) > 32:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="O nome do som deve ter entre 2 e 32 caracteres.",
+            )
+        duplicate = (
+            db.query(ServerSoundboardSound)
+            .filter(
+                ServerSoundboardSound.server_id == server_id,
+                ServerSoundboardSound.name == clean_name,
+                ServerSoundboardSound.id != sound_id,
+            )
+            .first()
+        )
+        if duplicate:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Já existe outro som com o nome '{clean_name}' neste servidor.",
+            )
+        sound.name = clean_name
+
+    if payload.emoji is not None:
+        clean_emoji = payload.emoji.strip()[:4] or "🔊"
+        sound.emoji = clean_emoji
+
+    if payload.volume is not None:
+        sound.volume = max(0.1, min(float(payload.volume), 1.0))
+
+    db.commit()
+    db.refresh(sound)
+    logger.info(f"Som #{sound_id} atualizado no servidor #{server_id} por {current_user.name}")
+    return sound
 
 
 @router.delete("/servers/{server_id}/soundboard/{sound_id}")

@@ -93,33 +93,28 @@ export function useDiscordFeedEffects({
 
   // 1. Carrega mensagens (seja de canal ou de DM)
   useEffect(() => {
+    setMessages([]);
     if (activeServerId === null) {
       if (!activeDMId) {
-        setMessages([]);
         return;
       }
       fetch(`/api/v1/discord/dms/conversations/${activeDMId}/messages?limit=50`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => d && setMessages(d))
-        .catch(() => {});
+        .then((r) => (r.ok ? r.json() : []))
+        .then((d) => setMessages(Array.isArray(d) ? d : []))
+        .catch(() => setMessages([]));
       return;
     }
-    if (!activeChannelId) {
-      setMessages([]);
-      return;
-    }
-    if (activeChannelType === 'VOICE') {
-      setMessages([]);
+    if (!activeChannelId || activeChannelType === 'VOICE') {
       return;
     }
     fetch(`/api/v1/discord/channels/${activeChannelId}/messages?limit=50`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => d && setMessages(d))
-      .catch(() => {});
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setMessages(Array.isArray(d) ? d : []))
+      .catch(() => setMessages([]));
   }, [activeServerId, activeDMId, activeChannelId, activeChannelType, token, setMessages]);
 
   // 2. Carrega mensagens fixadas do canal ou DM ativa

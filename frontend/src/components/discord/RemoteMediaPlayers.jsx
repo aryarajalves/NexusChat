@@ -34,7 +34,7 @@ function attachPlayWithUnlock(el, shouldPlay = true) {
   };
 }
 
-function RemoteAudioItem({ stream, isDeafened, testId }) {
+function RemoteAudioItem({ stream, isDeafened, testId, volume = 100, isLocallyMuted = false }) {
   const audioRef = useRef(null);
 
   useEffect(() => {
@@ -44,8 +44,11 @@ function RemoteAudioItem({ stream, isDeafened, testId }) {
     if (el.srcObject !== stream) {
       el.srcObject = stream;
     }
-    el.muted = Boolean(isDeafened);
-    el.volume = 1.0;
+    el.muted = Boolean(isDeafened || isLocallyMuted);
+    const normVol = isLocallyMuted ? 0 : Math.max(0, Math.min(1.0, volume / 100));
+    try {
+      el.volume = normVol;
+    } catch {}
 
     try {
       const preferredSpeaker = localStorage.getItem('discord_audio_output');
@@ -56,25 +59,25 @@ function RemoteAudioItem({ stream, isDeafened, testId }) {
       // Ignora se localStorage ou setSinkId não estiver disponível
     }
 
-    const cleanupUnlock = attachPlayWithUnlock(el, !isDeafened);
+    const cleanupUnlock = attachPlayWithUnlock(el, !isDeafened && !isLocallyMuted);
     const tracks = typeof stream.getTracks === 'function' ? stream.getTracks() : [];
-    const handleUnmute = () => attachPlayWithUnlock(el, !isDeafened);
+    const handleUnmute = () => attachPlayWithUnlock(el, !isDeafened && !isLocallyMuted);
 
     tracks.forEach((t) => t?.addEventListener?.('unmute', handleUnmute));
-    el.onloadedmetadata = () => attachPlayWithUnlock(el, !isDeafened);
+    el.onloadedmetadata = () => attachPlayWithUnlock(el, !isDeafened && !isLocallyMuted);
 
     return () => {
       cleanupUnlock();
       tracks.forEach((t) => t?.removeEventListener?.('unmute', handleUnmute));
     };
-  }, [stream, isDeafened]);
+  }, [stream, isDeafened, volume, isLocallyMuted]);
 
   return (
     <audio
       ref={audioRef}
       autoPlay
       playsInline
-      muted={Boolean(isDeafened)}
+      muted={Boolean(isDeafened || isLocallyMuted)}
       data-testid={testId}
     />
   );
@@ -84,15 +87,26 @@ function RemoteAudioItem({ stream, isDeafened, testId }) {
  * Pool invisível de elementos <audio> para reproduzir o áudio WebRTC de todos os participantes remotos,
  * permanecendo ativo inclusive quando a sala está minimizada em modo Picture-in-Picture (PiP).
  */
-export function RemoteAudioPool({ remotePeersMedia = {}, isDeafened = false }) {
+export function RemoteAudioPool({
+  remotePeersMedia = {},
+  isDeafened = false,
+  userVolumes = {},
+  userLocalMutes = {},
+}) {
   const audioItems = [];
   Object.values(remotePeersMedia || {}).forEach((peer) => {
+    const uid = peer?.userId;
+    const vol = userVolumes[uid] ?? userVolumes[String(uid)] ?? 100;
+    const isLocallyMuted = Boolean(userLocalMutes[uid] ?? userLocalMutes[String(uid)]);
+
     (peer?.audioStreams || []).forEach((stream, idx) => {
       if (stream) {
         audioItems.push({
-          key: `${peer.userId}-${stream.id || idx}`,
-          testId: `remote-audio-${peer.userId}-${idx}`,
+          key: `${uid}-${stream.id || idx}`,
+          testId: `remote-audio-${uid}-${idx}`,
           stream,
+          volume: vol,
+          isLocallyMuted,
         });
       }
     });
@@ -110,6 +124,8 @@ export function RemoteAudioPool({ remotePeersMedia = {}, isDeafened = false }) {
           stream={item.stream}
           isDeafened={isDeafened}
           testId={item.testId}
+          volume={item.volume}
+          isLocallyMuted={item.isLocallyMuted}
         />
       ))}
     </div>

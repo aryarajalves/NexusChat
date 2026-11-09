@@ -98,26 +98,18 @@ export default function ChatMessageItem({
   const initial = (msg.author_name || 'U').charAt(0).toUpperCase();
   const canDelete = msg.author_id === currentUserId || currentUserRole === 'OWNER' || currentUserRole === 'ADMIN';
   const isAuthor = msg.author_id === currentUserId;
-  const authorMember = members?.find((m) => m.user_id === msg.author_id);
+  const authorMember = members?.find((m) => m.user_id === msg.author_id || m.id === msg.author_id);
   const roleColor = msg.author_role_color || authorMember?.role_color;
+  const authorAvatarUrl = isAuthor
+    ? (currentUser ? (currentUser.avatar_url || null) : msg.author_avatar_url)
+    : (authorMember?.avatar_url || msg.author_avatar_url);
 
-  const handleStartEdit = () => {
-    setIsEditing(true);
-    setEditingContent(msg.content || '');
-    setIsEmojiPickerOpen(false);
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setEditingContent(msg.content || '');
-  };
-
+  const handleStartEdit = () => { setIsEditing(true); setEditingContent(msg.content || ''); setIsEmojiPickerOpen(false); };
+  const handleCancelEdit = () => { setIsEditing(false); setEditingContent(msg.content || ''); };
   const handleSaveEdit = async () => {
     const trimmed = editingContent.trim();
     if (!trimmed) return;
-    if (onEditMessage) {
-      await onEditMessage(channelId, msg.id, trimmed);
-    }
+    if (onEditMessage) await onEditMessage(channelId, msg.id, trimmed);
     setIsEditing(false);
   };
 
@@ -160,7 +152,18 @@ export default function ChatMessageItem({
       )}
 
       <div className="chat-message-main-content">
-        <div className="chat-author-avatar">{msg.author_avatar_url ? <img src={msg.author_avatar_url} alt={msg.author_name} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : initial}</div>
+        <div className="chat-author-avatar">
+          {authorAvatarUrl ? (
+            <img
+              src={authorAvatarUrl}
+              alt={msg.author_name}
+              style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
+              data-testid={`message-author-avatar-img-${msg.id}`}
+            />
+          ) : (
+            initial
+          )}
+        </div>
         <div className="chat-message-body">
           <div className="chat-message-meta">
             <span

@@ -72,6 +72,7 @@ def format_dm_message(msg: DMMessage) -> MessageResponse:
         author_id=msg.author_id,
         author_name=msg.author.name if msg.author else "Usuário",
         author_email=msg.author.email if msg.author else "",
+        author_avatar_url=msg.author.avatar_url if msg.author else None,
         content=msg.content,
         attachment_url=msg.attachment_url,
         attachment_type=msg.attachment_type,
@@ -197,6 +198,7 @@ def get_or_create_dm_conversation(
             id=other_user.id,
             name=other_user.name,
             email=other_user.email,
+            avatar_url=other_user.avatar_url,
             is_active=other_user.is_active
         ),
         last_message=format_dm_message(last_msg) if last_msg else None,
@@ -220,7 +222,7 @@ def get_dm_messages(
 
     messages = (
         db.query(DMMessage)
-        .options(joinedload(DMMessage.sender))
+        .options(joinedload(DMMessage.author))
         .filter(DMMessage.conversation_id == conversation_id)
         .order_by(DMMessage.id.desc())
         .limit(limit)

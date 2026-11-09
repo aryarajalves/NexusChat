@@ -271,15 +271,134 @@ def test_switching_voice_channels_removes_user_from_previous_channel():
     assert status_a["total_participants"] == 1
     assert status_b["total_participants"] == 0
 
-    # 4. Usuário agora entra na Sala B diretamente (switch)
-    res_join_b = client.post(f"/api/v1/discord/channels/{ch_b_id}/voice-join", headers=headers)
-    assert res_join_b.status_code == 200
-    assert res_join_b.json()["total_participants"] == 1
+    # 4. Simula WebSocket ainda em processo de fechamento na Sala A (channel_rooms) durante a troca rápida de sala
+    class DummyWS:
+        async def send_json(self, data):
+            pass
 
-    # 5. Verifica que o usuário SAIU automaticamente da Sala A e agora está APENAS na Sala B
-    status_a_after = client.get(f"/api/v1/discord/channels/{ch_a_id}/voice-status", headers=headers).json()
-    status_b_after = client.get(f"/api/v1/discord/channels/{ch_b_id}/voice-status", headers=headers).json()
+    dummy_ws = DummyWS()
+    socket_manager.channel_rooms.setdefault(ch_a_id, set()).add(dummy_ws)
+    socket_manager.socket_users[dummy_ws] = (res_join_a.json()["active_participants"][0]["user_id"], "Switch User")
 
-    assert status_a_after["total_participants"] == 0, "Usuário duplicado! Deveria ter saído da Sala A."
-    assert status_b_after["total_participants"] == 1, "Usuário deveria estar presente na Sala B."
+    try:
+        # 5. Usuário agora entra na Sala B diretamente (switch)
+        res_join_b = client.post(f"/api/v1/discord/channels/{ch_b_id}/voice-join", headers=headers)
+        assert res_join_b.status_code == 200
+        assert res_join_b.json()["total_participants"] == 1
+
+        # 6. Verifica que o usuário SAIU automaticamente da Sala A (mesmo com WS ainda fechando) e está APENAS na Sala B
+        status_a_after = client.get(f"/api/v1/discord/channels/{ch_a_id}/voice-status", headers=headers).json()
+        status_b_after = client.get(f"/api/v1/discord/channels/{ch_b_id}/voice-status", headers=headers).json()
+
+        assert status_a_after["total_participants"] == 0, "Usuário duplicado! Deveria ter saído da Sala A mesmo com WS pendente."
+        assert status_b_after["total_participants"] == 1, "Usuário deveria estar presente na Sala B."
+    finally:
+        if ch_a_id in socket_manager.channel_rooms:
+            socket_manager.channel_rooms[ch_a_id].discard(dummy_ws)
+        socket_manager.socket_users.pop(dummy_ws, None)
+
+
+@pytest.mark.asyncio
+async def test_voice_ws_auto_recovery_simultaneous_users():
+    """
+    Garante que caso a memória de voice_rooms seja reiniciada (ex: reload do Uvicorn),
+    a reconexão do WebSocket de voz de múltiplos usuários registra todos simultaneamente na sala.
+    """
+    class DummyUser:
+        def __init__(self, uid, name, avatar=None):
+            self.id = uid
+            self.name = name
+            self.avatar_url = avatar
+
+    ch_id = 999
+    socket_manager.voice_rooms.pop(ch_id, None)
+    socket_manager.voice_room_start_times.pop(ch_id, None)
+
+    u1 = DummyUser(1, "Super Admin", "/avatars/admin.png")
+    u2 = DummyUser(2, "Hokage", "/avatars/hokage.png")
+
+    await socket_manager.ensure_voice_ws_registered(ch_id, "VOICE", u1)
+    await socket_manager.ensure_voice_ws_registered(ch_id, "VOICE", u2)
+
+    users = socket_manager.get_voice_users_in_channel(ch_id)
+    assert len(users) == 2
+    uids = {u["user_id"] for u in users}
+    assert uids == {1, 2}
+    assert socket_manager.get_call_started_at(ch_id) is not None
+
+    socket_manager.voice_rooms.pop(ch_id, None)
+    socket_manager.voice_room_start_times.pop(ch_id, None)
+
+
+def test_voice_channel_text_chat_messages():
+    """
+    Garante que canais de voz suportam bate-papo de texto integrado (notas/mensagens importantes da call),
+    permitindo envio e leitura de mensagens persistidas no canal de voz.
+    """
+    admin_id = create_user_helper("voice_text_admin@teste.com", "Admin Call")
+    headers = get_auth_token("voice_text_admin@teste.com")
+
+    # Cria servidor
+    srv_res = client.post("/api/v1/discord/servers", json={"name": "Servidor Call Text"}, headers=headers)
+    assert srv_res.status_code == 201
+    server_id = srv_res.json()["id"]
+
+    # Cria canal de voz
+    ch_res = client.post(
+        f"/api/v1/discord/servers/{server_id}/channels",
+        json={"name": "Reuniao Estrategica", "type": "VOICE", "category": "Canais de Voz"},
+        headers=headers,
+    )
+    assert ch_res.status_code == 201
+    voice_ch_id = ch_res.json()["id"]
+    assert ch_res.json()["type"] == "VOICE"
+
+    # Envia anotação/mensagem de texto no canal de voz
+    msg_payload = {
+        "content": "Anotação importante da call: fechar contrato com cliente amanhã às 14h.",
+    }
+    send_res = client.post(
+        f"/api/v1/discord/channels/{voice_ch_id}/messages",
+        json=msg_payload,
+        headers=headers,
+    )
+    assert send_res.status_code == 201
+    msg_data = send_res.json()
+    assert msg_data["content"] == msg_payload["content"]
+    assert msg_data["channel_id"] == voice_ch_id
+    assert msg_data["author_id"] == admin_id
+
+    # Lista mensagens do canal de voz
+    list_res = client.get(f"/api/v1/discord/channels/{voice_ch_id}/messages", headers=headers)
+    assert list_res.status_code == 200
+    messages = list_res.json()
+    assert len(messages) >= 1
+    assert any(m["content"] == msg_payload["content"] for m in messages)
+
+    assert ch_res.json()["type"] == "VOICE"
+
+    # Envia anotação/mensagem de texto no canal de voz
+    msg_payload = {
+        "content": "Anotação importante da call: fechar contrato com cliente amanhã às 14h.",
+    }
+    send_res = client.post(
+        f"/api/v1/discord/channels/{voice_ch_id}/messages",
+        json=msg_payload,
+        headers=headers,
+    )
+    assert send_res.status_code == 201
+    msg_data = send_res.json()
+    assert msg_data["content"] == msg_payload["content"]
+    assert msg_data["channel_id"] == voice_ch_id
+    assert msg_data["author_id"] == admin_id
+
+    # Lista mensagens do canal de voz
+    list_res = client.get(f"/api/v1/discord/channels/{voice_ch_id}/messages", headers=headers)
+    assert list_res.status_code == 200
+    messages = list_res.json()
+    assert len(messages) >= 1
+    assert any(m["content"] == msg_payload["content"] for m in messages)
+
+
+
 

@@ -256,4 +256,38 @@ describe('VoiceChannelArea Component', () => {
     expect(screen.getByText(/Bob/i)).toBeInTheDocument();
     expect(screen.getByText(/Aryaraj/i)).toBeInTheDocument();
   });
+
+  it('renders user avatar images in participant tiles when avatar_url is provided directly or via members', () => {
+    const userWithAvatar = { id: 1, name: 'Aryaraj', avatar_url: 'https://cdn.example.com/aryaraj.png' };
+    const membersList = [
+      { user_id: 2, user_name: 'Samuel Sátiro', avatar_url: 'https://cdn.example.com/samuel.png' },
+      { user_id: 3, user_name: 'Junior Baltazar', avatar_url: null },
+    ];
+
+    renderWithToast(
+      <VoiceChannelArea
+        channel={mockChannel}
+        connectionStatus="connected"
+        currentUser={userWithAvatar}
+        onlineUsers={[
+          { user_id: 2, user_name: 'Samuel Sátiro' },
+          { user_id: 3, user_name: 'Junior Baltazar' },
+        ]}
+        members={membersList}
+      />
+    );
+
+    // Aryaraj (currentUser) e Samuel Sátiro (via members) devem ter tags de imagem de avatar
+    const aryarajAvatar = screen.getByTestId('voice-avatar-img-1');
+    expect(aryarajAvatar).toBeInTheDocument();
+    expect(aryarajAvatar).toHaveAttribute('src', 'https://cdn.example.com/aryaraj.png');
+
+    const samuelAvatar = screen.getByTestId('voice-avatar-img-2');
+    expect(samuelAvatar).toBeInTheDocument();
+    expect(samuelAvatar).toHaveAttribute('src', 'https://cdn.example.com/samuel.png');
+
+    // Junior Baltazar não tem avatar_url -> exibe a inicial 'J' em texto
+    expect(screen.queryByTestId('voice-avatar-img-3')).not.toBeInTheDocument();
+    expect(screen.getByText('J')).toBeInTheDocument();
+  });
 });

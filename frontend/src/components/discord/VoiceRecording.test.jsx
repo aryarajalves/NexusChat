@@ -133,6 +133,12 @@ describe('Voice Channel Recording & Export Feature', () => {
       expect(toggleCard).toHaveClass('active');
       fireEvent.click(toggleCard);
       expect(toggleCard).not.toHaveClass('active');
+
+      // Verifica estrutura scrollável para evitar estouro da tela
+      const modal = screen.getByTestId('voice-recording-modal');
+      const scrollBody = modal.querySelector('.voice-recording-body');
+      expect(scrollBody).toBeInTheDocument();
+      expect(scrollBody).toContainElement(screen.getByTestId('recorded-video-preview'));
     });
   });
 

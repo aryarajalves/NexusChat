@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mic, MicOff, Headphones, Video, VideoOff, Monitor, Sparkles, PhoneOff } from 'lucide-react';
+import { Mic, MicOff, Headphones, Video, VideoOff, Monitor, Sparkles, PhoneOff, Pen, PictureInPicture2 } from 'lucide-react';
 import VoiceChannelRecorder from './VoiceChannelRecorder';
 
 export default function VoiceControlDock({
@@ -19,6 +19,12 @@ export default function VoiceControlDock({
   cameraStream,
   currentUser,
   onDisconnectVoice,
+  getAnnotationCanvas,
+  hasActiveScreenShare = false,
+  isAnnotationActive = false,
+  onToggleAnnotation,
+  isDocumentPipOpen = false,
+  onToggleDocumentPip,
 }) {
   const [showDockEffects, setShowDockEffects] = useState(false);
 
@@ -112,6 +118,31 @@ export default function VoiceControlDock({
         <Monitor size={20} />
       </button>
 
+      {/* Botão de Riscar Tela (Caneta) visível durante qualquer compartilhamento */}
+      {(isScreenSharing || hasActiveScreenShare) && (
+        <>
+          <button
+            type="button"
+            className={`voice-dock-btn ${isAnnotationActive ? 'btn-active-blue' : ''}`}
+            onClick={onToggleAnnotation}
+            title={isAnnotationActive ? 'Ocultar Ferramentas de Desenho' : 'Riscar Tela (Caneta)'}
+            data-testid="voice-toggle-annotation-dock-btn"
+          >
+            <Pen size={20} />
+          </button>
+
+          <button
+            type="button"
+            className={`voice-dock-btn ${isDocumentPipOpen ? 'btn-active-blue' : ''}`}
+            onClick={onToggleDocumentPip}
+            title={isDocumentPipOpen ? 'Fechar Janela Flutuante Always-on-Top' : 'Janela Flutuante Always-on-Top (Riscar enquanto usa Google/outros apps)'}
+            data-testid="voice-toggle-document-pip-btn"
+          >
+            <PictureInPicture2 size={20} />
+          </button>
+        </>
+      )}
+
       <VoiceChannelRecorder
         channel={channel}
         audioStream={mixedCallAudio}
@@ -119,6 +150,7 @@ export default function VoiceControlDock({
         cameraStream={cameraStream}
         isCameraOn={isCameraOn}
         currentUserName={currentUser?.name || 'Você'}
+        getAnnotationCanvas={getAnnotationCanvas}
       />
 
       <button

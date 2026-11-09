@@ -315,6 +315,7 @@ class VoiceRecordingResponse(BaseModel):
     channel_name: Optional[str] = None
     user_id: int
     author_name: Optional[str] = None
+    is_admin_author: bool = False
     title: str
     filename: str
     storage: str
@@ -350,6 +351,12 @@ class ServerSoundboardSoundResponse(BaseModel):
     audio_url: str
     volume: float = 1.0
     created_at: datetime
+
+
+class ServerSoundboardSoundUpdate(BaseModel):
+    name: Optional[str] = None
+    emoji: Optional[str] = None
+    volume: Optional[float] = None
 
 
 class SoundboardPlayRequest(BaseModel):

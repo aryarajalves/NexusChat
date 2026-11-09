@@ -491,10 +491,10 @@ async def send_channel_message(
     )
     channel = ensure_channel_access(channel_id, current_user, db)
 
-    if channel.type != "TEXT":
+    if channel.type not in ("TEXT", "VOICE"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Não é possível enviar mensagens de texto em canais de voz"
+            detail="Tipo de canal inválido para envio de mensagens"
         )
 
     content = (payload.content or "").strip()
@@ -836,18 +836,19 @@ async def channel_websocket_endpoint(
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
-    # Conecta no socket manager
+    # Conecta no socket manager e sincroniza presença de voz se aplicável
     await socket_manager.connect(channel_id, user.id, user.name, websocket)
+    await socket_manager.ensure_voice_ws_registered(channel_id, channel.type, user)
 
     # Notifica os participantes da presença do novo usuário
+    online_list = (
+        socket_manager.get_voice_users_in_channel(channel_id)
+        if channel.type == "VOICE"
+        else socket_manager.get_online_users_in_channel(channel_id)
+    )
     await socket_manager.broadcast_to_channel(
         channel_id,
-        {
-            "event": "presence:join",
-            "user_id": user.id,
-            "user_name": user.name,
-            "online_users": socket_manager.get_online_users_in_channel(channel_id)
-        }
+        {"event": "presence:join", "user_id": user.id, "user_name": user.name, "online_users": online_list}
     )
 
     try:
@@ -915,11 +916,7 @@ async def channel_websocket_endpoint(
             elif event_type == "user:typing":
                 await socket_manager.broadcast_to_channel(
                     channel_id,
-                    {
-                        "event": "user:typing",
-                        "user_id": user.id,
-                        "user_name": user.name
-                    },
+                    {"event": "user:typing", "user_id": user.id, "user_name": user.name},
                     exclude=websocket
                 )
 
@@ -927,37 +924,24 @@ async def channel_websocket_endpoint(
             elif event_type == "ping":
                 await websocket.send_json({"event": "pong"})
 
-            # 4. Estado de voz (mudo, ensurdecido, falando)
+            # 4. Estado de voz (mudo, ensurdecido, falando, compartilhando tela)
             elif event_type == "voice:state":
-                is_muted = bool(data.get("is_muted", False))
-                is_deafened = bool(data.get("is_deafened", False))
-                is_speaking = bool(data.get("is_speaking", False))
-                socket_manager.update_voice_user_state(channel_id, user.id, is_muted, is_deafened, is_speaking)
-                await socket_manager.broadcast_to_channel(
+                await socket_manager.process_voice_state_ws_event(
                     channel_id,
-                    {
-                        "event": "voice:state",
-                        "user_id": user.id,
-                        "user_name": user.name,
-                        "is_muted": is_muted,
-                        "is_deafened": is_deafened,
-                        "is_speaking": is_speaking
-                    },
-                    exclude=websocket
+                    channel.type,
+                    user,
+                    bool(data.get("is_muted", False)),
+                    bool(data.get("is_deafened", False)),
+                    bool(data.get("is_speaking", False)),
+                    is_screen_sharing=data.get("is_screen_sharing"),
+                    exclude_ws=websocket,
                 )
-                await socket_manager.broadcast_voice_channel_update(channel_id)
 
             # 5. Sinalização WebRTC (P2P Mesh de Voz)
             elif event_type == "voice:signal":
                 await socket_manager.broadcast_to_channel(
                     channel_id,
-                    {
-                        "event": "voice:signal",
-                        "sender_id": user.id,
-                        "sender_name": user.name,
-                        "target_user_id": data.get("target_user_id"),
-                        "signal": data.get("signal")
-                    },
+                    {"event": "voice:signal", "sender_id": user.id, "sender_name": user.name, "target_user_id": data.get("target_user_id"), "signal": data.get("signal")},
                     exclude=websocket
                 )
 
@@ -966,13 +950,15 @@ async def channel_websocket_endpoint(
                 sound_data = data.get("sound") or {}
                 await socket_manager.broadcast_to_channel(
                     channel_id,
-                    {
-                        "event": "voice:soundboard",
-                        "channel_id": channel_id,
-                        "user_id": user.id,
-                        "user_name": user.name,
-                        "sound": sound_data,
-                    }
+                    {"event": "voice:soundboard", "channel_id": channel_id, "user_id": user.id, "user_name": user.name, "sound": sound_data}
+                )
+
+            # 7. Anotação / Desenho Colaborativo na Tela Compartilhada
+            elif event_type == "screen:draw":
+                await socket_manager.broadcast_to_channel(
+                    channel_id,
+                    {"event": "screen:draw", "channel_id": channel_id, "user_id": user.id, "user_name": user.name, "action": data.get("action"), "payload": data.get("payload")},
+                    exclude=websocket
                 )
 
     except WebSocketDisconnect:

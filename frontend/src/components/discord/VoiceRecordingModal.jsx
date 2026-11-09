@@ -187,133 +187,135 @@ export default function VoiceRecordingModal({
           </div>
         </div>
 
-        {/* Player de Prévia */}
-        <div className="voice-recording-preview-box">
-          {recordType === 'video' ? (
-            <video
-              src={recordedUrl}
-              controls
-              playsInline
-              className="voice-recording-video-player"
-              data-testid="recorded-video-preview"
-            />
-          ) : (
-            <div className="voice-recording-audio-card" data-testid="recorded-audio-preview">
-              <div className="voice-recording-audio-info">
-                <Volume2 size={32} color="#5865f2" />
-                <div className="voice-recording-audio-meta">
-                  <span className="voice-recording-audio-name">{defaultFilename}</span>
-                  <span className="voice-recording-audio-sub">WebM Audio • Codec Opus</span>
+        {/* Corpo com Scroll Interno para Evitar Overflow na Tela */}
+        <div className="voice-recording-body">
+          {/* Player de Prévia */}
+          <div className="voice-recording-preview-box">
+            {recordType === 'video' ? (
+              <video
+                src={recordedUrl}
+                controls
+                playsInline
+                className="voice-recording-video-player"
+                data-testid="recorded-video-preview"
+              />
+            ) : (
+              <div className="voice-recording-audio-card" data-testid="recorded-audio-preview">
+                <div className="voice-recording-audio-info">
+                  <Volume2 size={32} color="#5865f2" />
+                  <div className="voice-recording-audio-meta">
+                    <span className="voice-recording-audio-name">{defaultFilename}</span>
+                    <span className="voice-recording-audio-sub">WebM Audio • Codec Opus</span>
+                  </div>
                 </div>
-              </div>
-              <audio src={recordedUrl} controls className="voice-recording-native-audio" />
-            </div>
-          )}
-        </div>
-
-        {/* Campo de Nome/Título Personalizado da Gravação */}
-        <div style={{ padding: '0 20px 8px 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <label style={{ fontSize: 13, fontWeight: 600, color: '#b5bac1' }}>
-            Nome da Gravação:
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              setIsCloudSaved(false);
-            }}
-            placeholder="Digite um título para sua gravação..."
-            style={{
-              background: '#1e1f22',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: 8,
-              padding: '10px 14px',
-              color: '#f2f3f5',
-              fontSize: 14,
-              outline: 'none',
-              transition: 'border-color 0.2s',
-            }}
-            data-testid="recording-title-input"
-          />
-        </div>
-
-        {/* Metadados da Gravação */}
-        <div className="voice-recording-meta-grid">
-          <div className="voice-recording-meta-item">
-            <Clock size={16} color="#949ba4" />
-            <span>Duração:</span>
-            <strong>{formatTime(durationSeconds)}</strong>
-          </div>
-          <div className="voice-recording-meta-item">
-            <HardDrive size={16} color="#949ba4" />
-            <span>Tamanho:</span>
-            <strong>{formatFileSize(recordedBlob?.size)}</strong>
-          </div>
-          <div className="voice-recording-meta-item">
-            <Check size={16} color="#57f287" />
-            <span>Formato:</span>
-            <strong>{recordType === 'video' ? exportFormat.toUpperCase() : 'WebM (AUDIO)'}</strong>
-          </div>
-        </div>
-
-        {/* Opções de Exportação e Compressão (Vídeo) */}
-        {recordType === 'video' && (
-          <div className="voice-recording-options-section" data-testid="voice-recording-options">
-            <div className="voice-recording-format-row">
-              <span className="voice-recording-format-label">Formato de Exportação:</span>
-              <div className="voice-recording-format-pills">
-                <button
-                  type="button"
-                  className={`voice-format-pill ${exportFormat === 'mp4' ? 'active' : ''}`}
-                  onClick={() => setExportFormat('mp4')}
-                  data-testid="format-pill-mp4"
-                >
-                  MP4 (Padrão)
-                </button>
-                <button
-                  type="button"
-                  className={`voice-format-pill ${exportFormat === 'webm' ? 'active' : ''}`}
-                  onClick={() => setExportFormat('webm')}
-                  data-testid="format-pill-webm"
-                >
-                  WebM
-                </button>
-              </div>
-            </div>
-
-            <div
-              className={`voice-recording-compress-card ${isCompressEnabled ? 'active' : ''}`}
-              onClick={() => setIsCompressEnabled(!isCompressEnabled)}
-              data-testid="toggle-compression-card"
-            >
-              <div className="voice-recording-compress-info">
-                <div className="voice-recording-compress-header-row">
-                  <Zap size={15} color={isCompressEnabled ? '#57f287' : '#949ba4'} />
-                  <strong className="voice-recording-compress-title">Comprimir vídeo sem perder qualidade</strong>
-                  {isCompressEnabled && (
-                    <span className="voice-recording-compress-badge">~50% menor</span>
-                  )}
-                </div>
-                <p className="voice-recording-compress-sub">
-                  Otimização inteligente H.264 que reduz o tamanho do arquivo preservando resolução e nitidez.
-                </p>
-              </div>
-              <div className={`channel-toggle-switch ${isCompressEnabled ? 'active' : ''}`}>
-                <div className="channel-toggle-handle" />
-              </div>
-            </div>
-
-            {(isExporting || isSavingToCloud) && exportProgress > 0 && (
-              <div className="voice-recording-progress-bar-wrap">
-                <div
-                  className="voice-recording-progress-bar-fill"
-                  style={{ width: `${exportProgress}%` }}
-                />
+                <audio src={recordedUrl} controls className="voice-recording-native-audio" />
               </div>
             )}
           </div>
-        )}
+
+          {/* Campo de Nome/Título Personalizado da Gravação */}
+          <div className="voice-recording-input-wrap">
+            <label style={{ fontSize: 13, fontWeight: 600, color: '#b5bac1' }}>
+              Nome da Gravação:
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                setIsCloudSaved(false);
+              }}
+              placeholder="Digite um título para sua gravação..."
+              style={{
+                background: '#1e1f22',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: 8,
+                padding: '8px 12px',
+                color: '#f2f3f5',
+                fontSize: 13.5,
+                outline: 'none',
+              }}
+              data-testid="recording-title-input"
+            />
+          </div>
+
+          {/* Metadados da Gravação */}
+          <div className="voice-recording-meta-grid">
+            <div className="voice-recording-meta-item">
+              <Clock size={16} color="#949ba4" />
+              <span>Duração:</span>
+              <strong>{formatTime(durationSeconds)}</strong>
+            </div>
+            <div className="voice-recording-meta-item">
+              <HardDrive size={16} color="#949ba4" />
+              <span>Tamanho:</span>
+              <strong>{formatFileSize(recordedBlob?.size)}</strong>
+            </div>
+            <div className="voice-recording-meta-item">
+              <Check size={16} color="#57f287" />
+              <span>Formato:</span>
+              <strong>{recordType === 'video' ? exportFormat.toUpperCase() : 'WebM (AUDIO)'}</strong>
+            </div>
+          </div>
+
+          {/* Opções de Exportação e Compressão (Vídeo) */}
+          {recordType === 'video' && (
+            <div className="voice-recording-options-section" data-testid="voice-recording-options">
+              <div className="voice-recording-format-row">
+                <span className="voice-recording-format-label">Formato de Exportação:</span>
+                <div className="voice-recording-format-pills">
+                  <button
+                    type="button"
+                    className={`voice-format-pill ${exportFormat === 'mp4' ? 'active' : ''}`}
+                    onClick={() => setExportFormat('mp4')}
+                    data-testid="format-pill-mp4"
+                  >
+                    MP4 (Padrão)
+                  </button>
+                  <button
+                    type="button"
+                    className={`voice-format-pill ${exportFormat === 'webm' ? 'active' : ''}`}
+                    onClick={() => setExportFormat('webm')}
+                    data-testid="format-pill-webm"
+                  >
+                    WebM
+                  </button>
+                </div>
+              </div>
+
+              <div
+                className={`voice-recording-compress-card ${isCompressEnabled ? 'active' : ''}`}
+                onClick={() => setIsCompressEnabled(!isCompressEnabled)}
+                data-testid="toggle-compression-card"
+              >
+                <div className="voice-recording-compress-info">
+                  <div className="voice-recording-compress-header-row">
+                    <Zap size={15} color={isCompressEnabled ? '#57f287' : '#949ba4'} />
+                    <strong className="voice-recording-compress-title">Comprimir vídeo sem perder qualidade</strong>
+                    {isCompressEnabled && (
+                      <span className="voice-recording-compress-badge">~50% menor</span>
+                    )}
+                  </div>
+                  <p className="voice-recording-compress-sub">
+                    Otimização inteligente H.264 que reduz o tamanho do arquivo preservando resolução e nitidez.
+                  </p>
+                </div>
+                <div className={`channel-toggle-switch ${isCompressEnabled ? 'active' : ''}`}>
+                  <div className="channel-toggle-handle" />
+                </div>
+              </div>
+
+              {(isExporting || isSavingToCloud) && exportProgress > 0 && (
+                <div className="voice-recording-progress-bar-wrap">
+                  <div
+                    className="voice-recording-progress-bar-fill"
+                    style={{ width: `${exportProgress}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Rodapé com Ações */}
         <div className="voice-recording-footer" style={{ flexWrap: 'wrap', gap: 8 }}>
@@ -339,6 +341,7 @@ export default function VoiceRecordingModal({
                 alignItems: 'center',
                 gap: 6,
                 cursor: isSavingToCloud || isExporting ? 'not-allowed' : 'pointer',
+                whiteSpace: 'nowrap',
               }}
               onClick={handleSaveToCloud}
               disabled={isSavingToCloud || isExporting}
@@ -351,7 +354,7 @@ export default function VoiceRecordingModal({
               ) : (
                 <UploadCloud size={16} />
               )}
-              <span>{isCloudSaved ? 'Salvo no B2! (Salvar Novamente)' : isSavingToCloud ? 'Enviando...' : 'Salvar no Servidor'}</span>
+              <span>{isCloudSaved ? 'Salvo no B2!' : isSavingToCloud ? 'Enviando...' : 'Salvar no Servidor'}</span>
             </button>
           )}
 
@@ -361,6 +364,7 @@ export default function VoiceRecordingModal({
             onClick={handleDownload}
             disabled={isExporting || isSavingToCloud}
             data-testid="export-recording-btn"
+            style={{ whiteSpace: 'nowrap' }}
           >
             {isExporting ? <Loader2 size={16} className="spin-anim" /> : <Download size={16} />}
             <span>

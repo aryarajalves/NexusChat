@@ -178,3 +178,131 @@
 .voice-gallery-page-indicator strong {
   color: #ffffff;
 }
+
+/* 4. Barra de Filtros Avançados (Sala, Autor, Só Admins e Data) */
+.voice-gallery-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: rgba(18, 19, 23, 0.9);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.voice-gallery-filter-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.voice-gallery-filter-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #2b2d31;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 3px 8px;
+  transition: all 0.15s ease;
+}
+
+.voice-gallery-filter-item:focus-within {
+  border-color: #5865f2;
+  box-shadow: 0 0 0 1px #5865f2;
+}
+
+.voice-gallery-filter-icon {
+  color: #949ba4;
+  flex-shrink: 0;
+}
+
+.voice-gallery-filter-select {
+  background: transparent;
+  border: none;
+  color: #dbdee1;
+  font-size: 12px;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+.voice-gallery-filter-select option {
+  background: #2b2d31;
+  color: #dbdee1;
+}
+
+.voice-gallery-filter-date {
+  background: transparent;
+  border: none;
+  color: #dbdee1;
+  font-size: 12px;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  padding: 2px 0;
+  color-scheme: dark;
+}
+
+.voice-gallery-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #2b2d31;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #949ba4;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.voice-gallery-filter-btn:hover {
+  background: #35373c;
+  color: #dbdee1;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.voice-gallery-filter-btn.is-active {
+  background: rgba(88, 101, 242, 0.22);
+  border-color: #5865f2;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(88, 101, 242, 0.35);
+}
+
+.voice-gallery-clear-filters-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(242, 63, 67, 0.15);
+  border: 1px solid rgba(242, 63, 67, 0.35);
+  color: #f23f43;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.voice-gallery-clear-filters-btn:hover {
+  background: rgba(242, 63, 67, 0.25);
+  border-color: #f23f43;
+  color: #ffffff;
+}
+
+.voice-gallery-filter-count {
+  font-size: 11px;
+  color: #949ba4;
+  margin-left: auto;
+}
+
+.voice-gallery-filter-count strong {
+  color: #5865f2;
+}

@@ -17,6 +17,7 @@ export function useDiscordSocket({
   onThreadMessageNew,
   onMemberRemoved,
   onServerKicked,
+  onScreenDraw,
 }) {
   const [connectionStatus, setConnectionStatus] = useState('disconnected'); // 'connected' | 'connecting' | 'disconnected'
   const [typingUsers, setTypingUsers] = useState([]);
@@ -41,6 +42,7 @@ export function useDiscordSocket({
   const onThreadMessageNewRef = useRef(onThreadMessageNew);
   const onMemberRemovedRef = useRef(onMemberRemoved);
   const onServerKickedRef = useRef(onServerKicked);
+  const onScreenDrawRef = useRef(onScreenDraw);
 
   useEffect(() => {
     onMessageNewRef.current = onMessageNew;
@@ -53,6 +55,7 @@ export function useDiscordSocket({
     onThreadMessageNewRef.current = onThreadMessageNew;
     onMemberRemovedRef.current = onMemberRemoved;
     onServerKickedRef.current = onServerKicked;
+    onScreenDrawRef.current = onScreenDraw;
   }, [
     onMessageNew,
     onMessageDelete,
@@ -64,6 +67,7 @@ export function useDiscordSocket({
     onThreadMessageNew,
     onMemberRemoved,
     onServerKicked,
+    onScreenDraw,
   ]);
 
   useEffect(() => {
@@ -223,8 +227,15 @@ export function useDiscordSocket({
                     is_muted: payload.is_muted,
                     is_deafened: payload.is_deafened,
                     is_speaking: payload.is_speaking,
+                    is_screen_sharing: payload.is_screen_sharing ?? prev[payload.user_id]?.is_screen_sharing ?? false,
                   },
                 }));
+              }
+              break;
+
+            case 'screen:draw':
+              if (onScreenDrawRef.current) {
+                onScreenDrawRef.current(payload);
               }
               break;
 
@@ -329,6 +340,13 @@ export function useDiscordSocket({
     }
   }, []);
 
+  // Envia eventos de anotação/desenho na tela compartilhada
+  const sendScreenDraw = useCallback((action, payload) => {
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({ event: 'screen:draw', action, payload }));
+    }
+  }, []);
+
   return {
     connectionStatus,
     typingUsers,
@@ -337,6 +355,7 @@ export function useDiscordSocket({
     sendMessage,
     sendTyping,
     sendVoiceState,
+    sendScreenDraw,
     reconnect: connect,
   };
 }

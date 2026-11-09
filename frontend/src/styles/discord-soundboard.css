@@ -5,8 +5,8 @@
   position: absolute;
   top: 60px;
   right: 16px;
-  width: 360px;
-  max-width: min(360px, 92vw);
+  width: 420px;
+  max-width: min(420px, 94vw);
   max-height: calc(100vh - 120px);
   background: #2b2d31;
   border: 1px solid #1e1f22;
@@ -18,6 +18,7 @@
   user-select: none;
   animation: soundboardFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 @keyframes soundboardFadeIn {
@@ -132,15 +133,21 @@
 .soundboard-popover-body {
   padding: 12px;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .soundboard-section {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .soundboard-section-title {
@@ -157,8 +164,10 @@
 
 .soundboard-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .soundboard-card {
@@ -172,6 +181,9 @@
   cursor: pointer;
   transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
   text-align: left;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .soundboard-card:hover {
@@ -182,6 +194,25 @@
 
 .soundboard-card:active {
   transform: translateY(0);
+}
+
+.soundboard-card.playing {
+  border-color: #5865f2;
+  background: rgba(88, 101, 242, 0.22) !important;
+  box-shadow: 0 0 10px rgba(88, 101, 242, 0.45);
+  animation: soundboardPulse 1.2s infinite ease-in-out;
+}
+
+.soundboard-card:disabled {
+  opacity: 0.55;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+@keyframes soundboardPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
 }
 
 .soundboard-card-emoji {
@@ -197,6 +228,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
 }
 
 .soundboard-empty {

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import ServerListBar from './ServerListBar';
 import ChannelSidebar from './ChannelSidebar';
 import DMSidebar from './DMSidebar';
@@ -12,8 +12,7 @@ import { useDiscordDMs } from './useDiscordDMs';
 import { useDiscordNavigation } from './useDiscordNavigation';
 import { useDiscordUnreadCallbacks, useDiscordFeedEffects } from './useDiscordMessagesAndUnreads';
 import useDiscordUnifiedChatActions from './useDiscordUnifiedChatActions';
-import useDiscordVoicePresence from './useDiscordVoicePresence';
-import useDiscordUserWS from './useDiscordUserWS';
+import useDiscordVoiceAndUserSync from './useDiscordVoiceAndUserSync';
 import useDiscordGlobalVoiceState from './useDiscordGlobalVoiceState';
 import { useToast } from '../../context/ToastContext';
 import { playDiscordSound } from './discordSounds'; import { ServerEmojisProvider } from '../../context/ServerEmojisContext';
@@ -27,6 +26,7 @@ export default function DiscordApp({
 }) {
   const [servers, setServers] = useState([]), [channels, setChannels] = useState([]), [members, setMembers] = useState([]);
   const [connectedVoiceChannelId, setConnectedVoiceChannelId] = useState(null);
+  const [connectedVoiceChannelSnapshot, setConnectedVoiceChannelSnapshot] = useState(null);
   const [showMembers, setShowMembers] = useState(true), [isMobileNavOpen, setIsMobileNavOpen] = useState(false), [isMobileMembersOpen, setIsMobileMembersOpen] = useState(false);
   const [loading] = useState(false);
 
@@ -36,34 +36,20 @@ export default function DiscordApp({
   const activeDMIdRef = useRef(null);
 
   const {
-    isVoiceMuted, setIsVoiceMuted, isVoiceDeafened, setIsVoiceDeafened,
+    isVoiceMuted, setIsVoiceMuted, isVoiceDeafened, setIsVoiceDeafened, isVoiceSpeaking, setIsVoiceSpeaking,
+    isNoiseSuppressionEnabled, handleToggleNoiseSuppression,
     voiceStates: globalVoiceStates, soundMuted, handleToggleSoundMute,
     handleToggleVoiceMute, handleToggleVoiceDeafen, handleRoomVoiceStatesUpdate,
+    userVolumes, userLocalMutes, handleSetUserVolume, handleToggleUserLocalMute,
   } = useDiscordGlobalVoiceState({ addToast });
 
   // 1. Navegação com persistência em localStorage
-  const {
-    activeServerId,
-    setActiveServerId,
-    activeChannelId,
-    setActiveChannelId,
-    handleSelectServer,
-    handleSelectChannel,
-  } = useDiscordNavigation({ token, servers, setServers, channels, setChannels, setMembers });
+  const { activeServerId, setActiveServerId, activeChannelId, setActiveChannelId, handleSelectServer, handleSelectChannel } =
+    useDiscordNavigation({ token, servers, setServers, channels, setChannels, setMembers });
 
   // 2. Estado de mensagens, fixados e contadores de não lidas
-  const {
-    messages,
-    setMessages,
-    pinnedMessages,
-    setPinnedMessages,
-    loadingPins,
-    setLoadingPins,
-    unreads,
-    setUnreads,
-    handlePinUpdate,
-    handleUnreadUpdate,
-  } = useDiscordUnreadCallbacks({ activeServerId, activeChannelId, activeDMIdRef });
+  const { messages, setMessages, pinnedMessages, setPinnedMessages, loadingPins, setLoadingPins, unreads, setUnreads, handlePinUpdate, handleUnreadUpdate } =
+    useDiscordUnreadCallbacks({ activeServerId, activeChannelId, activeDMIdRef });
 
   const handleMessageEdit = useCallback((m) => setMessages((prev) => prev.map((x) => (x.id === m.id ? m : x))), [setMessages]);
   const handleMessageDelete = useCallback((id) => setMessages((prev) => prev.filter((x) => x.id !== id)), [setMessages]);
@@ -75,18 +61,25 @@ export default function DiscordApp({
     if (rId) setMessages((prev) => prev.map((m) => m.id === rId ? { ...m, thread: sum } : m));
   }, [setMessages]);
 
+  const loadConversationsRef = useRef(null);
+
   // 3. Mensagens Diretas (DMs) em tempo real
   const handleDMMessageNew = useCallback(
     (newMsg) => {
       if (!newMsg) return;
-      setMessages((prev) => (prev.some((m) => m.id === newMsg.id) ? prev : [...prev, newMsg]));
+      const msgConvId = Number(newMsg.channel_id || newMsg.conversation_id);
+      if (activeServerId === null && msgConvId === Number(activeDMIdRef.current)) {
+        setMessages((prev) => (prev.some((m) => m.id === newMsg.id) ? prev : [...prev, newMsg]));
+      }
       if (newMsg?.author_id !== currentUser?.id) playDiscordSound('message');
+      if (loadConversationsRef.current) loadConversationsRef.current();
     },
-    [currentUser, setMessages]
+    [currentUser, setMessages, activeServerId]
   );
 
   const {
     conversations,
+    setConversations,
     activeDMId,
     setActiveDMId,
     loadConversations,
@@ -109,6 +102,7 @@ export default function DiscordApp({
   });
 
   activeDMIdRef.current = activeDMId;
+  loadConversationsRef.current = loadConversations;
 
   // 4. Sincronização de histórico, fixados e ACK de leitura
   const activeTextChannel =
@@ -190,60 +184,51 @@ export default function DiscordApp({
   });
 
   // 7. Presença de Canais de Voz e WebSocket Global do Usuário (/ws/me)
-  const { voiceChannelUsers, voiceChannelCallTimes, handleVoiceChannelUpdate, handleDisconnectVoicePresence } =
-    useDiscordVoicePresence({
-      token,
-      channels,
-      activeChannelId,
-      connectedVoiceChannelId,
-      onlineUsers,
-      currentUser,
-    });
-
-  useDiscordUserWS({
+  const {
+    voiceChannelUsers,
+    voiceChannelCallTimes,
+    handleDisconnectVoicePresence,
+    activeVoiceStates,
+    handleDisconnectVoice,
+  } = useDiscordVoiceAndUserSync({
     token,
-    onUnreadUpdate: handleUnreadUpdate,
-    onDMMessageNew: handleDMMessageNew,
-    onVoiceChannelUpdate: handleVoiceChannelUpdate,
-    onServerMemberJoined: (data) => {
-      if (!data?.member) return;
-      if (Number(data.server_id) === Number(activeServerId)) {
-        setMembers((prev) =>
-          prev.some((m) => m.user_id === data.member.user_id) ? prev : [...prev, data.member]
-        );
-      }
-      if (data.members_count) {
-        setServers((prev) =>
-          prev.map((s) => (s.id === data.server_id ? { ...s, members_count: data.members_count } : s))
-        );
-      }
-    },
-    onUserPresence: (data) => {
-      if (!data?.user_id) return;
-      setMembers((prev) =>
-        prev.map((m) =>
-          m.user_id === data.user_id ? { ...m, is_online: Boolean(data.is_online) } : m
-        )
-      );
-    },
+    channels,
+    activeChannelId,
+    activeServerId,
+    connectedVoiceChannelId,
+    setConnectedVoiceChannelId,
+    onlineUsers,
+    currentUser,
+    voiceStates,
+    globalVoiceStates,
+    isVoiceMuted,
+    isVoiceDeafened,
+    isVoiceSpeaking,
+    setIsVoiceSpeaking,
+    sendVoiceState,
+    handleUnreadUpdate,
+    handleDMMessageNew,
+    handleSelectChannel,
+    setMembers,
+    setServers,
+    setMessages,
+    setConversations,
+    addToast,
   });
 
   const activeServer = servers.find((s) => s.id === activeServerId);
   const activeChannel = channels.find((c) => c.id === activeChannelId);
-  const connectedVoiceChannel = channels.find((c) => c.id === connectedVoiceChannelId);
+  const connectedVoiceChannel =
+    channels.find((c) => c.id === connectedVoiceChannelId) ||
+    (connectedVoiceChannelId ? connectedVoiceChannelSnapshot : null);
+  const connectedVoiceServer =
+    servers.find((s) => s.id === connectedVoiceChannel?.server_id) || activeServer;
   const activeDM = conversations.find((c) => c.id === activeDMId);
-  const activeDMChannel = activeDM
-    ? { id: activeDM.id, name: activeDM.other_user?.name || 'Amigo', is_dm: true, type: 'TEXT' }
-    : null;
-
-  const currentChatChannel =
-    activeServerId === null ? activeDMChannel : activeChannel?.type === 'TEXT' ? activeChannel : activeTextChannel;
+  const activeDMChannel = activeDM ? { id: activeDM.id, name: activeDM.other_user?.name || 'Amigo', is_dm: true, type: 'TEXT' } : null;
+  const currentChatChannel = activeServerId === null ? activeDMChannel : activeChannel?.type === 'TEXT' ? activeChannel : activeTextChannel;
   const currentMember = members.find((m) => m.user_id === currentUser?.id);
-  const currentUserRole = currentMember
-    ? currentMember.role
-    : activeServer?.owner_id === currentUser?.id
-      ? 'OWNER'
-      : 'MEMBER';
+  const currentUserRole = currentMember ? currentMember.role : activeServer?.owner_id === currentUser?.id ? 'OWNER' : 'MEMBER';
+  const [isVoiceChatOpen, setIsVoiceChatOpen] = useState(false);
 
   const handleStartDM = useCallback(
     async (userId) => {
@@ -255,35 +240,6 @@ export default function DiscordApp({
 
   const handleOpenDeleteServer = (srv) => { modals.setServerToDelete(srv || activeServer); modals.setIsDeleteServerOpen(true); };
   const handleConfirmDeleteServer = async (srvId) => { await handleDeleteServer(srvId); modals.setIsDeleteServerOpen(false); modals.setServerToDelete(null); };
-
-  const handleDisconnectVoice = () => {
-    handleDisconnectVoicePresence(connectedVoiceChannelId);
-    setConnectedVoiceChannelId(null);
-    playDiscordSound('voice_leave');
-    addToast('Você saiu do canal de voz.', 'info');
-    const activeCh = channels.find((c) => c.id === activeChannelId);
-    if (activeCh?.type === 'VOICE') {
-      const textCh = channels.find((c) => c.type === 'TEXT');
-      if (textCh) handleSelectChannel(textCh.id);
-    }
-  };
-
-  const activeVoiceStates = useMemo(() => {
-    const merged = { ...voiceStates, ...globalVoiceStates };
-    if (currentUser?.id) {
-      const selfState = { is_muted: isVoiceMuted, is_deafened: isVoiceDeafened, is_speaking: false };
-      merged[currentUser.id] = { ...(merged[currentUser.id] || {}), ...selfState };
-      merged[Number(currentUser.id)] = { ...(merged[Number(currentUser.id)] || {}), ...selfState };
-      merged[String(currentUser.id)] = { ...(merged[String(currentUser.id)] || {}), ...selfState };
-    }
-    return merged;
-  }, [voiceStates, globalVoiceStates, currentUser?.id, isVoiceMuted, isVoiceDeafened]);
-
-  useEffect(() => {
-    if (connectedVoiceChannelId && sendVoiceState) {
-      sendVoiceState({ is_muted: isVoiceMuted, is_deafened: isVoiceDeafened, is_speaking: false });
-    }
-  }, [isVoiceMuted, isVoiceDeafened, connectedVoiceChannelId, sendVoiceState]);
 
   const handleToggleMembers = useCallback(() => {
     if (typeof window !== 'undefined' && window.innerWidth <= 768) {
@@ -349,17 +305,20 @@ export default function DiscordApp({
           onToggleVoiceMute={handleToggleVoiceMute}
           isVoiceDeafened={isVoiceDeafened}
           onToggleVoiceDeafen={handleToggleVoiceDeafen}
+          isNoiseSuppressionEnabled={isNoiseSuppressionEnabled}
+          onToggleNoiseSuppression={handleToggleNoiseSuppression}
+          connectedVoiceChannel={connectedVoiceChannel}
+          connectedVoiceServerName={connectedVoiceServer?.name}
+          onDisconnectVoice={handleDisconnectVoice}
           onOpenUserSettings={() => modals.setIsUserSettingsOpen(true)}
           onOpenDeleteServer={handleOpenDeleteServer}
-          onOpenEditChannel={(ch) => {
-            modals.setChannelToEdit(ch);
-            modals.setIsEditChannelOpen(true);
-          }}
+          onOpenEditChannel={(ch) => { modals.setChannelToEdit(ch); modals.setIsEditChannelOpen(true); }}
         />
       ) : (
         <ChannelSidebar
           server={activeServer}
           channels={channels}
+          members={members}
           activeChannelId={activeChannelId}
           connectedVoiceChannelId={connectedVoiceChannelId}
           voiceChannelUsers={voiceChannelUsers}
@@ -368,10 +327,34 @@ export default function DiscordApp({
           onSelectChannel={(chId) => {
             setIsMobileNavOpen(false);
             setIsMobileMembersOpen(false);
+            if (connectedVoiceChannelId === chId) {
+              setActiveChannelId(chId);
+              return;
+            }
             handleSelectChannel(chId, (vId) => {
               if (connectedVoiceChannelId && connectedVoiceChannelId !== vId) {
                 handleDisconnectVoicePresence(connectedVoiceChannelId);
               }
+              const targetCh = channels.find((c) => c.id === vId);
+              if (targetCh) setConnectedVoiceChannelSnapshot(targetCh);
+              setConnectedVoiceChannelId(vId);
+              playDiscordSound('voice_join');
+            });
+          }}
+          onOpenVoiceChat={(chId) => {
+            setIsMobileNavOpen(false);
+            setIsMobileMembersOpen(false);
+            setIsVoiceChatOpen(true);
+            if (connectedVoiceChannelId === chId) {
+              setActiveChannelId(chId);
+              return;
+            }
+            handleSelectChannel(chId, (vId) => {
+              if (connectedVoiceChannelId && connectedVoiceChannelId !== vId) {
+                handleDisconnectVoicePresence(connectedVoiceChannelId);
+              }
+              const targetCh = channels.find((c) => c.id === vId);
+              if (targetCh) setConnectedVoiceChannelSnapshot(targetCh);
               setConnectedVoiceChannelId(vId);
               playDiscordSound('voice_join');
             });
@@ -382,6 +365,8 @@ export default function DiscordApp({
           currentUserRole={currentUserRole}
           voiceStates={activeVoiceStates}
           onDisconnectVoice={handleDisconnectVoice}
+          isNoiseSuppressionEnabled={isNoiseSuppressionEnabled}
+          onToggleNoiseSuppression={handleToggleNoiseSuppression}
           channelUnreads={unreads.channels}
           isSoundMuted={soundMuted}
           onToggleSoundMute={handleToggleSoundMute}
@@ -389,13 +374,14 @@ export default function DiscordApp({
           onToggleVoiceMute={handleToggleVoiceMute}
           isVoiceDeafened={isVoiceDeafened}
           onToggleVoiceDeafen={handleToggleVoiceDeafen}
+          userVolumes={userVolumes}
+          userLocalMutes={userLocalMutes}
+          onSetUserVolume={handleSetUserVolume}
+          onToggleUserLocalMute={handleToggleUserLocalMute}
           onOpenServerSettings={() => modals.setIsServerSettingsOpen(true)}
           onOpenUserSettings={() => modals.setIsUserSettingsOpen(true)}
           onOpenDeleteServer={handleOpenDeleteServer}
-          onOpenEditChannel={(ch) => {
-            modals.setChannelToEdit(ch);
-            modals.setIsEditChannelOpen(true);
-          }}
+          onOpenEditChannel={(ch) => { modals.setChannelToEdit(ch); modals.setIsEditChannelOpen(true); }}
         />
       )}
 
@@ -438,9 +424,7 @@ export default function DiscordApp({
           voiceUsers={
             connectedVoiceChannel ? voiceChannelUsers[connectedVoiceChannel.id] || [] : []
           }
-          onlineUsers={
-            connectedVoiceChannel && activeChannelId === connectedVoiceChannel.id ? onlineUsers : []
-          }
+          onlineUsers={[]}
           voiceStates={activeVoiceStates}
           onSendVoiceState={sendVoiceState}
           onDisconnectVoice={handleDisconnectVoice}
@@ -452,8 +436,10 @@ export default function DiscordApp({
           key={connectedVoiceChannel.id}
           channel={connectedVoiceChannel}
           currentUser={currentUser}
+          currentUserRole={currentUserRole}
+          members={members}
           voiceUsers={voiceChannelUsers[connectedVoiceChannel.id] || []}
-          onlineUsers={activeChannelId === connectedVoiceChannel.id ? onlineUsers : []}
+          onlineUsers={[]}
           voiceStates={activeVoiceStates}
           onSendVoiceState={sendVoiceState}
           onDisconnectVoice={handleDisconnectVoice}
@@ -467,7 +453,16 @@ export default function DiscordApp({
           setIsMuted={setIsVoiceMuted}
           isDeafened={isVoiceDeafened}
           setIsDeafened={setIsVoiceDeafened}
+          isNoiseSuppressionEnabled={isNoiseSuppressionEnabled}
+          onToggleNoiseSuppression={handleToggleNoiseSuppression}
+          onSpeakingChange={setIsVoiceSpeaking}
           onRoomVoiceStatesUpdate={handleRoomVoiceStatesUpdate}
+          userVolumes={userVolumes}
+          userLocalMutes={userLocalMutes}
+          onSetUserVolume={handleSetUserVolume}
+          onToggleUserLocalMute={handleToggleUserLocalMute}
+          isChatOpen={isVoiceChatOpen}
+          onToggleChat={(val) => setIsVoiceChatOpen(typeof val === 'boolean' ? val : (p) => !p)}
         />
       )}
 
@@ -476,6 +471,7 @@ export default function DiscordApp({
           members={members}
           currentUserId={currentUser?.id}
           currentUserRole={currentUser?.role}
+          currentUser={currentUser}
           activeServer={activeServer}
           token={token}
           onStartDM={handleStartDM}

@@ -2,6 +2,7 @@
 Testes unitários para o Módulo de Gravações de Canais de Voz integradas ao Backblaze B2.
 """
 import io
+from datetime import datetime, timezone
 import pytest
 from unittest.mock import patch, MagicMock
 from app.core.config import settings
@@ -417,5 +418,69 @@ def test_list_and_batch_delete_server_recordings(setup_voice_scenario):
             )
             assert res_batch.status_code == 200
             assert res_batch.json()["count"] == 2
+
+
+def test_list_recordings_filters(setup_voice_scenario):
+    """Valida filtros de gravações: por canal, por autor, somente admins e por data."""
+    sc = setup_voice_scenario
+    headers_owner = get_auth_token("owner_rec@teste.com")
+    headers_a = get_auth_token("member_a_rec@teste.com")
+
+    mock_s3 = MagicMock()
+    with patch("app.services.storage.get_s3_client", return_value=mock_s3), patch("app.api.v1.endpoints.discord_recordings.get_s3_client", return_value=mock_s3):
+        with patch.object(settings, "B2_BUCKET_NAME", "nexus-recordings-bucket"):
+            # 1. Owner grava no canal de voz
+            res_owner = client.post(
+                f"/api/v1/discord/channels/{sc['voice_channel_id']}/recordings",
+                headers=headers_owner,
+                files={"file": ("admin_call.mp4", io.BytesIO(b"admin-video"), "video/mp4")},
+                data={"title": "Gravação da Diretoria"},
+            )
+            assert res_owner.status_code == 201
+
+            # 2. Membro A grava no canal de voz
+            res_a = client.post(
+                f"/api/v1/discord/channels/{sc['voice_channel_id']}/recordings",
+                headers=headers_a,
+                files={"file": ("member_call.mp4", io.BytesIO(b"member-video"), "video/mp4")},
+                data={"title": "Gravação de Dúvidas"},
+            )
+            assert res_a.status_code == 201
+
+            # Filtro only_admins=True: deve retornar apenas do Owner
+            res_admins = client.get(
+                f"/api/v1/discord/servers/{sc['server_id']}/recordings?only_admins=true",
+                headers=headers_owner,
+            )
+            assert res_admins.status_code == 200
+            data_admins = res_admins.json()
+            assert all(item["is_admin_author"] is True for item in data_admins)
+            assert any(item["title"] == "Gravação da Diretoria" for item in data_admins)
+            assert not any(item["title"] == "Gravação de Dúvidas" for item in data_admins)
+
+            # Filtro author_id=User A
+            res_author = client.get(
+                f"/api/v1/discord/servers/{sc['server_id']}/recordings?author_id={sc['user_a_id']}",
+                headers=headers_owner,
+            )
+            assert res_author.status_code == 200
+            assert all(item["user_id"] == sc["user_a_id"] for item in res_author.json())
+
+            # Filtro channel_id
+            res_ch = client.get(
+                f"/api/v1/discord/servers/{sc['server_id']}/recordings?channel_id={sc['voice_channel_id']}",
+                headers=headers_owner,
+            )
+            assert res_ch.status_code == 200
+            assert all(item["channel_id"] == sc["voice_channel_id"] for item in res_ch.json())
+
+            # Filtro target_date
+            today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            res_date = client.get(
+                f"/api/v1/discord/servers/{sc['server_id']}/recordings?target_date={today_str}",
+                headers=headers_owner,
+            )
+            assert res_date.status_code == 200
+            assert len(res_date.json()) >= 2
 
 

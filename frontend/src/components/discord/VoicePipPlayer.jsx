@@ -225,7 +225,16 @@ export default function VoicePipPlayer({
         ) : (
           <div className="voice-pip-avatar-view">
             <div className={`voice-avatar-circle small ${isSpeaking ? 'speaking-halo' : ''}`}>
-              {(currentUser?.name || 'U').charAt(0).toUpperCase()}
+              {currentUser?.avatar_url ? (
+                <img
+                  src={currentUser.avatar_url}
+                  alt={currentUser.name || 'Você'}
+                  className="voice-avatar-circle-img"
+                  data-testid="voice-pip-avatar-img"
+                />
+              ) : (
+                (currentUser?.name || 'U').charAt(0).toUpperCase()
+              )}
             </div>
             <span className="voice-pip-speaking-hint">
               {isSpeaking ? 'Você está falando...' : `${currentUser?.name || 'Você'} conectado`}

@@ -15,12 +15,20 @@ export default function ThreadSidePanel({
   loading = false,
   onSendThreadMessage,
   currentUserId,
+  currentUser,
+  members = [],
 }) {
   const [content, setContent] = useState('');
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef(null);
 
   const thread = threadDetail;
+
+  const getAuthorAvatar = (authorId, fallbackUrl) => {
+    if (authorId === currentUserId) return currentUser?.avatar_url || fallbackUrl;
+    const m = members?.find((mem) => mem.user_id === authorId || mem.id === authorId);
+    return m?.avatar_url || fallbackUrl;
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -97,9 +105,9 @@ export default function ThreadSidePanel({
             {/* Mensagem Raiz Original Fixada */}
             {rootMsg && (
               <div className="thread-msg-item root-pinned-msg" data-testid="thread-root-message">
-                {rootMsg.author_avatar_url ? (
+                {getAuthorAvatar(rootMsg.author_id, rootMsg.author_avatar_url) ? (
                   <img
-                    src={rootMsg.author_avatar_url}
+                    src={getAuthorAvatar(rootMsg.author_id, rootMsg.author_avatar_url)}
                     alt={rootMsg.author_name}
                     className="thread-msg-avatar"
                   />
@@ -143,9 +151,9 @@ export default function ThreadSidePanel({
             <div className="thread-messages-list">
               {(thread.messages || []).map((tMsg) => (
                 <div key={tMsg.id} className="thread-msg-item" data-testid={`thread-msg-${tMsg.id}`}>
-                  {tMsg.author_avatar_url ? (
+                  {getAuthorAvatar(tMsg.author_id, tMsg.author_avatar_url) ? (
                     <img
-                      src={tMsg.author_avatar_url}
+                      src={getAuthorAvatar(tMsg.author_id, tMsg.author_avatar_url)}
                       alt={tMsg.author_name}
                       className="thread-msg-avatar"
                     />

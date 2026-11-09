@@ -3,8 +3,8 @@ Rotas para Gerenciamento de Gravações de Canais de Voz e Vídeo integradas ao 
 """
 import os
 import uuid
-from datetime import timezone
-from typing import List, Optional
+from datetime import datetime, time, timezone
+from typing import List, Optional, Set
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Header, Query, status
 from fastapi.responses import RedirectResponse, FileResponse
 from sqlalchemy.orm import Session
@@ -113,7 +113,39 @@ def _check_is_user_authorized(
     return False
 
 
-def _build_recording_response(recording: VoiceRecording) -> VoiceRecordingResponse:
+def _get_server_admin_ids(server: Server, db: Session) -> Set[int]:
+    """Retorna o conjunto de IDs de todos os usuários administradores ou donos do servidor."""
+    admin_ids = set()
+    if not server:
+        return admin_ids
+    if server.owner_id:
+        admin_ids.add(server.owner_id)
+
+    members = (
+        db.query(ServerMember)
+        .filter(ServerMember.server_id == server.id)
+        .all()
+    )
+    for m in members:
+        if m.role in ["OWNER", "ADMIN"]:
+            admin_ids.add(m.user_id)
+        elif m.custom_role and getattr(m.custom_role, "is_admin", False):
+            admin_ids.add(m.user_id)
+
+    superusers = (
+        db.query(User.id)
+        .filter(User.role.in_(["SUPER_ADMIN", "superadmin"]))
+        .all()
+    )
+    for su in superusers:
+        admin_ids.add(su[0])
+
+    return admin_ids
+
+
+def _build_recording_response(
+    recording: VoiceRecording, is_admin_author: bool = False
+) -> VoiceRecordingResponse:
     author_name = recording.user.name if recording.user else "Usuário"
     channel_name = recording.channel.name if recording.channel else None
     dt = recording.created_at
@@ -127,6 +159,7 @@ def _build_recording_response(recording: VoiceRecording) -> VoiceRecordingRespon
         channel_name=channel_name,
         user_id=recording.user_id,
         author_name=author_name,
+        is_admin_author=is_admin_author,
         title=recording.title,
         filename=recording.filename,
         storage=recording.storage,
@@ -226,11 +259,14 @@ async def upload_channel_recording(
 @router.get("/channels/{channel_id}/recordings", response_model=List[VoiceRecordingResponse])
 def list_channel_recordings(
     channel_id: int,
+    author_id: Optional[int] = Query(None, description="Filtrar por autor/usuário específico"),
+    only_admins: Optional[bool] = Query(False, description="Filtrar apenas vídeos gravados por administradores"),
+    target_date: Optional[str] = Query(None, description="Filtrar por data específica (YYYY-MM-DD)"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
-    Lista as gravações do canal de voz.
+    Lista as gravações do canal de voz com suporte a filtros por autor, administradores e data.
     Controle de acesso rigoroso:
     - Administradores, Dono do servidor e Super Admin veem todas as gravações do canal.
     - Membros comuns veem apenas as gravações feitas por eles mesmos.
@@ -239,23 +275,43 @@ def list_channel_recordings(
     server = channel.server or db.query(Server).filter(Server.id == channel.server_id).first()
 
     is_privileged = _check_is_user_authorized(current_user, server, db, recording=None)
+    admin_ids = _get_server_admin_ids(server, db) if server else set()
 
     query = db.query(VoiceRecording).filter(VoiceRecording.channel_id == channel.id)
     if not is_privileged:
         query = query.filter(VoiceRecording.user_id == current_user.id)
 
+    if author_id is not None:
+        query = query.filter(VoiceRecording.user_id == author_id)
+
+    if only_admins:
+        query = query.filter(VoiceRecording.user_id.in_(list(admin_ids) if admin_ids else [-1]))
+
+    if target_date:
+        try:
+            dt_obj = datetime.strptime(target_date.strip(), "%Y-%m-%d").date()
+            start_of_day = datetime.combine(dt_obj, time.min)
+            end_of_day = datetime.combine(dt_obj, time.max)
+            query = query.filter(VoiceRecording.created_at >= start_of_day, VoiceRecording.created_at <= end_of_day)
+        except Exception:
+            pass
+
     recordings = query.order_by(VoiceRecording.created_at.desc()).all()
-    return [_build_recording_response(rec) for rec in recordings]
+    return [_build_recording_response(rec, is_admin_author=(rec.user_id in admin_ids)) for rec in recordings]
 
 
 @router.get("/servers/{server_id}/recordings", response_model=List[VoiceRecordingResponse])
 def list_server_recordings(
     server_id: int,
+    channel_id: Optional[int] = Query(None, description="Filtrar por canal de voz específico"),
+    author_id: Optional[int] = Query(None, description="Filtrar por autor/usuário específico"),
+    only_admins: Optional[bool] = Query(False, description="Filtrar apenas vídeos gravados por administradores"),
+    target_date: Optional[str] = Query(None, description="Filtrar por data específica (YYYY-MM-DD)"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
-    Lista todas as gravações dos canais do servidor.
+    Lista todas as gravações dos canais do servidor com filtros de sala, autor, administradores e data.
     Controle de acesso rigoroso:
     - Administradores, Dono do servidor e Super Admin veem todas as gravações daquele servidor.
     - Membros comuns veem apenas as gravações feitas por eles mesmos naquele servidor.
@@ -263,13 +319,32 @@ def list_server_recordings(
     """
     server = ensure_server_access(server_id, current_user, db)
     is_privileged = _check_is_user_authorized(current_user, server, db, recording=None)
+    admin_ids = _get_server_admin_ids(server, db)
 
     query = db.query(VoiceRecording).filter(VoiceRecording.server_id == server.id)
     if not is_privileged:
         query = query.filter(VoiceRecording.user_id == current_user.id)
 
+    if channel_id is not None:
+        query = query.filter(VoiceRecording.channel_id == channel_id)
+
+    if author_id is not None:
+        query = query.filter(VoiceRecording.user_id == author_id)
+
+    if only_admins:
+        query = query.filter(VoiceRecording.user_id.in_(list(admin_ids) if admin_ids else [-1]))
+
+    if target_date:
+        try:
+            dt_obj = datetime.strptime(target_date.strip(), "%Y-%m-%d").date()
+            start_of_day = datetime.combine(dt_obj, time.min)
+            end_of_day = datetime.combine(dt_obj, time.max)
+            query = query.filter(VoiceRecording.created_at >= start_of_day, VoiceRecording.created_at <= end_of_day)
+        except Exception:
+            pass
+
     recordings = query.order_by(VoiceRecording.created_at.desc()).all()
-    return [_build_recording_response(rec) for rec in recordings]
+    return [_build_recording_response(rec, is_admin_author=(rec.user_id in admin_ids)) for rec in recordings]
 
 
 @router.patch("/recordings/{recording_id}", response_model=VoiceRecordingResponse)

@@ -11,6 +11,7 @@ export default function MemberListSidebar({
   onStartDM,
   onMemberRemoved,
   onKickMember,
+  currentUser,
 }) {
   const [memberToKick, setMemberToKick] = useState(null);
   const [isKicking, setIsKicking] = useState(false);
@@ -84,7 +85,7 @@ export default function MemberListSidebar({
 
   const renderMemberRow = (member) => {
     const initial = (member.name || 'U').charAt(0).toUpperCase();
-    const isMe = member.user_id === currentUserId;
+    const isMe = member.user_id === currentUserId || member.id === currentUserId;
     const isOnline = isMe || member.is_online !== false;
     const isTargetOwner = member.user_id === activeServer?.owner_id || member.role === 'OWNER';
     const isTargetAdmin = member.role === 'ADMIN' || Boolean(member.role_name?.toLowerCase().includes('admin'));
@@ -93,6 +94,7 @@ export default function MemberListSidebar({
       !isMe &&
       !isTargetOwner &&
       (isServerOwner || !isTargetAdmin);
+    const avatarUrl = isMe ? (currentUser?.avatar_url || member.avatar_url) : member.avatar_url;
 
     return (
       <div
@@ -105,11 +107,12 @@ export default function MemberListSidebar({
           className={`discord-avatar-wrapper ${isOnline ? 'has-online-ring' : 'is-offline-avatar'}`}
           style={{ width: '32px', height: '32px', fontSize: '13px', flexShrink: 0 }}
         >
-          {member.avatar_url ? (
+          {avatarUrl ? (
             <img
-              src={member.avatar_url}
+              src={avatarUrl}
               alt={member.name}
               style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+              data-testid={`member-avatar-img-${member.id}`}
             />
           ) : (
             initial

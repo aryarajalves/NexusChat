@@ -29,6 +29,8 @@ describe('CSS Modularization and Line Limits', () => {
     'discord-voice-recording.css',
     'discord-channel-settings.css',
     'discord-responsive.css',
+    'discord-screen-annotation.css',
+    'discord-document-pip.css',
   ];
 
   it('App.css aggregator imports all modular style files', () => {

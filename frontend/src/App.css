@@ -30,3 +30,6 @@
 @import './styles/discord-camera-effects.css';
 @import './styles/discord-member-sidebar.css';
 @import './styles/discord-responsive.css';
+@import './styles/discord-screen-annotation.css';
+@import './styles/discord-document-pip.css';
+@import './styles/discord-voice-volume.css';

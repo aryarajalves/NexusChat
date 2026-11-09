@@ -34,9 +34,11 @@ async def get_voice_channel_token(
     Permite transmissão de áudio, vídeo de webcam e compartilhamento de tela.
     """
     channel = ensure_voice_channel_access(channel_id, current_user, db)
-    previous_channels = socket_manager.register_voice_user(channel.id, current_user.id, current_user.name)
+    previous_channels = socket_manager.register_voice_user(
+        channel.id, current_user.id, current_user.name, avatar_url=current_user.avatar_url
+    )
     for prev_ch in previous_channels:
-        prev_participants = socket_manager.get_online_users_in_channel(prev_ch)
+        prev_participants = socket_manager.get_voice_users_in_channel(prev_ch)
         await socket_manager.broadcast_to_channel(
             prev_ch,
             {
@@ -48,6 +50,16 @@ async def get_voice_channel_token(
         )
         await socket_manager.broadcast_voice_channel_update(prev_ch)
 
+    participants = socket_manager.get_voice_users_in_channel(channel.id)
+    await socket_manager.broadcast_to_channel(
+        channel.id,
+        {
+            "event": "presence:join",
+            "user_id": current_user.id,
+            "user_name": current_user.name,
+            "online_users": participants,
+        },
+    )
     await socket_manager.broadcast_voice_channel_update(channel.id)
     credentials = get_livekit_voice_credentials(
         channel_id=channel.id,
@@ -66,9 +78,11 @@ async def join_voice_channel(
 ) -> Dict[str, Any]:
     """Registra explicitamente a entrada do usuário na sessão do canal de voz."""
     channel = ensure_voice_channel_access(channel_id, current_user, db)
-    previous_channels = socket_manager.register_voice_user(channel.id, current_user.id, current_user.name)
+    previous_channels = socket_manager.register_voice_user(
+        channel.id, current_user.id, current_user.name, avatar_url=current_user.avatar_url
+    )
     for prev_ch in previous_channels:
-        prev_participants = socket_manager.get_online_users_in_channel(prev_ch)
+        prev_participants = socket_manager.get_voice_users_in_channel(prev_ch)
         await socket_manager.broadcast_to_channel(
             prev_ch,
             {
@@ -80,7 +94,7 @@ async def join_voice_channel(
         )
         await socket_manager.broadcast_voice_channel_update(prev_ch)
 
-    participants = socket_manager.get_online_users_in_channel(channel.id)
+    participants = socket_manager.get_voice_users_in_channel(channel.id)
     await socket_manager.broadcast_to_channel(
         channel.id,
         {
@@ -108,7 +122,7 @@ async def leave_voice_channel(
     """Registra a saída do usuário do canal de voz e notifica a sala."""
     channel = ensure_voice_channel_access(channel_id, current_user, db)
     socket_manager.unregister_voice_user(channel.id, current_user.id)
-    participants = socket_manager.get_online_users_in_channel(channel.id)
+    participants = socket_manager.get_voice_users_in_channel(channel.id)
     await socket_manager.broadcast_to_channel(
         channel.id,
         {
@@ -148,7 +162,7 @@ def get_voice_channel_status(
 ) -> Dict[str, Any]:
     """Retorna os participantes ativos conectados no canal de voz e o tempo de call."""
     channel = ensure_voice_channel_access(channel_id, current_user, db)
-    online_users = socket_manager.get_online_users_in_channel(channel.id)
+    online_users = socket_manager.get_voice_users_in_channel(channel.id)
     voice_states = {
         str(u.get("user_id")): {
             "is_muted": u.get("is_muted", True),

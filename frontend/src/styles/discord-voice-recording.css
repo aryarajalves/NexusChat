@@ -29,14 +29,8 @@
 }
 
 @keyframes voiceRecorderMenuFadeIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, 8px);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
 }
 
 .voice-recorder-menu-header {
@@ -62,9 +56,7 @@
   width: 100%;
 }
 
-.voice-recorder-menu-item:hover {
-  background-color: #35373c;
-}
+.voice-recorder-menu-item:hover { background-color: #35373c; }
 
 .voice-recorder-menu-icon-wrap {
   width: 32px;
@@ -76,32 +68,12 @@
   flex-shrink: 0;
 }
 
-.voice-recorder-menu-icon-wrap.audio {
-  background-color: rgba(88, 101, 242, 0.15);
-  color: #5865f2;
-}
+.voice-recorder-menu-icon-wrap.audio { background-color: rgba(88, 101, 242, 0.15); color: #5865f2; }
+.voice-recorder-menu-icon-wrap.video { background-color: rgba(35, 165, 90, 0.15); color: #23a55a; }
 
-.voice-recorder-menu-icon-wrap.video {
-  background-color: rgba(35, 165, 90, 0.15);
-  color: #23a55a;
-}
-
-.voice-recorder-menu-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.voice-recorder-menu-text strong {
-  font-size: 13px;
-  color: #f2f3f5;
-  font-weight: 600;
-}
-
-.voice-recorder-menu-text small {
-  font-size: 11px;
-  color: #949ba4;
-}
+.voice-recorder-menu-text { display: flex; flex-direction: column; gap: 2px; }
+.voice-recorder-menu-text strong { font-size: 13px; color: #f2f3f5; font-weight: 600; }
+.voice-recorder-menu-text small { font-size: 11px; color: #949ba4; }
 
 /* Estado Gravando Ativo no Dock */
 .voice-recording-active-dock {
@@ -115,12 +87,7 @@
   box-shadow: 0 0 12px rgba(242, 63, 67, 0.2);
 }
 
-.voice-recording-pulse-badge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
+.voice-recording-pulse-badge { display: flex; align-items: center; gap: 8px; }
 .voice-recording-dot {
   width: 10px;
   height: 10px;
@@ -130,27 +97,12 @@
 }
 
 @keyframes voiceRecordingPulse {
-  0% {
-    transform: scale(0.9);
-    box-shadow: 0 0 0 0 rgba(242, 63, 67, 0.7);
-  }
-  70% {
-    transform: scale(1.15);
-    box-shadow: 0 0 0 8px rgba(242, 63, 67, 0);
-  }
-  100% {
-    transform: scale(0.9);
-    box-shadow: 0 0 0 0 rgba(242, 63, 67, 0);
-  }
+  0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(242, 63, 67, 0.7); }
+  70% { transform: scale(1.15); box-shadow: 0 0 0 8px rgba(242, 63, 67, 0); }
+  100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(242, 63, 67, 0); }
 }
 
-.voice-recording-type-label {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #f23f43;
-  letter-spacing: 0.5px;
-}
-
+.voice-recording-type-label { font-size: 11.5px; font-weight: 700; color: #f23f43; letter-spacing: 0.5px; }
 .voice-recording-timer {
   font-family: monospace;
   font-size: 13px;
@@ -170,15 +122,8 @@
   font-weight: 600 !important;
   gap: 6px !important;
 }
-
-.btn-stop-recording:hover {
-  background-color: #a12828 !important;
-}
-
-.btn-active-blurple {
-  background-color: #5865f2 !important;
-  color: #ffffff !important;
-}
+.btn-stop-recording:hover { background-color: #a12828 !important; }
+.btn-active-blurple { background-color: #5865f2 !important; color: #ffffff !important; }
 
 /* Modal de Prévia e Exportação */
 .voice-recording-dialog {
@@ -187,6 +132,8 @@
   border-radius: 12px;
   width: 90%;
   max-width: 580px;
+  max-height: calc(100vh - 40px);
+  max-height: 90vh;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
   overflow: hidden;
   display: flex;
@@ -197,8 +144,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 24px;
+  padding: 14px 20px;
   border-bottom: 1px solid #35373c;
+  flex-shrink: 0;
 }
 
 .voice-recording-title-wrap {
@@ -246,19 +194,49 @@
   color: #f2f3f5;
 }
 
+.voice-recording-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  scrollbar-width: thin;
+  scrollbar-color: #202225 transparent;
+}
+
+.voice-recording-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.voice-recording-body::-webkit-scrollbar-thumb {
+  background-color: #202225;
+  border-radius: 3px;
+}
+
 .voice-recording-preview-box {
-  padding: 20px 24px;
+  padding: 12px 20px;
   background-color: #1e1f22;
   display: flex;
   justify-content: center;
+  align-items: center;
 }
 
 .voice-recording-video-player {
   width: 100%;
-  max-height: 280px;
+  max-height: 200px;
+  object-fit: contain;
   border-radius: 8px;
   background-color: #000000;
   outline: none;
+}
+
+.voice-recording-input-wrap {
+  padding: 10px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background-color: #2b2d31;
+  border-bottom: 1px solid #35373c;
 }
 
 .voice-recording-audio-card {
@@ -309,8 +287,8 @@
 .voice-recording-meta-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  padding: 16px 24px;
+  gap: 8px;
+  padding: 10px 20px;
   border-bottom: 1px solid #35373c;
   background-color: #2b2d31;
 }
@@ -331,19 +309,21 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 24px;
+  gap: 10px;
+  padding: 12px 20px;
   background-color: #2b2d31;
+  border-top: 1px solid #35373c;
+  flex-shrink: 0;
 }
 
 /* Seleção de Formato e Compressão de Vídeo */
 .voice-recording-options-section {
-  padding: 16px 24px;
+  padding: 12px 20px;
   background-color: #2b2d31;
   border-bottom: 1px solid #35373c;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .voice-recording-format-row {
@@ -459,4 +439,14 @@
   height: 100%;
   background: linear-gradient(90deg, #5865f2, #57f287);
   transition: width 0.2s ease;
+}
+
+@media (max-height: 750px) {
+  .voice-recording-dialog { max-height: 94vh; }
+  .voice-recording-video-player { max-height: 160px; }
+  .voice-recording-header { padding: 10px 16px; }
+  .voice-recording-preview-box { padding: 8px 16px; }
+  .voice-recording-meta-grid { padding: 8px 16px; }
+  .voice-recording-options-section { padding: 10px 16px; }
+  .voice-recording-footer { padding: 10px 16px; }
 }

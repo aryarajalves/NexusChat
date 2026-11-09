@@ -36,7 +36,10 @@ Plataforma completa de comunicação e colaboração em tempo real inspirada no 
   - Gravação com webcam sobreposta em *Picture-in-Picture* (PiP) móvel nos 4 cantos da tela ou com livre arrasto;
   - Desfoque de fundo de câmera nativo com segmentação corporal (estilo Google Meet: Desativado, Leve e Intenso);
   - Compartilhamento de tela com controle opcional de captura de áudio do computador;
-  - **Galeria de Gravações na Nuvem (Backblaze B2):** Botão de gravações disponível tanto no canal de voz quanto nos canais de texto com isolamento por servidor, player inline, download com nome customizado, renomeação, exclusão segura e exclusão em lote;
+  - **Controle de Volume Individual por Contato:** Ajuste de volume de 0% a 200% para cada participante da sala no hover/botão direito, com silenciamento local e persistência por usuário;
+  - **Chat de Texto Integrado no Canal de Voz:** Painel lateral de mensagens de texto dentro da própria chamada de voz para anotações, links e histórico em tempo real;
+  - **Anotações Colaborativas na Tela:** Ferramentas de desenho livre, retângulos, setas e destaques sobrepostos à transmissão ao vivo com modo PiP para visualização de documentos;
+  - **Galeria de Gravações com Filtros Inteligentes:** Busca avançada por sala específica, por autor da gravação, filtro exclusivo de administradores e por data específica no Backblaze B2, com paginação e exclusão em lote;
   - **Soundboard e Emojis Customizados:** Reprodução de efeitos sonoros com sintetizador Web Audio e upload de emojis personalizados por servidor;
   - Efeitos sonoros característicos sintetizados via Web Audio API (mensagens, menções, conexão e desconexão de voz);
   - Modal completo de configurações de usuário (perfil, microfone/alto-falante, volume de efeitos e aparência visual).

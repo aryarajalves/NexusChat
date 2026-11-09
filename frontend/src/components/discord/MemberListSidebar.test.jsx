@@ -237,4 +237,28 @@ describe('MemberListSidebar & Kick Member Functionality', () => {
     const rowOnline = screen.getByTestId('member-row-3');
     expect(rowOnline).toHaveClass('is-online');
   });
+
+  it('renderiza o avatar_url atualizado de currentUser para o usuário logado na lista de membros', () => {
+    const membersList = [
+      { id: 1, user_id: 10, name: 'Super Admin', role: 'OWNER', is_online: true, avatar_url: 'https://old-avatar.png' },
+      { id: 2, user_id: 20, name: 'Amigo', role: 'MEMBER', is_online: true, avatar_url: 'https://amigo.png' },
+    ];
+    const currentUser = { id: 10, name: 'Super Admin', avatar_url: 'https://new-avatar.png' };
+
+    render(
+      <ToastProvider>
+        <MemberListSidebar
+          members={membersList}
+          currentUserId={10}
+          currentUser={currentUser}
+          activeServer={mockServer}
+        />
+      </ToastProvider>
+    );
+
+    const myAvatarImg = screen.getByTestId('member-avatar-img-1');
+    expect(myAvatarImg).toHaveAttribute('src', 'https://new-avatar.png');
+    const friendAvatarImg = screen.getByTestId('member-avatar-img-2');
+    expect(friendAvatarImg).toHaveAttribute('src', 'https://amigo.png');
+  });
 });
