@@ -17,18 +17,31 @@ DISCORD_UPLOAD_DIR = os.path.join(
 )
 os.makedirs(DISCORD_UPLOAD_DIR, exist_ok=True)
 
+_cached_s3_client = None
+
 def get_s3_client():
-    """Retorna o cliente S3 configurado para o Backblaze B2."""
+    """Retorna o cliente S3 configurado para o Backblaze B2 (reutilizado em pool de conexões)."""
+    global _cached_s3_client
+    if _cached_s3_client is not None:
+        return _cached_s3_client
+
     if not settings.B2_ENDPOINT_URL or not settings.B2_KEY_ID or not settings.B2_APPLICATION_KEY:
         return None
     try:
-        return boto3.client(
+        _cached_s3_client = boto3.client(
             "s3",
             endpoint_url=settings.B2_ENDPOINT_URL,
             aws_access_key_id=settings.B2_KEY_ID,
             aws_secret_access_key=settings.B2_APPLICATION_KEY,
-            config=Config(signature_version="s3v4", s3={"addressing_style": "virtual"}),
+            config=Config(
+                signature_version="s3v4",
+                s3={"addressing_style": "virtual"},
+                max_pool_connections=50,
+                connect_timeout=10,
+                read_timeout=30,
+            ),
         )
+        return _cached_s3_client
     except Exception as e:
         logger.error(f"Erro ao inicializar cliente S3/B2: {e}")
         return None

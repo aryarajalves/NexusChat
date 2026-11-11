@@ -15,6 +15,7 @@ import EmojiPickerPopover from './EmojiPickerPopover';
 import MentionAutocompletePopover from './MentionAutocompletePopover';
 import { useServerEmojis } from '../../context/ServerEmojisContext';
 import { formatFileSize } from './chatUtils';
+import { useChatMentions } from './useChatMentions';
 
 export default function ChatInputForm({
   channel,
@@ -27,20 +28,17 @@ export default function ChatInputForm({
   typingUsers = [],
   droppedFile = null,
   onClearDroppedFile,
+  droppedFiles = [],
+  onClearDroppedFiles,
   externalInputRef,
   members = [],
 }) {
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const [pendingFile, setPendingFile] = useState(null);
-  const [pendingPreviewUrl, setPendingPreviewUrl] = useState(null);
+  const [pendingFiles, setPendingFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isInputEmojiOpen, setIsInputEmojiOpen] = useState(false);
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
-  const [isMentionOpen, setIsMentionOpen] = useState(false);
-  const [mentionQuery, setMentionQuery] = useState('');
-  const [mentionStartIndex, setMentionStartIndex] = useState(-1);
-  const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
 
   const { addToast } = useToast();
   const fileInputRef = useRef(null);
@@ -48,6 +46,21 @@ export default function ChatInputForm({
   const textInputRef = externalInputRef || internalInputRef;
   const inputEmojiRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+
+  const {
+    isMentionOpen,
+    setIsMentionOpen,
+    mentionQuery,
+    mentionOptions,
+    selectedMentionIndex,
+    checkMentionTrigger,
+    handleSelectMention,
+    handleMentionKeyDown,
+  } = useChatMentions({ members, inputText, setInputText, textInputRef });
+
+  const pendingFile = pendingFiles[0]?.file || null;
+  const pendingPreviewUrl = pendingFiles[0]?.previewUrl || null;
+
   const { emojis: customEmojis } = useServerEmojis();
 
   // Fecha o seletor de emojis se clicar fora dele
@@ -82,45 +95,13 @@ export default function ChatInputForm({
 
   // Trata arquivos soltos via Drag & Drop na área de chat
   useEffect(() => {
-    if (droppedFile) {
-      processSelectedFile(droppedFile);
+    const list = droppedFiles?.length > 0 ? droppedFiles : (droppedFile ? [droppedFile] : []);
+    if (list.length > 0) {
+      processSelectedFiles(list);
+      if (onClearDroppedFiles) onClearDroppedFiles();
       if (onClearDroppedFile) onClearDroppedFile();
     }
-  }, [droppedFile]);
-
-  const mentionOptions = useMemo(() => {
-    const list = [
-      { id: 'everyone', name: 'everyone', description: 'Notifica todas as pessoas neste canal', isSpecial: true },
-      { id: 'here', name: 'here', description: 'Notifica todos os membros online neste canal', isSpecial: true },
-    ];
-    const memberItems = (members || []).map((m) => {
-      const displayName = m.nickname || m.name || 'Usuário';
-      return { id: m.user_id || m.id, name: displayName, rawName: m.name, role: m.role, isSpecial: false };
-    });
-    const all = [...list, ...memberItems];
-    if (!mentionQuery) return all;
-    const q = mentionQuery.toLowerCase();
-    return all.filter((item) => item.name.toLowerCase().includes(q) || (item.rawName && item.rawName.toLowerCase().includes(q)));
-  }, [members, mentionQuery]);
-
-  const checkMentionTrigger = (val, cursorPos) => {
-    const textBeforeCursor = val.slice(0, cursorPos);
-    const lastAtPos = textBeforeCursor.lastIndexOf('@');
-    if (lastAtPos !== -1) {
-      const charBeforeAt = lastAtPos > 0 ? textBeforeCursor[lastAtPos - 1] : ' ';
-      if (charBeforeAt === ' ' || charBeforeAt === '\n' || lastAtPos === 0) {
-        const query = textBeforeCursor.slice(lastAtPos + 1);
-        if (!query.includes(' ') && !query.includes('\n')) {
-          setMentionStartIndex(lastAtPos);
-          setMentionQuery(query);
-          setIsMentionOpen(true);
-          setSelectedMentionIndex(0);
-          return;
-        }
-      }
-    }
-    setIsMentionOpen(false);
-  };
+  }, [droppedFiles, droppedFile]);
 
   const handleInputChange = (e) => {
     const val = e.target.value;
@@ -139,141 +120,134 @@ export default function ChatInputForm({
     }
   };
 
-  const handleSelectMention = (item) => {
-    const cursorPos = textInputRef.current?.selectionStart ?? inputText.length;
-    const beforeMention = inputText.slice(0, mentionStartIndex);
-    const afterCursor = inputText.slice(cursorPos);
-    const mentionText = `@${item.name} `;
-    const newText = `${beforeMention}${mentionText}${afterCursor}`;
-    setInputText(newText);
-    setIsMentionOpen(false);
-
-    setTimeout(() => {
-      if (textInputRef.current) {
-        const newCursorPos = beforeMention.length + mentionText.length;
-        textInputRef.current.focus();
-        textInputRef.current.setSelectionRange?.(newCursorPos, newCursorPos);
-      }
-    }, 0);
-  };
-
   const handleKeyDown = (e) => {
-    if (isMentionOpen && mentionOptions.length > 0) {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedMentionIndex((prev) => (prev + 1) % mentionOptions.length);
-        return;
-      }
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedMentionIndex((prev) => (prev - 1 + mentionOptions.length) % mentionOptions.length);
-        return;
-      }
-      if (e.key === 'Enter' || e.key === 'Tab') {
-        e.preventDefault();
-        const safeIdx = Math.min(selectedMentionIndex, mentionOptions.length - 1);
-        handleSelectMention(mentionOptions[safeIdx]);
-        return;
-      }
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        setIsMentionOpen(false);
-        return;
-      }
+    if (handleMentionKeyDown(e)) return;
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
     }
   };
 
   const isSuperAdmin = currentUser?.role === 'superadmin';
 
-  const processSelectedFile = (file) => {
-    if (!file) return;
-    if (!isSuperAdmin && file.size > 50 * 1024 * 1024) {
-      addToast('O arquivo excede o limite máximo permitido de 50 MB.', 'error');
-      return;
-    }
-    if (pendingPreviewUrl) {
-      try { URL.revokeObjectURL(pendingPreviewUrl); } catch (_) {}
-    }
-    setPendingFile(file);
-    if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
-      try {
-        const url = URL.createObjectURL(file);
-        setPendingPreviewUrl(url);
-      } catch (_) {
-        setPendingPreviewUrl(null);
+  const processSelectedFiles = (incomingFiles) => {
+    if (!incomingFiles || incomingFiles.length === 0) return;
+    const validItems = [];
+    for (const file of incomingFiles) {
+      if (!isSuperAdmin && file.size > 50 * 1024 * 1024) {
+        addToast('O arquivo excede o limite máximo permitido de 50 MB.', 'error');
+        continue;
       }
-    } else {
-      setPendingPreviewUrl(null);
+      let previewUrl = null;
+      if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+        try { previewUrl = URL.createObjectURL(file); } catch (_) {}
+      }
+      validItems.push({ file, previewUrl, id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}` });
     }
-    setTimeout(() => {
-      textInputRef.current?.focus();
-    }, 50);
+    if (validItems.length > 0) {
+      setPendingFiles((prev) => [...prev, ...validItems]);
+      setTimeout(() => textInputRef.current?.focus(), 50);
+    }
+  };
+
+  const processSelectedFile = (file) => {
+    if (file) processSelectedFiles([file]);
   };
 
   const handleFileSelect = (e) => {
-    const file = e.target.files?.[0];
-    if (file) processSelectedFile(file);
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) processSelectedFiles(files);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handlePaste = (e) => {
+    const pasteFiles = [];
     const items = e.clipboardData?.items;
     if (items && items.length > 0) {
       for (let i = 0; i < items.length; i++) {
         if (items[i].kind === 'file') {
           const file = typeof items[i].getAsFile === 'function' ? items[i].getAsFile() : items[i];
-          if (file) {
-            processSelectedFile(file);
-            return;
-          }
+          if (file) pasteFiles.push(file);
         }
       }
     }
-    const files = e.clipboardData?.files;
-    if (files && files.length > 0) {
-      processSelectedFile(files[0]);
+    if (pasteFiles.length === 0 && e.clipboardData?.files?.length > 0) {
+      pasteFiles.push(...Array.from(e.clipboardData.files));
+    }
+    if (pasteFiles.length > 0) {
+      processSelectedFiles(pasteFiles);
     }
   };
 
+  const handleRemoveFile = (index) => {
+    setPendingFiles((prev) => {
+      const target = prev[index];
+      if (target?.previewUrl) {
+        try { URL.revokeObjectURL(target.previewUrl); } catch (_) {}
+      }
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
   const handleRemovePendingFile = () => {
-    if (pendingPreviewUrl) {
-      try { URL.revokeObjectURL(pendingPreviewUrl); } catch (_) {}
-    }
-    setPendingFile(null);
-    setPendingPreviewUrl(null);
+    pendingFiles.forEach((item) => {
+      if (item.previewUrl) {
+        try { URL.revokeObjectURL(item.previewUrl); } catch (_) {}
+      }
+    });
+    setPendingFiles([]);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const trimmed = inputText.trim();
-    if ((!trimmed && !pendingFile) || isSending) return;
+    if ((!trimmed && pendingFiles.length === 0) || isSending) return;
 
     try {
       setIsSending(true);
-      let attachmentData = null;
+      let uploadedAttachments = [];
 
-      if (pendingFile && onUploadAttachment) {
+      if (pendingFiles.length > 0 && onUploadAttachment) {
         setIsUploading(true);
-        attachmentData = await onUploadAttachment(pendingFile);
+        // Upload concorrente/paralelo via Promise.all para máxima velocidade
+        uploadedAttachments = await Promise.all(
+          pendingFiles.map((item) => onUploadAttachment(item.file))
+        );
         setIsUploading(false);
       }
 
-      await onSendMessage({
-        content: trimmed,
-        attachment_url: attachmentData?.attachment_url,
-        attachment_type: attachmentData?.attachment_type,
-        attachment_size: attachmentData?.attachment_size,
-        reply_to_id: replyingTo?.id || null,
-      });
+      if (uploadedAttachments.length > 0) {
+        // Envia primeira mensagem com texto/legenda + 1ª mídia
+        const first = uploadedAttachments[0];
+        await onSendMessage({
+          content: trimmed,
+          attachment_url: first?.attachment_url,
+          attachment_type: first?.attachment_type,
+          attachment_size: first?.attachment_size,
+          reply_to_id: replyingTo?.id || null,
+        });
+
+        // Envia demais mídias simultâneas consecutivamente
+        for (let i = 1; i < uploadedAttachments.length; i++) {
+          const extra = uploadedAttachments[i];
+          await onSendMessage({
+            content: '',
+            attachment_url: extra?.attachment_url,
+            attachment_type: extra?.attachment_type,
+            attachment_size: extra?.attachment_size,
+          });
+        }
+      } else {
+        await onSendMessage({
+          content: trimmed,
+          reply_to_id: replyingTo?.id || null,
+        });
+      }
 
       setInputText('');
       if (onCancelReply) onCancelReply();
-      if (pendingPreviewUrl) {
-        try { URL.revokeObjectURL(pendingPreviewUrl); } catch (_) {}
-      }
-      setPendingFile(null);
-      setPendingPreviewUrl(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      handleRemovePendingFile();
     } catch (err) {
       addToast(err.message || 'Erro ao enviar mensagem.', 'error');
     } finally {
@@ -343,12 +317,15 @@ export default function ChatInputForm({
         )}
       </div>
 
-      {/* Prévia de Anexo Pendente */}
+      {/* Prévia de Anexo Pendente (Suporte a Múltiplas Mídias) */}
       <ChatPendingAttachment
+        pendingFiles={pendingFiles}
         pendingFile={pendingFile}
         pendingPreviewUrl={pendingPreviewUrl}
         formatFileSize={formatFileSize}
+        onRemoveFile={handleRemoveFile}
         onRemovePendingFile={handleRemovePendingFile}
+        onAddMoreFiles={() => fileInputRef.current?.click()}
       />
 
       {/* Popover de Emojis */}
@@ -390,6 +367,7 @@ export default function ChatInputForm({
             ref={fileInputRef}
             onChange={handleFileSelect}
             style={{ display: 'none' }}
+            multiple
             data-testid="file-upload-input"
           />
 
@@ -397,7 +375,7 @@ export default function ChatInputForm({
             type="button"
             className="chat-attach-btn"
             onClick={() => fileInputRef.current?.click()}
-            title={isSuperAdmin ? "Anexar arquivo ou mídia (Ilimitado para Super Admin)" : "Anexar arquivo ou mídia (máx 50MB)"}
+            title={isSuperAdmin ? "Anexar arquivos ou mídias (Múltiplos / Ilimitado)" : "Anexar arquivos ou mídias (Múltiplos / máx 50MB)"}
             disabled={isSending || isUploading}
             data-testid="chat-attach-btn"
           >
@@ -409,8 +387,10 @@ export default function ChatInputForm({
             ref={textInputRef}
             className="chat-text-input"
             placeholder={
-              pendingFile
-                ? `Adicionar uma legenda para ${pendingFile.name}...`
+              pendingFiles.length === 1
+                ? `Adicionar uma legenda para ${pendingFiles[0].file.name}...`
+                : pendingFiles.length > 1
+                ? `Adicionar legenda para as ${pendingFiles.length} mídias selecionadas...`
                 : channel?.is_dm
                 ? `Conversar com @${channel.name}`
                 : `Conversar em #${channel?.name || 'geral'}`
@@ -450,7 +430,7 @@ export default function ChatInputForm({
           <button
             type="submit"
             className="chat-send-btn"
-            disabled={(!inputText.trim() && !pendingFile) || isSending || isUploading}
+            disabled={(!inputText.trim() && pendingFiles.length === 0) || isSending || isUploading}
             title="Enviar mensagem"
             data-testid="chat-send-btn"
           >

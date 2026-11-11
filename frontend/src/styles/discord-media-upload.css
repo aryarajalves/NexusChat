@@ -1,0 +1,54 @@
+/* Estilos para Upload de Múltiplas Mídias Simultâneas no Chat */
+.attachment-pending-scroll-row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  overflow-x: auto;
+  max-width: 100%;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+}
+
+.attachment-pending-scroll-row::-webkit-scrollbar {
+  height: 6px;
+}
+
+.attachment-pending-scroll-row::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.pending-file-generic-thumb {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1e1f22;
+}
+
+.attachment-add-more-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 110px;
+  min-width: 110px;
+  height: 165px;
+  border-radius: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.03);
+  color: #949ba4;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.attachment-add-more-btn:hover {
+  background: rgba(88, 101, 242, 0.12);
+  border-color: #5865f2;
+  color: #f2f3f5;
+  transform: translateY(-2px);
+}

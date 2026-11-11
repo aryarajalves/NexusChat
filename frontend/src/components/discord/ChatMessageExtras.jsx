@@ -28,7 +28,7 @@ export function MessageAttachmentPreview({ msg, formatFileSize }) {
     <div className="chat-attachment-container">
       {isImage ? (
         <a href={msg.attachment_url} target="_blank" rel="noreferrer" className="chat-attachment-img-link">
-          <img src={msg.attachment_url} alt="Anexo de imagem" className="chat-attachment-img" loading="lazy" />
+          <img src={msg.attachment_url} alt="Anexo de imagem" className="chat-attachment-img" decoding="async" />
         </a>
       ) : isVideo ? (
         <video src={msg.attachment_url} controls playsInline className="chat-attachment-video" />

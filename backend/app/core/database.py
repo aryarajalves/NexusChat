@@ -49,6 +49,12 @@ def get_db_context():
         db = next(gen)
         try:
             yield db
+        except Exception:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            raise
         finally:
             try:
                 next(gen)
@@ -62,5 +68,11 @@ def get_db_context():
         db = SessionLocal()
         try:
             yield db
+        except Exception:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            raise
         finally:
             db.close()

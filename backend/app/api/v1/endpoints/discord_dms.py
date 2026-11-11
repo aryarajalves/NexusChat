@@ -1,5 +1,6 @@
 import os
 import uuid
+import asyncio
 from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, WebSocket, WebSocketDisconnect, File, UploadFile
@@ -292,7 +293,7 @@ async def upload_dm_attachment(
     """Faz upload de arquivo, áudio ou imagem para envio na DM (limite de 50 MB e sanitizado)."""
     await check_rate_limit(
         f"upload:user:{current_user.id}",
-        max_requests=10,
+        max_requests=60,
         window_seconds=60,
         error_detail="Limite de uploads excedido. Aguarde 1 minuto."
     )
@@ -306,7 +307,7 @@ async def upload_dm_attachment(
     val_res = validate_uploaded_file(file.filename or "", file_bytes, max_size_bytes=max_size)
 
     unique_name = f"{uuid.uuid4().hex}{val_res['extension']}"
-    upload_res = upload_discord_media_file(file_bytes, unique_name, file.content_type)
+    upload_res = await asyncio.to_thread(upload_discord_media_file, file_bytes, unique_name, file.content_type)
 
     return {
         "attachment_url": upload_res["attachment_url"],

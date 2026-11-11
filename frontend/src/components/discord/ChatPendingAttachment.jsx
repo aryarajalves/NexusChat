@@ -1,82 +1,97 @@
 import React from 'react';
-import { FileText, X, Trash2 } from 'lucide-react';
+import { FileText, Plus, Trash2 } from 'lucide-react';
 
 export default function ChatPendingAttachment({
-  pendingFile,
-  pendingPreviewUrl,
+  pendingFiles = [],
+  pendingFile = null,
+  pendingPreviewUrl = null,
   formatFileSize,
+  onRemoveFile,
   onRemovePendingFile,
+  onAddMoreFiles,
 }) {
-  if (!pendingFile) return null;
+  const items = pendingFiles && pendingFiles.length > 0
+    ? pendingFiles
+    : pendingFile
+      ? [{ file: pendingFile, previewUrl: pendingPreviewUrl, id: 'legacy-0' }]
+      : [];
+
+  if (items.length === 0) return null;
 
   return (
     <div className="attachment-pending-container" data-testid="attachment-pending-box">
-      {pendingPreviewUrl && pendingFile.type.startsWith('image/') ? (
-        <div className="attachment-pending-media-card">
-          <div className="pending-thumb-wrapper">
-            <img
-              src={pendingPreviewUrl}
-              alt={pendingFile.name}
-              className="pending-media-thumb"
-              data-testid="pending-image-preview"
-            />
-            <button
-              type="button"
-              className="pending-remove-btn-floating"
-              onClick={onRemovePendingFile}
-              title="Remover anexo"
-              data-testid="remove-pending-attachment-btn"
-            >
-              <Trash2 size={13} />
-            </button>
-          </div>
-          <div className="pending-media-caption">
-            <span className="pending-file-name" title={pendingFile.name}>{pendingFile.name}</span>
-            <span className="pending-file-size">({formatFileSize(pendingFile.size)})</span>
-          </div>
-          <span className="pending-legend-badge">Digite uma legenda abaixo (opcional)</span>
-        </div>
-      ) : pendingPreviewUrl && pendingFile.type.startsWith('video/') ? (
-        <div className="attachment-pending-media-card">
-          <div className="pending-thumb-wrapper">
-            <video
-              src={pendingPreviewUrl}
-              className="pending-media-thumb"
-              data-testid="pending-video-preview"
-              muted
-            />
-            <button
-              type="button"
-              className="pending-remove-btn-floating"
-              onClick={onRemovePendingFile}
-              title="Remover anexo"
-              data-testid="remove-pending-attachment-btn"
-            >
-              <Trash2 size={13} />
-            </button>
-          </div>
-          <div className="pending-media-caption">
-            <span className="pending-file-name" title={pendingFile.name}>{pendingFile.name}</span>
-            <span className="pending-file-size">({formatFileSize(pendingFile.size)})</span>
-          </div>
-          <span className="pending-legend-badge">Digite uma legenda abaixo (opcional)</span>
-        </div>
-      ) : (
-        <div className="attachment-pending-preview">
-          <FileText size={18} className="pending-file-icon" />
-          <span className="pending-file-name" title={pendingFile.name}>{pendingFile.name}</span>
-          <span className="pending-file-size">({formatFileSize(pendingFile.size)})</span>
+      <div className="attachment-pending-scroll-row">
+        {items.map((item, index) => {
+          const { file, previewUrl, id } = item;
+          const isImg = file?.type?.startsWith('image/');
+          const isVid = file?.type?.startsWith('video/');
+
+          const handleRemove = () => {
+            if (onRemoveFile) {
+              onRemoveFile(index);
+            } else if (onRemovePendingFile) {
+              onRemovePendingFile();
+            }
+          };
+
+          return (
+            <div key={id || index} className="attachment-pending-media-card" data-testid={`pending-card-${index}`}>
+              <div className="pending-thumb-wrapper">
+                {previewUrl && isImg ? (
+                  <img
+                    src={previewUrl}
+                    alt={file.name}
+                    className="pending-media-thumb"
+                    data-testid={index === 0 ? 'pending-image-preview' : `pending-image-preview-${index}`}
+                  />
+                ) : previewUrl && isVid ? (
+                  <video
+                    src={previewUrl}
+                    className="pending-media-thumb"
+                    data-testid={index === 0 ? 'pending-video-preview' : `pending-video-preview-${index}`}
+                    muted
+                  />
+                ) : (
+                  <div className="pending-file-generic-thumb">
+                    <FileText size={32} className="pending-file-icon" />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className="pending-remove-btn-floating"
+                  onClick={handleRemove}
+                  title="Remover anexo"
+                  data-testid={index === 0 ? 'remove-pending-attachment-btn' : `remove-pending-attachment-btn-${index}`}
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+              <div className="pending-media-caption">
+                <span className="pending-file-name" title={file.name}>{file.name}</span>
+                <span className="pending-file-size">({formatFileSize ? formatFileSize(file.size) : `${Math.round(file.size / 1024)} KB`})</span>
+              </div>
+            </div>
+          );
+        })}
+
+        {onAddMoreFiles && (
           <button
             type="button"
-            className="remove-pending-btn"
-            onClick={onRemovePendingFile}
-            title="Remover anexo"
-            data-testid="remove-pending-attachment-btn"
+            className="attachment-add-more-btn"
+            onClick={onAddMoreFiles}
+            title="Adicionar mais arquivos"
+            data-testid="add-more-attachments-btn"
           >
-            <X size={14} />
+            <Plus size={24} />
+            <span>Adicionar</span>
           </button>
-        </div>
-      )}
+        )}
+      </div>
+      <span className="pending-legend-badge">
+        {items.length === 1
+          ? 'Digite uma legenda abaixo (opcional)'
+          : `${items.length} mídias selecionadas (envio simultâneo). Digite uma legenda se desejar.`}
+      </span>
     </div>
   );
 }

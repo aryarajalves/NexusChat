@@ -6,9 +6,10 @@ import ChatPendingAttachment from './ChatPendingAttachment';
 describe('ChatPendingAttachment', () => {
   const formatFileSize = (bytes) => `${(bytes / 1024).toFixed(0)} KB`;
 
-  it('renders null when pendingFile is null', () => {
+  it('renders null when pendingFile and pendingFiles are empty', () => {
     const { container } = render(
       <ChatPendingAttachment
+        pendingFiles={[]}
         pendingFile={null}
         pendingPreviewUrl={null}
         formatFileSize={formatFileSize}
@@ -18,7 +19,7 @@ describe('ChatPendingAttachment', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('renders image thumbnail, details, caption badge and handles remove', () => {
+  it('renders image thumbnail, details, caption badge and handles remove (legacy single-file mode)', () => {
     const handleRemove = vi.fn();
     const fakeFile = new File(['content'], 'foto_teste.png', { type: 'image/png' });
     Object.defineProperty(fakeFile, 'size', { value: 204800 });
@@ -45,46 +46,50 @@ describe('ChatPendingAttachment', () => {
     expect(handleRemove).toHaveBeenCalledTimes(1);
   });
 
-  it('renders video thumbnail, details, and handles remove', () => {
-    const handleRemove = vi.fn();
-    const fakeFile = new File(['content'], 'clipe.mp4', { type: 'video/mp4' });
-    Object.defineProperty(fakeFile, 'size', { value: 1048576 });
+  it('renders multiple media cards simultaneously and triggers onRemoveFile(index)', () => {
+    const handleRemoveFile = vi.fn();
+    const handleAddMore = vi.fn();
+
+    const file1 = new File(['1'], 'img1.png', { type: 'image/png' });
+    const file2 = new File(['2'], 'clip.mp4', { type: 'video/mp4' });
+    const file3 = new File(['3'], 'doc.pdf', { type: 'application/pdf' });
+    Object.defineProperty(file1, 'size', { value: 102400 });
+    Object.defineProperty(file2, 'size', { value: 512000 });
+    Object.defineProperty(file3, 'size', { value: 25600 });
+
+    const pendingFiles = [
+      { file: file1, previewUrl: 'blob:img1', id: 'id-1' },
+      { file: file2, previewUrl: 'blob:clip', id: 'id-2' },
+      { file: file3, previewUrl: null, id: 'id-3' },
+    ];
 
     render(
       <ChatPendingAttachment
-        pendingFile={fakeFile}
-        pendingPreviewUrl="blob:http://localhost:3000/video-blob"
+        pendingFiles={pendingFiles}
         formatFileSize={formatFileSize}
-        onRemovePendingFile={handleRemove}
+        onRemoveFile={handleRemoveFile}
+        onAddMoreFiles={handleAddMore}
       />
     );
 
-    expect(screen.getByTestId('pending-video-preview')).toBeInTheDocument();
-    expect(screen.getByText('clipe.mp4')).toBeInTheDocument();
-    expect(screen.getByText('(1024 KB)')).toBeInTheDocument();
-  });
+    expect(screen.getByTestId('pending-card-0')).toBeInTheDocument();
+    expect(screen.getByTestId('pending-card-1')).toBeInTheDocument();
+    expect(screen.getByTestId('pending-card-2')).toBeInTheDocument();
 
-  it('renders fallback generic document card for non-media files', () => {
-    const handleRemove = vi.fn();
-    const fakeFile = new File(['content'], 'documento.pdf', { type: 'application/pdf' });
-    Object.defineProperty(fakeFile, 'size', { value: 51200 });
+    expect(screen.getByText('img1.png')).toBeInTheDocument();
+    expect(screen.getByText('clip.mp4')).toBeInTheDocument();
+    expect(screen.getByText('doc.pdf')).toBeInTheDocument();
 
-    render(
-      <ChatPendingAttachment
-        pendingFile={fakeFile}
-        pendingPreviewUrl={null}
-        formatFileSize={formatFileSize}
-        onRemovePendingFile={handleRemove}
-      />
-    );
+    expect(screen.getByText('3 mídias selecionadas (envio simultâneo). Digite uma legenda se desejar.')).toBeInTheDocument();
 
-    expect(screen.queryByTestId('pending-image-preview')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('pending-video-preview')).not.toBeInTheDocument();
-    expect(screen.getByText('documento.pdf')).toBeInTheDocument();
-    expect(screen.getByText('(50 KB)')).toBeInTheDocument();
+    // Testa botão de remover item específico
+    const removeBtnSecond = screen.getByTestId('remove-pending-attachment-btn-1');
+    fireEvent.click(removeBtnSecond);
+    expect(handleRemoveFile).toHaveBeenCalledWith(1);
 
-    const removeBtn = screen.getByTestId('remove-pending-attachment-btn');
-    fireEvent.click(removeBtn);
-    expect(handleRemove).toHaveBeenCalledTimes(1);
+    // Testa botão de adicionar mais mídias
+    const addMoreBtn = screen.getByTestId('add-more-attachments-btn');
+    fireEvent.click(addMoreBtn);
+    expect(handleAddMore).toHaveBeenCalledTimes(1);
   });
 });

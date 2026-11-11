@@ -11,6 +11,7 @@ import PinnedMessagesPanel from './PinnedMessagesPanel';
 import ThreadSidePanel from './ThreadSidePanel';
 import { formatBrasiliaDateTime, formatFileSize } from './chatUtils';
 import useVirtualMessageList from './useVirtualMessageList';
+import { useChatScroll } from './useChatScroll';
 
 export { formatBrasiliaDateTime, formatFileSize };
 
@@ -30,13 +31,21 @@ export default function ChatArea({
   const [activeThreadDetail, setActiveThreadDetail] = useState(null);
   const [loadingThread, setLoadingThread] = useState(false);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const [droppedFile, setDroppedFile] = useState(null);
+  const [droppedFiles, setDroppedFiles] = useState([]);
 
   const { addToast } = useToast();
-  const messagesEndRef = useRef(null);
-  const messagesContainerRef = useRef(null);
   const textInputRef = useRef(null);
   const dragCounterRef = useRef(0);
+
+  const {
+    messagesContainerRef,
+    messagesEndRef,
+    handleScrollToMessage,
+  } = useChatScroll({
+    messages,
+    channelId: channel?.id,
+    currentUserId,
+  });
 
   const {
     isVirtual,
@@ -48,12 +57,6 @@ export default function ChatArea({
     containerRef: messagesContainerRef,
     enabledThreshold: 40,
   });
-
-  useEffect(() => {
-    if (typeof messagesEndRef.current?.scrollIntoView === 'function') {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages]);
 
   const isFileDragEvent = (e) => {
     if (typeof document !== 'undefined' && document.querySelector('.voice-pip-floating-box.is-dragging, .webcam-pip-container.is-dragging')) {
@@ -92,24 +95,13 @@ export default function ChatArea({
     e.stopPropagation();
     dragCounterRef.current = 0;
     setIsDraggingOver(false);
-    const file = e.dataTransfer?.files?.[0];
-    if (file) setDroppedFile(file);
+    const files = Array.from(e.dataTransfer?.files || []);
+    if (files.length > 0) setDroppedFiles(files);
   };
 
   const handleStartReply = (messageToReply) => {
     setReplyingTo(messageToReply);
     textInputRef.current?.focus();
-  };
-
-  const handleScrollToMessage = (messageId) => {
-    const el = document.getElementById(`message-item-${messageId}`);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('message-highlight-pulse');
-      setTimeout(() => {
-        el.classList.remove('message-highlight-pulse');
-      }, 2000);
-    }
   };
 
   const handleOpenThread = async (threadId) => {
@@ -428,7 +420,7 @@ export default function ChatArea({
             aria-hidden="true"
           />
         )}
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} className="chat-messages-end-anchor" style={{ height: '1px', flexShrink: 0 }} />
       </div>
 
       {/* Formulário Modular de Envio e Digitação */}
@@ -442,8 +434,8 @@ export default function ChatArea({
         onUploadAttachment={onUploadAttachment}
         onSendTyping={onSendTyping}
         typingUsers={typingUsers}
-        droppedFile={droppedFile}
-        onClearDroppedFile={() => setDroppedFile(null)}
+        droppedFiles={droppedFiles}
+        onClearDroppedFiles={() => setDroppedFiles([])}
         externalInputRef={textInputRef}
       />
 
