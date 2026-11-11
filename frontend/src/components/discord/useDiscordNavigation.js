@@ -41,7 +41,7 @@ export function useDiscordNavigation({ token, servers, setServers, channels, set
   // Handler para selecionar canal
   const handleSelectChannel = useCallback((channelId, onVoiceConnect) => {
     const ch = channels.find((c) => c.id === channelId);
-    if (ch && ch.type === 'VOICE') {
+    if (ch && (ch.type === 'VOICE' || ch.type === 'STAGE')) {
       if (onVoiceConnect) {
         onVoiceConnect(channelId);
       }

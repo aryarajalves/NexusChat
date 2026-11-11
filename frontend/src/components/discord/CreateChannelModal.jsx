@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Hash, Volume2, Lock, Loader2, Check } from 'lucide-react';
+import { Hash, Volume2, Radio, Lock, Loader2, Check } from 'lucide-react';
 
 const DEFAULT_ROLES = [];
 
@@ -87,7 +87,7 @@ export default function CreateChannelModal({
       await onCreateChannel({
         name: trimmedName,
         type,
-        category: category.trim() || (type === 'TEXT' ? 'Canais de Texto' : 'Canais de Voz'),
+        category: category.trim() || (type === 'TEXT' ? 'Canais de Texto' : type === 'STAGE' ? 'Canais de Aula' : 'Canais de Voz'),
         is_private: isPrivate,
         allowed_role_ids: isPrivate ? selectedRoleIds : [],
       });
@@ -211,6 +211,40 @@ export default function CreateChannelModal({
                     className="visually-hidden"
                   />
                 </div>
+
+                {/* Opção 3: Canal de Palco / Sala de Aula */}
+                <div
+                  className={`channel-type-card ${type === 'STAGE' ? 'selected' : ''}`}
+                  onClick={() => {
+                    setType('STAGE');
+                    setCategory('Canais de Aula');
+                  }}
+                  data-testid="channel-type-stage"
+                  role="button"
+                  tabIndex={0}
+                >
+                  <div className="channel-type-card-left">
+                    <Radio size={24} className="channel-type-icon" />
+                    <div className="channel-type-card-info">
+                      <span className="channel-type-title">Palco / Aula</span>
+                      <span className="channel-type-desc">Apenas professores e moderadores falam; alunos pedem a vez</span>
+                    </div>
+                  </div>
+                  <div className="channel-type-radio-outer">
+                    {type === 'STAGE' && <div className="channel-type-radio-inner" />}
+                  </div>
+                  <input
+                    type="radio"
+                    name="channelType"
+                    value="STAGE"
+                    checked={type === 'STAGE'}
+                    onChange={() => {
+                      setType('STAGE');
+                      setCategory('Canais de Aula');
+                    }}
+                    className="visually-hidden"
+                  />
+                </div>
               </div>
             </div>
 
@@ -218,7 +252,7 @@ export default function CreateChannelModal({
               <label className="form-label">Nome do Canal *</label>
               <div className="channel-name-input-wrapper">
                 <span className="channel-name-prefix">
-                  {type === 'TEXT' ? '#' : '🔊'}
+                  {type === 'TEXT' ? '#' : type === 'STAGE' ? '🎙️' : '🔊'}
                 </span>
                 <input
                   type="text"

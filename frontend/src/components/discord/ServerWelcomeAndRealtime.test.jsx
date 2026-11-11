@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor, renderHook, act } from '@testing-li
 import ServerWelcomeTab from './ServerWelcomeTab';
 import ServerSettingsModal from './ServerSettingsModal';
 import MemberListSidebar from './MemberListSidebar';
+import ChannelSidebar from './ChannelSidebar';
 import useDiscordUserWS from './useDiscordUserWS';
 import useDiscordVoicePresence from './useDiscordVoicePresence';
 
@@ -250,5 +251,40 @@ describe('Sistema de Boas-Vindas e Sincronização Realtime', () => {
       expect.objectContaining({ method: 'POST' })
     );
     unmount();
+  });
+
+  it('ChannelSidebar oculta contatos offline dos canais de voz para evitar usuários fantasmas', () => {
+    const channels = [
+      { id: 1, name: 'geral', type: 'TEXT' },
+      { id: 2, name: 'geral', type: 'VOICE' },
+    ];
+    const server = { id: 1, name: 'Servidor Teste' };
+    const currentUser = { id: 1, name: 'Aryaraj', avatar_url: null };
+    const members = [
+      { id: 1, user_id: 1, name: 'Aryaraj', is_online: true },
+      { id: 2, user_id: 2, name: 'Jordão rodrigues', is_online: false },
+    ];
+    // Backend/cache local ainda tem o Jordão no voiceChannelUsers
+    const voiceChannelUsers = {
+      2: [
+        { user_id: 2, user_name: 'Jordão rodrigues', is_muted: true },
+      ],
+    };
+
+    render(
+      <ChannelSidebar
+        server={server}
+        channels={channels}
+        activeChannelId={1}
+        connectedVoiceChannelId={null}
+        currentUser={currentUser}
+        members={members}
+        voiceChannelUsers={voiceChannelUsers}
+        onSelectChannel={vi.fn()}
+      />
+    );
+
+    // Como Jordão está com is_online: false, ele NÃO deve ser renderizado no canal de voz
+    expect(screen.queryByText('Jordão rodrigues')).toBeNull();
   });
 });

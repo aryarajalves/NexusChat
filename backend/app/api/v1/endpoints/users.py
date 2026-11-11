@@ -105,6 +105,28 @@ async def login(login_data: UserLogin, request: Request, db: Session = Depends(g
             detail="Usuário inativo",
         )
     access_token = create_access_token(data={"sub": str(user.id), "role": user.role})
+    payload_jwt = decode_access_token(access_token) or {}
+    socket_manager.register_active_token(user.id, access_token, payload_jwt.get("iat", 0))
+
+    # Notifica e encerra conexões ativas anteriores do mesmo usuário para que desloguem
+    if user.id in socket_manager.user_sockets:
+        for old_ws in list(socket_manager.user_sockets[user.id]):
+            try:
+                await old_ws.send_json({
+                    "event": "session:terminated",
+                    "reason": "new_login",
+                    "detail": "Sua conta foi conectada em outra aba ou dispositivo."
+                })
+                await old_ws.close(code=4001, reason="Nova sessao iniciada em outra aba")
+            except Exception:
+                pass
+            finally:
+                socket_manager.ws_sessions.pop(old_ws, None)
+        socket_manager.user_sockets.pop(user.id, None)
+
+    # Limpa presença em chamadas de voz de sessões antigas
+    await socket_manager.remove_user_from_all_voice_rooms(user.id, user.name)
+
     return Token(
         access_token=access_token,
         token_type="bearer",

@@ -262,6 +262,42 @@ describe('App Component', () => {
     expect(discordWrapper).toHaveStyle({ display: 'contents' });
     expect(screen.queryByTestId('dashboard-welcome-container')).not.toBeInTheDocument();
   });
+
+  it('desloga a aba antiga quando outra aba realiza login ou atualiza auth_session_id', async () => {
+    localStorage.setItem('auth_token', 'mock_token');
+    localStorage.setItem(
+      'auth_user',
+      JSON.stringify({
+        id: 1,
+        name: 'Super Admin',
+        email: 'admin@test.com',
+        role: 'superadmin',
+      })
+    );
+    localStorage.setItem('auth_session_id', 'session_aba_1');
+    sessionStorage.setItem('current_session_id', 'session_aba_1');
+
+    render(
+      <ToastProvider>
+        <App />
+      </ToastProvider>
+    );
+
+    // Dashboard está autenticado
+    expect(screen.getByRole('complementary', { name: /menu lateral/i })).toBeInTheDocument();
+
+    // Outra aba faz login e atualiza a chave auth_session_id
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: 'auth_session_id',
+        newValue: 'session_aba_2',
+      })
+    );
+
+    // Esta aba antiga deve deslogar e exibir a tela de login
+    expect(await screen.findByTestId('login-email-input')).toBeInTheDocument();
+    expect(screen.queryByRole('complementary', { name: /menu lateral/i })).not.toBeInTheDocument();
+  });
 });
 
 

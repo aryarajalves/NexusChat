@@ -32,6 +32,7 @@ export default function useDiscordVoiceAndUserSync({
   setMessages,
   setConversations,
   addToast,
+  onSessionTerminated,
 }) {
   const {
     voiceChannelUsers,
@@ -50,6 +51,7 @@ export default function useDiscordVoiceAndUserSync({
 
   useDiscordUserWS({
     token,
+    onSessionTerminated,
     onUnreadUpdate: handleUnreadUpdate,
     onDMMessageNew: handleDMMessageNew,
     onVoiceChannelUpdate: handleVoiceChannelUpdate,
@@ -70,11 +72,28 @@ export default function useDiscordVoiceAndUserSync({
     },
     onUserPresence: (data) => {
       if (!data?.user_id) return;
+      const targetUid = Number(data.user_id);
       setMembers((prev) =>
         prev.map((m) =>
-          m.user_id === data.user_id ? { ...m, is_online: Boolean(data.is_online) } : m
+          Number(m.user_id || m.id) === targetUid ? { ...m, is_online: Boolean(data.is_online) } : m
         )
       );
+      if (data.is_online === false) {
+        setVoiceChannelUsers((prev) => {
+          const next = { ...prev };
+          let changed = false;
+          Object.entries(next).forEach(([chId, uList]) => {
+            const filtered = (uList || []).filter(
+              (u) => Number(u.user_id || u.id) !== targetUid
+            );
+            if (filtered.length !== (uList || []).length) {
+              next[chId] = filtered;
+              changed = true;
+            }
+          });
+          return changed ? next : prev;
+        });
+      }
     },
     onUserProfileUpdated: (data) => {
       if (!data?.user_id) return;
@@ -159,7 +178,7 @@ export default function useDiscordVoiceAndUserSync({
     playDiscordSound('voice_leave');
     if (addToast) addToast('Você saiu do canal de voz.', 'info');
     const activeCh = (channels || []).find((c) => c.id === activeChannelId);
-    if (activeCh?.type === 'VOICE') {
+    if (activeCh?.type === 'VOICE' || activeCh?.type === 'STAGE') {
       const textCh = (channels || []).find((c) => c.type === 'TEXT');
       if (textCh && handleSelectChannel) handleSelectChannel(textCh.id);
     }

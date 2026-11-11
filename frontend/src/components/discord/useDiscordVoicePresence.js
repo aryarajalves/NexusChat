@@ -46,7 +46,7 @@ export default function useDiscordVoicePresence({
   // 2. Busca periódica do status dos canais de voz do servidor ativo
   useEffect(() => {
     if (!token || !channels || channels.length === 0) return;
-    const voiceChannels = channels.filter((c) => c.type === 'VOICE');
+    const voiceChannels = channels.filter((c) => c.type === 'VOICE' || c.type === 'STAGE');
     if (voiceChannels.length === 0) return;
 
     let isSubscribed = true;

@@ -31,11 +31,28 @@ export default function Login({ onLoginSuccess }) {
         throw new Error(errorMsg);
       }
 
+      const sessionId = 'tab_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+      sessionStorage.removeItem('nexus_tab_logged_out');
+      sessionStorage.setItem('nexus_tab_session_id', sessionId);
+      sessionStorage.setItem('current_session_id', sessionId);
       localStorage.setItem('auth_token', data.access_token);
       localStorage.setItem('auth_user', JSON.stringify(data.user));
+      localStorage.setItem('nexus_active_tab_session_id', sessionId);
+      localStorage.setItem('auth_session_id', sessionId);
+
+      try {
+        const channel = new BroadcastChannel('nexus_session_channel');
+        channel.postMessage({
+          type: 'NEW_LOGIN',
+          sessionId,
+          userId: data.user.id,
+        });
+        channel.close();
+      } catch (_) {}
+
       addToast(`Bem-vindo, ${data.user.name}!`, 'success');
       if (onLoginSuccess) {
-        onLoginSuccess(data.user, data.access_token);
+        onLoginSuccess(data.user, data.access_token, sessionId);
       }
     } catch (err) {
       setError(err.message || 'Erro ao realizar login.');

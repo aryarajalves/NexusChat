@@ -239,6 +239,14 @@ export function useDiscordSocket({
               }
               break;
 
+            case 'stage:hand_updated':
+            case 'stage:speaker_granted':
+            case 'stage:speaker_revoked':
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('discord:stage', { detail: payload }));
+              }
+              break;
+
             default:
               break;
           }
@@ -247,8 +255,13 @@ export function useDiscordSocket({
         }
       };
 
-      const handleDisconnection = () => {
+      const handleDisconnection = (ev) => {
         if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+        if (ev?.code === 4001) {
+          intentionalCloseRef.current = true;
+          setConnectionStatus('disconnected');
+          return;
+        }
 
         if (isMountedRef.current) {
           if (!intentionalCloseRef.current) {

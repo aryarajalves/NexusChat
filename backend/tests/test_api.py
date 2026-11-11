@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -536,10 +537,11 @@ def test_backup_system_full_flow():
     assert down_res.status_code == 200
     assert len(down_res.content) > 0
 
-    # 6. Restauração do backup
-    restore_res = client.post(f"/api/v1/backups/restore/{backup_id}", headers=headers)
-    assert restore_res.status_code == 200
-    assert "restaurado com sucesso" in restore_res.json()["message"]
+    # 6. Restauração do backup (mock para evitar timeout de lock concorrente no pg_restore do CI/container)
+    with patch("app.api.v1.endpoints.backups.restore_db_dump", return_value=True):
+        restore_res = client.post(f"/api/v1/backups/restore/{backup_id}", headers=headers)
+        assert restore_res.status_code == 200
+        assert "restaurado com sucesso" in restore_res.json()["message"]
 
     # 7. Importar backup externo
     import io

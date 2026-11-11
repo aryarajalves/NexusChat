@@ -1,12 +1,14 @@
 import os
 import uuid
 import secrets
+import asyncio
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
+from types import SimpleNamespace
 from fastapi import APIRouter, Depends, HTTPException, status, Query, WebSocket, WebSocketDisconnect, File, UploadFile
 from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy.orm import Session, joinedload
-from app.core.database import get_db, SessionLocal
+from app.core.database import get_db, get_db_context
 from app.core.security import decode_access_token
 from app.core.logger import logger
 from app.models.user import User
@@ -491,7 +493,7 @@ async def send_channel_message(
     )
     channel = ensure_channel_access(channel_id, current_user, db)
 
-    if channel.type not in ("TEXT", "VOICE"):
+    if channel.type not in ("TEXT", "VOICE", "STAGE"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Tipo de canal inválido para envio de mensagens"
@@ -812,38 +814,50 @@ async def forward_channel_message(
 async def channel_websocket_endpoint(
     websocket: WebSocket,
     channel_id: int,
-    token: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
+    token: Optional[str] = Query(None)
 ):
-    """Endpoint WebSocket para mensageria e presença em tempo real por canal."""
+    """Endpoint WebSocket para mensageria e presença em tempo real por canal (zero pool leak)."""
     if not token:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION); return
     payload = decode_access_token(token)
     if not payload or "sub" not in payload:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION); return
     user_id = int(payload["sub"])
-    user = db.query(User).filter(User.id == user_id, User.is_active == True).first()
-    if not user:
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION); return
 
-    channel = db.query(Channel).filter(Channel.id == channel_id).first()
-    if not channel:
-        await websocket.close(code=status.WS_1003_UNSUPPORTED_DATA)
-        return
+    with get_db_context() as db:
+        user_record = db.query(User).filter(User.id == user_id, User.is_active == True).first()
+        if not user_record:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION); return
 
-    # Garante que o usuário participa do servidor e tem permissão de acesso ao canal (inclusive canais privados)
-    if not can_user_access_channel(channel, user.id, db):
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-        return
+        token_iat = payload.get("iat", 0)
+        if not socket_manager.is_token_active(user_id, token, token_iat):
+            logger.warning(f"[WebSocket Canal] Rejeitando token antigo/revogado no canal #{channel_id} para usuário {user_id}")
+            await websocket.close(code=4001, reason="Sessao expirada por novo login")
+            return
+
+        channel = db.query(Channel).filter(Channel.id == channel_id).first()
+        if not channel:
+            await websocket.close(code=status.WS_1003_UNSUPPORTED_DATA)
+            return
+
+        if not can_user_access_channel(channel, user_id, db):
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
+
+        user_name = user_record.name
+        user_email = user_record.email
+        user_avatar = user_record.avatar_url
+        channel_type = channel.type
+        user = SimpleNamespace(id=user_id, name=user_name, email=user_email, avatar_url=user_avatar)
 
     # Conecta no socket manager e sincroniza presença de voz se aplicável
     await socket_manager.connect(channel_id, user.id, user.name, websocket)
-    await socket_manager.ensure_voice_ws_registered(channel_id, channel.type, user)
+    await socket_manager.ensure_voice_ws_registered(channel_id, channel_type, user)
 
     # Notifica os participantes da presença do novo usuário
     online_list = (
         socket_manager.get_voice_users_in_channel(channel_id)
-        if channel.type == "VOICE"
+        if channel_type in ["VOICE", "STAGE"]
         else socket_manager.get_online_users_in_channel(channel_id)
     )
     await socket_manager.broadcast_to_channel(
@@ -853,64 +867,68 @@ async def channel_websocket_endpoint(
 
     try:
         while True:
-            data = await websocket.receive_json()
+            data = await asyncio.wait_for(websocket.receive_json(), timeout=60.0)
             event_type = data.get("event")
 
-            # 1. Envio de mensagem pelo próprio WebSocket
+            # 1. Envio de mensagem pelo próprio WebSocket (abre sessão breve sob demanda)
             if event_type == "message:send":
                 content = (data.get("content") or "").strip()
                 attachment_url = data.get("attachment_url")
                 if not content and not attachment_url:
-                    await websocket.send_json({
-                        "event": "error",
-                        "detail": "A mensagem precisa conter texto ou anexo"
-                    })
+                    await websocket.send_json({"event": "error", "detail": "A mensagem precisa conter texto ou anexo"})
                     continue
 
                 if len(content) > 2000:
-                    await websocket.send_json({
-                        "event": "error",
-                        "detail": "Mensagem excede o limite de 2.000 caracteres"
-                    })
+                    await websocket.send_json({"event": "error", "detail": "Mensagem excede o limite de 2.000 caracteres"})
                     continue
 
-                new_msg = Message(
-                    channel_id=channel_id,
-                    author_id=user.id,
-                    content=content,
-                    attachment_url=data.get("attachment_url"),
-                    attachment_type=data.get("attachment_type"),
-                    attachment_size=data.get("attachment_size"),
-                    reply_to_id=data.get("reply_to_id")
-                )
-                db.add(new_msg)
-                db.commit()
-                db.refresh(new_msg)
+                with get_db_context() as db:
+                    new_msg = Message(
+                        channel_id=channel_id,
+                        author_id=user.id,
+                        content=content,
+                        attachment_url=data.get("attachment_url"),
+                        attachment_type=data.get("attachment_type"),
+                        attachment_size=data.get("attachment_size"),
+                        reply_to_id=data.get("reply_to_id")
+                    )
+                    db.add(new_msg)
+                    db.commit()
+                    db.refresh(new_msg)
+                    msg_id = new_msg.id
+                    is_edited = new_msg.is_edited
+                    is_pinned = bool(getattr(new_msg, "is_pinned", False))
+                    created_at_iso = ensure_utc(new_msg.created_at).isoformat() if new_msg.created_at else None
+                    updated_at_iso = ensure_utc(new_msg.updated_at).isoformat() if new_msg.updated_at else None
+
+                    ch_obj = db.query(Channel.server_id).filter(Channel.id == channel_id).first()
+                    m_ids = []
+                    server_id = ch_obj.server_id if ch_obj else None
+                    if server_id:
+                        m_ids = [m.user_id for m in db.query(ServerMember.user_id).filter(ServerMember.server_id == server_id).all()]
 
                 msg_payload = {
                     "event": "message:new",
                     "message": {
-                        "id": new_msg.id,
-                        "channel_id": new_msg.channel_id,
-                        "author_id": new_msg.author_id,
+                        "id": msg_id,
+                        "channel_id": channel_id,
+                        "author_id": user.id,
                         "author_name": user.name,
                         "author_email": user.email,
-                        "content": new_msg.content,
-                        "attachment_url": new_msg.attachment_url,
-                        "attachment_type": new_msg.attachment_type,
-                        "attachment_size": new_msg.attachment_size,
-                        "reply_to_id": new_msg.reply_to_id,
-                        "is_edited": new_msg.is_edited,
-                        "is_pinned": bool(getattr(new_msg, "is_pinned", False)),
-                        "created_at": ensure_utc(new_msg.created_at).isoformat() if new_msg.created_at else None,
-                        "updated_at": ensure_utc(new_msg.updated_at).isoformat() if new_msg.updated_at else None
+                        "content": content,
+                        "attachment_url": data.get("attachment_url"),
+                        "attachment_type": data.get("attachment_type"),
+                        "attachment_size": data.get("attachment_size"),
+                        "reply_to_id": data.get("reply_to_id"),
+                        "is_edited": is_edited,
+                        "is_pinned": is_pinned,
+                        "created_at": created_at_iso,
+                        "updated_at": updated_at_iso
                     }
                 }
                 await socket_manager.broadcast_to_channel(channel_id, msg_payload)
-                ch_obj = db.query(Channel.server_id).filter(Channel.id == channel_id).first()
-                if ch_obj:
-                    m_ids = [m.user_id for m in db.query(ServerMember.user_id).filter(ServerMember.server_id == ch_obj.server_id).all()]
-                    await notify_channel_unread(channel_id, ch_obj.server_id, new_msg.id, user.id, m_ids)
+                if server_id and m_ids:
+                    await notify_channel_unread(channel_id, server_id, msg_id, user.id, m_ids)
 
             # 2. Indicador "Usuário está digitando..."
             elif event_type == "user:typing":
@@ -928,7 +946,7 @@ async def channel_websocket_endpoint(
             elif event_type == "voice:state":
                 await socket_manager.process_voice_state_ws_event(
                     channel_id,
-                    channel.type,
+                    channel_type,
                     user,
                     bool(data.get("is_muted", False)),
                     bool(data.get("is_deafened", False)),
@@ -961,17 +979,12 @@ async def channel_websocket_endpoint(
                     exclude=websocket
                 )
 
-    except WebSocketDisconnect:
-        socket_manager.disconnect(channel_id, websocket)
-        await socket_manager.broadcast_to_channel(
-            channel_id,
-            {
-                "event": "presence:leave",
-                "user_id": user.id,
-                "user_name": user.name,
-                "online_users": socket_manager.get_online_users_in_channel(channel_id)
-            }
+    except (WebSocketDisconnect, asyncio.TimeoutError):
+        await socket_manager.handle_channel_disconnect(
+            channel_id, channel_type, user.id, user.name, websocket
         )
     except Exception as e:
         logger.error(f"[WebSocket] Erro na sessão do usuário {user.id} no canal #{channel_id}: {e}")
-        socket_manager.disconnect(channel_id, websocket)
+        await socket_manager.handle_channel_disconnect(
+            channel_id, channel_type, user.id, user.name, websocket
+        )

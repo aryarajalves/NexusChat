@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Volume2, Users, Menu, Film, Music, MessageSquare } from 'lucide-react';
+import { Volume2, Radio, Users, Menu, Film, Music, MessageSquare } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 import VoicePipPlayer from './VoicePipPlayer';
 import VoiceStageView from './VoiceStageView';
 import VoiceControlDock from './VoiceControlDock';
+import StageModerationBar from './StageModerationBar';
+import useDiscordStageState from './useDiscordStageState';
 import ShareScreenModal from './ShareScreenModal';
 import VoiceRecordingsGalleryModal from './VoiceRecordingsGalleryModal';
 import SoundboardPopover from './SoundboardPopover';
 import DocumentPipAnnotationWindow from './DocumentPipAnnotationWindow';
 import VoiceChannelChatSidebar from './VoiceChannelChatSidebar';
 import '../../styles/discord-voice-chat.css';
+import '../../styles/discord-stage.css';
 import { playSoundboardAudio } from './soundboardSynth';
 import useLiveKitVoice from './useLiveKitVoice';
 import useWebRTCVoiceRoom from './useWebRTCVoiceRoom';
@@ -99,6 +102,32 @@ export default function VoiceChannelArea({
     onSpeakingChange,
     addToast,
   });
+
+  const {
+    isStage,
+    isStageModerator,
+    isStageSpeaker,
+    isHandRaised,
+    stageHandsRaised,
+    stageGrantedSpeakers,
+    handleToggleRaiseHand,
+    handleGrantSpeak,
+    handleRevokeSpeak,
+  } = useDiscordStageState({
+    channel,
+    token,
+    currentUser,
+    setIsMuted,
+    addToast,
+  });
+
+  const handleProtectedToggleMute = useCallback(() => {
+    if (isStage && !isStageModerator && !isStageSpeaker) {
+      if (addToast) addToast('Você está no modo ouvinte. Levante a mão para o professor autorizar seu microfone!', 'info');
+      return;
+    }
+    handleToggleMute();
+  }, [isStage, isStageModerator, isStageSpeaker, addToast, handleToggleMute]);
 
   useEffect(() => { if (isScreenSharing) setIsAnnotationActive(true); }, [isScreenSharing]);
 
@@ -239,9 +268,11 @@ export default function VoiceChannelArea({
                   <Menu size={22} />
                 </button>
               )}
-              <Volume2 size={20} color="#5865f2" />
+              {isStage ? <Radio size={20} color="#5865f2" /> : <Volume2 size={20} color="#5865f2" />}
               <span>{channel.name}</span>
-              <span className="chat-header-desc">Canal de Voz & Transmissão</span>
+              <span className="chat-header-desc">
+                {isStage ? 'Canal de Palco / Aula' : 'Canal de Voz & Transmissão'}
+              </span>
             </div>
 
             <div className="chat-header-actions">
@@ -300,6 +331,23 @@ export default function VoiceChannelArea({
 
           <div className="voice-channel-body-wrapper">
             <div className="voice-channel-stage-column">
+              {isStage && (
+                <StageModerationBar
+                  channel={channel}
+                  isStage={isStage}
+                  isModerator={isStageModerator}
+                  isSpeaker={isStageSpeaker}
+                  handRaised={isHandRaised}
+                  handsRaised={stageHandsRaised}
+                  grantedSpeakers={stageGrantedSpeakers}
+                  participants={participants}
+                  currentUser={currentUser}
+                  onRaiseHand={handleToggleRaiseHand}
+                  onGrantSpeak={handleGrantSpeak}
+                  onRevokeSpeak={handleRevokeSpeak}
+                />
+              )}
+
               <VoiceStageView
                 channel={channel} currentUser={currentUser} participants={participants}
                 mergedVoiceStates={mergedVoiceStates} remotePeersMedia={remotePeersMedia}
@@ -315,7 +363,7 @@ export default function VoiceChannelArea({
               />
 
               <VoiceControlDock
-                isMuted={isMuted} onToggleMute={handleToggleMute} isDeafened={isDeafened} onToggleDeafen={handleToggleDeafen}
+                isMuted={isMuted} onToggleMute={handleProtectedToggleMute} isDeafened={isDeafened} onToggleDeafen={handleToggleDeafen}
                 isCameraOn={isCameraOn} onToggleCamera={handleToggleCamera} isScreenSharing={isScreenSharing}
                 onToggleScreenShare={handleToggleScreenShare} cameraBlurMode={cameraBlurMode} onChangeCameraBlurMode={setCameraBlurMode}
                 channel={channel} mixedCallAudio={mixedCallAudio} activeRecordingScreen={activeRecordingScreen}

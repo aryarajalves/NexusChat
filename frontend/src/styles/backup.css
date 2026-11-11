@@ -408,39 +408,80 @@
   color: #c084fc;
 }
 
-/* Inputs Modernos para Formulários (Escopo exclusivo de Backups) */
+/* Inputs e Selects Modernos para Formulários (Escopo de Backups) */
 .backup-modal .form-group input,
+.backup-modal .form-group select,
 .backup-tab-content .form-group input,
+.backup-tab-content .form-group select,
 .backup-settings .form-group input,
+.backup-settings .form-group select,
+.schedule-settings-card select,
+.table-filter-group select,
 .form-control-modern {
   width: 100%;
   padding: 12px 16px;
-  background-color: #1e1f22;
-  border: 1.5px solid #3f4147;
+  background-color: #1e1f22 !important;
+  border: 1.5px solid #3f4147 !important;
   border-radius: 10px;
   font-size: 14px;
   font-weight: 500;
-  color: #f2f3f5;
+  color: #f2f3f5 !important;
+  color-scheme: dark;
   outline: none;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
 }
 
 .backup-modal .form-group input:hover,
+.backup-modal .form-group select:hover,
 .backup-tab-content .form-group input:hover,
+.backup-tab-content .form-group select:hover,
 .backup-settings .form-group input:hover,
+.backup-settings .form-group select:hover,
+.schedule-settings-card select:hover,
+.table-filter-group select:hover,
 .form-control-modern:hover {
-  border-color: #4e5058;
-  background-color: #232428;
+  border-color: #4e5058 !important;
+  background-color: #232428 !important;
 }
 
 .backup-modal .form-group input:focus,
+.backup-modal .form-group select:focus,
 .backup-tab-content .form-group input:focus,
+.backup-tab-content .form-group select:focus,
 .backup-settings .form-group input:focus,
+.backup-settings .form-group select:focus,
+.schedule-settings-card select:focus,
+.table-filter-group select:focus,
 .form-control-modern:focus {
-  border-color: #5865f2;
-  background-color: #1e1f22;
-  box-shadow: 0 0 0 4px rgba(88, 101, 242, 0.25);
+  border-color: #5865f2 !important;
+  background-color: #1e1f22 !important;
+  box-shadow: 0 0 0 4px rgba(88, 101, 242, 0.25) !important;
+}
+
+.schedule-settings-card select,
+.table-filter-group select,
+select.form-control-modern {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23949ba4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px 16px;
+  padding-right: 40px;
+}
+
+.schedule-settings-card select option,
+.table-filter-group select option,
+select.form-control-modern option,
+.backup-modal select option,
+.backup-tab-content select option {
+  background-color: #1e1f22 !important;
+  color: #f2f3f5 !important;
+  padding: 10px 14px;
 }
 
 .backup-modal .form-group input::placeholder,

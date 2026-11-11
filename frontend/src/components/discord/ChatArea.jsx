@@ -250,7 +250,7 @@ export default function ChatArea({
     );
   }
 
-  if (channel.type === 'VOICE') {
+  if (channel.type === 'VOICE' || channel.type === 'STAGE') {
     return (
       <VoiceChannelArea
         channel={channel}

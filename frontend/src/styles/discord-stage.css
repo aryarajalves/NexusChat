@@ -1,0 +1,256 @@
+/* Estilos para Canais de Palco e Moderação de Voz (Stage) */
+
+.stage-moderation-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(18, 19, 22, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 8px 16px;
+  min-height: 44px;
+  z-index: 10;
+  position: relative;
+  backdrop-filter: blur(8px);
+}
+
+.stage-mod-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stage-mod-radio-icon {
+  color: #5865f2;
+}
+
+.stage-mod-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f2f3f5;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stage-role-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  letter-spacing: 0.3px;
+}
+
+.stage-role-pill.moderator {
+  background: rgba(88, 101, 242, 0.25);
+  color: #8ea1e1;
+  border: 1px solid rgba(88, 101, 242, 0.4);
+}
+
+.stage-role-pill.speaker {
+  background: rgba(35, 165, 90, 0.25);
+  color: #57f287;
+  border: 1px solid rgba(35, 165, 90, 0.4);
+}
+
+.stage-role-pill.audience {
+  background: rgba(255, 255, 255, 0.08);
+  color: #949ba4;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.stage-audience-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stage-raise-hand-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #5865f2;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(88, 101, 242, 0.35);
+}
+
+.stage-raise-hand-btn:hover {
+  background: #4752c4;
+}
+
+.stage-raise-hand-btn.raised {
+  background: #faa61a;
+  color: #000;
+  box-shadow: 0 0 12px rgba(250, 166, 26, 0.5);
+  animation: pulseHand 2s infinite;
+}
+
+@keyframes pulseHand {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+.stage-hand-waiting-label {
+  font-size: 12px;
+  color: #faa61a;
+  font-style: italic;
+}
+
+.stage-speaker-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #23a55a;
+  font-weight: 600;
+}
+
+.stage-moderator-controls {
+  position: relative;
+}
+
+.stage-hands-queue-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #faa61a;
+  color: #121316;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(250, 166, 26, 0.4);
+}
+
+.stage-hands-queue-btn:hover {
+  background: #e09312;
+}
+
+.stage-no-hands-label {
+  font-size: 11.5px;
+  color: #80848e;
+}
+
+.stage-hands-popover {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  width: 280px;
+  background: #2b2d31;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  z-index: 100;
+  padding: 10px;
+}
+
+.stage-hands-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  color: #dbdee1;
+}
+
+.stage-popover-close {
+  background: transparent;
+  border: none;
+  color: #949ba4;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.stage-popover-close:hover {
+  color: #ffffff;
+}
+
+.stage-hands-list {
+  max-height: 220px;
+  overflow-y: auto;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stage-empty-hands {
+  font-size: 11.5px;
+  color: #80848e;
+  text-align: center;
+  padding: 12px 0;
+}
+
+.stage-hand-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 6px;
+}
+
+.stage-hand-user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stage-hand-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.stage-hand-avatar-fallback {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #5865f2;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.stage-hand-name {
+  font-size: 12px;
+  color: #f2f3f5;
+  font-weight: 600;
+}
+
+.stage-btn-allow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #23a55a;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.stage-btn-allow:hover {
+  background: #1f924e;
+}

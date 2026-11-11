@@ -49,7 +49,7 @@ class ServerResponse(BaseModel):
 # --- Canais ---
 class ChannelCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
-    type: str = Field("TEXT", pattern="^(TEXT|VOICE)$")
+    type: str = Field("TEXT", pattern="^(TEXT|VOICE|STAGE)$")
     category: str = Field("Canais de Texto", max_length=100)
     position: Optional[int] = 0
     is_private: Optional[bool] = False
@@ -180,6 +180,7 @@ class ServerRoleCreate(BaseModel):
     color: str = Field("#99aab5", max_length=20)
     position: Optional[int] = 0
     is_admin: Optional[bool] = False
+    can_moderate_stage: Optional[bool] = False
     hoist: Optional[bool] = True
 
 class ServerRoleUpdate(BaseModel):
@@ -187,6 +188,7 @@ class ServerRoleUpdate(BaseModel):
     color: Optional[str] = Field(None, max_length=20)
     position: Optional[int] = None
     is_admin: Optional[bool] = None
+    can_moderate_stage: Optional[bool] = None
     hoist: Optional[bool] = None
 
 class ServerRoleResponse(BaseModel):
@@ -198,6 +200,7 @@ class ServerRoleResponse(BaseModel):
     color: str
     position: int
     is_admin: bool
+    can_moderate_stage: bool = False
     hoist: bool
     created_at: datetime
     members_count: int = 0
@@ -365,6 +368,29 @@ class SoundboardPlayRequest(BaseModel):
     emoji: Optional[str] = "🔊"
     audio_url: Optional[str] = None
     volume: Optional[float] = 1.0
+
+
+# --- Canais de Palco / Sala de Aula (Stage) ---
+class StageHandRaiseRequest(BaseModel):
+    hand_raised: bool = True
+
+class StageSpeakActionRequest(BaseModel):
+    target_user_id: int
+
+class StageParticipantInfo(BaseModel):
+    user_id: int
+    user_name: str
+    avatar_url: Optional[str] = None
+    is_speaker: bool = False
+    hand_raised: bool = False
+    is_moderator: bool = False
+
+class StageStatusResponse(BaseModel):
+    channel_id: int
+    is_stage: bool = True
+    speakers: List[int] = []
+    hands_raised: List[int] = []
+    participants: List[StageParticipantInfo] = []
 
 
 

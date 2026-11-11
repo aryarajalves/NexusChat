@@ -127,4 +127,36 @@ describe('useDiscordUserWS hook', () => {
       })
     );
   });
+
+  it('encaminha evento session:terminated para onSessionTerminated e não tenta reconectar', () => {
+    const handleSessionTerminated = vi.fn();
+
+    renderHook(() =>
+      useDiscordUserWS({
+        token: 'me-jwt-token',
+        onSessionTerminated: handleSessionTerminated,
+      })
+    );
+
+    act(() => {
+      mockWebSocketInstance.onmessage({
+        data: JSON.stringify({
+          event: 'session:terminated',
+          reason: 'new_login',
+          detail: 'Sua conta foi conectada em outra aba.',
+        }),
+      });
+    });
+
+    expect(handleSessionTerminated).toHaveBeenCalledWith('Sua conta foi conectada em outra aba.');
+
+    // Simula evento de fechamento de socket com código 4001
+    act(() => {
+      mockWebSocketInstance.onclose({ code: 4001 });
+      vi.advanceTimersByTime(5000);
+    });
+
+    // Não deve tentar recriar uma nova instância de WebSocket
+    expect(mockWebSocketInstance.close).not.toHaveBeenCalled();
+  });
 });

@@ -24,6 +24,7 @@ class Server(Base):
         Integer,
         ForeignKey("channels.id", ondelete="SET NULL", use_alter=True, name="fk_servers_welcome_channel_id"),
         nullable=True,
+        index=True,
     )
     welcome_message = Column(String(2000), default=DEFAULT_WELCOME_MESSAGE, nullable=True)
     created_at = Column(DateTime, default=utc_now)
@@ -85,6 +86,7 @@ class ServerRole(Base):
     color = Column(String(20), default="#99aab5", nullable=False)
     position = Column(Integer, default=0, nullable=False)
     is_admin = Column(Boolean, default=False, nullable=False)
+    can_moderate_stage = Column(Boolean, default=False, nullable=False)
     hoist = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=utc_now)
 
@@ -119,7 +121,7 @@ class Message(Base):
     attachment_url = Column(String(500), nullable=True)
     attachment_type = Column(String(50), nullable=True)
     attachment_size = Column(Integer, nullable=True)  # Em bytes (máximo 50MB = 52428800)
-    reply_to_id = Column(Integer, ForeignKey("messages.id"), nullable=True)
+    reply_to_id = Column(Integer, ForeignKey("messages.id"), nullable=True, index=True)
     is_edited = Column(Boolean, default=False, nullable=False)
     is_pinned = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=utc_now)
@@ -193,7 +195,7 @@ class ServerInvite(Base):
     id = Column(Integer, primary_key=True, index=True)
     server_id = Column(Integer, ForeignKey("servers.id", ondelete="CASCADE"), nullable=False, index=True)
     code = Column(String(32), unique=True, index=True, nullable=False)
-    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     max_uses = Column(Integer, nullable=True)  # None = ilimitado
     current_uses = Column(Integer, default=0, nullable=False)
     expires_at = Column(DateTime, nullable=True)
@@ -231,7 +233,7 @@ class DMMessage(Base):
     attachment_url = Column(String(500), nullable=True)
     attachment_type = Column(String(50), nullable=True)
     attachment_size = Column(Integer, nullable=True)  # Em bytes
-    reply_to_id = Column(Integer, ForeignKey("dm_messages.id"), nullable=True)
+    reply_to_id = Column(Integer, ForeignKey("dm_messages.id"), nullable=True, index=True)
     is_edited = Column(Boolean, default=False, nullable=False)
     is_pinned = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=utc_now)
@@ -314,7 +316,7 @@ class ServerEmoji(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     server_id = Column(Integer, ForeignKey("servers.id", ondelete="CASCADE"), nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     name = Column(String(50), nullable=False)
     image_url = Column(String(500), nullable=False)
     created_at = Column(DateTime, default=utc_now)
@@ -332,7 +334,7 @@ class ServerSoundboardSound(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     server_id = Column(Integer, ForeignKey("servers.id", ondelete="CASCADE"), nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     name = Column(String(64), nullable=False)
     emoji = Column(String(16), default="🔊", nullable=False)
     audio_url = Column(String(500), nullable=False)

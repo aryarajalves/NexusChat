@@ -8,18 +8,9 @@ import SoundboardEditModal from './SoundboardEditModal';
 import '../../styles/discord-soundboard.css';
 
 export default function SoundboardPopover({
-  isOpen,
-  onClose,
-  channelId,
-  serverId,
-  token: propToken,
-  serverSounds = [],
-  onSoundsChange,
-  onTriggerSound,
-  isDeafened = false,
-  currentUser,
-  currentUserRole,
-  canManageSounds,
+  isOpen, onClose, channelId, serverId, token: propToken,
+  serverSounds = [], onSoundsChange, onTriggerSound, isDeafened = false,
+  currentUser, currentUserRole, canManageSounds,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [volume, setVolume] = useState(() => {

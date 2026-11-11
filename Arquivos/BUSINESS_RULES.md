@@ -92,6 +92,19 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
   - Links abrem automaticamente em nova aba (`target="_blank" rel="noopener noreferrer"`), protegendo a segurança contra ataques de tabnabbing.
   - O visual adota a cor azul padrão do Discord (`#00a8fc`) com sublinhado ao passar o cursor (*hover*).
   - Pontuações no final da frase (ex: ponto final, vírgula, exclamação ou parênteses) são isoladas para não corromper o destino do link.
+- **Canais de Palco / Sala de Aula e Moderação de Voz (Stage Channels):**
+  - O sistema oferece canais especializados do tipo `STAGE` (`Palco / Sala de Aula`), com ícone de rádio/microfone (`🎙️` / `Radio`).
+  - **Papéis e Autonomia no Palco:**
+    - **Professores / Moderadores:** Dono do servidor, administradores (`role in ['OWNER', 'ADMIN']` ou cargo com `is_admin=True`), cargos com `can_moderate_stage=True` ou cargos que contenham termos como "professor", "instrutor" ou "moderador" têm controle total da sala. Podem se mutar e se desmutar livremente a qualquer momento.
+    - **Ouvintes / Alunos:** Entram mutados obrigatoriamente por padrão e não conseguem se desmutar por conta própria sem a concessão da palavra.
+  - **Mecânica de Participação e Controle de Fala:**
+    - Alunos contam com o botão *"✋ Pedir para Falar"* para levantar a mão e entrar na fila de dúvidas.
+    - O professor/moderador visualiza a quantidade de alunos na fila com botão interativo (`X na fila de dúvidas`), abrindo popover para autorizar o aluno a falar com 1 clique (`Permitir`).
+    - Além da fila, o professor tem a opção de ir diretamente no aluno e conceder a palavra ou revogá-la (*"Mutar aluno / Mover para ouvintes"*).
+    - Quando a palavra é concedida, o aluno torna-se "Orador Autorizado", seu microfone é desbloqueado e ele recebe notificação em tempo real via WebSocket.
+    - Ao revogar a palavra, o aluno volta ao estado de ouvinte e é mutado automaticamente.
+  - **Tempo Real:** As mudanças de estado trafegam via eventos WebSocket `stage:hand_updated`, `stage:speaker_granted` e `stage:speaker_revoked`.
+
 - **Unicidade e Transição entre Canais de Voz (Voice Channel Switch):**
   - Um usuário só pode estar conectado em **uma única sala de voz por vez**.
   - Ao clicar para ingressar em um novo canal de voz enquanto já estiver conectado em outro, o sistema desconecta e remove o usuário automaticamente da sala anterior no frontend e no backend.
@@ -136,6 +149,16 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
     - `discord_active_dm_id`: conversa privada de DM selecionada.
   - Validação de integridade automática: caso o servidor, canal ou DM salvo não exista mais (ou o usuário não tenha mais acesso), o sistema realiza fallback seguro para o primeiro item disponível.
   - Ao confirmar logout, todas as chaves de navegação são limpas para garantir isolamento e segurança entre diferentes contas.
+- **Sessão Única por Conta e Logout Automático de Abas Antigas (Single Active Session):**
+  - O sistema permite apenas uma sessão ativa por usuário simultaneamente.
+  - Ao realizar login ou autenticar em uma nova aba ou dispositivo, qualquer aba/sessão anterior do mesmo usuário é desconectada compulsoriamente em tempo real.
+  - A nova sessão logada tem **precedência absoluta**: reconexões em segundo plano de abas antigas portando tokens obsoletos são sumariamente bloqueadas e rejeitadas pelo backend (código `4001`), impedindo que a aba antiga desconecte a nova conta recém-logada.
+  - O controle é sincronizado em camadas:
+    1. **BroadcastChannel e Storage Event no Frontend:** Comunicação imediata entre abas do mesmo navegador (`nexus_active_tab_session_id`), garantindo logout síncrono e sem latência de rede na aba anterior.
+    2. **Validação de Token Ativo no Backend (`/ws/me` e canais):** Todo token JWT possui identificador único (`jti`) e timestamp (`iat`). O backend mantém o token ativo mais recente por usuário (`active_user_tokens`) e rejeita tentativas de conexão com tokens antigos.
+    3. **Encerramento Forçado:** O servidor envia o evento `session:terminated` com código 4001 para as conexões ativas anteriores e cancela os loops de reconexão automática (`intentionalCloseRef`).
+  - A aba desconectada encerra qualquer canal de voz ativo (`/voice-leave-all`), limpa os dados da sessão em memória nesta aba e retorna à tela de login exibindo a notificação de toast: *"Sua conta foi conectada em outra aba. Você foi desconectado."*.
+  - O recarregamento de página (`F5`) na mesma aba preserva a sessão normalmente via `sessionStorage` (`nexus_tab_session_id`).
 - **Gravação e Exportação de Canais de Voz (Voice & Video Recording):**
   - Usuários conectados a um canal de voz contam com a opção de gravar a conversa e atividades da sala diretamente no dock inferior de controles.
   - Modos disponíveis:

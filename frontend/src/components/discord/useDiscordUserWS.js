@@ -13,6 +13,7 @@ export default function useDiscordUserWS({
   onVoiceChannelUpdate,
   onUserPresence,
   onUserProfileUpdated,
+  onSessionTerminated,
 }) {
   const wsRef = useRef(null);
   const heartbeatRef = useRef(null);
@@ -23,7 +24,12 @@ export default function useDiscordUserWS({
   const onVoiceChannelUpdateRef = useRef(onVoiceChannelUpdate);
   const onUserPresenceRef = useRef(onUserPresence);
   const onUserProfileUpdatedRef = useRef(onUserProfileUpdated);
+  const onSessionTerminatedRef = useRef(onSessionTerminated);
   const intentionalCloseRef = useRef(false);
+
+  useEffect(() => {
+    onSessionTerminatedRef.current = onSessionTerminated;
+  }, [onSessionTerminated]);
 
   useEffect(() => {
     onUnreadUpdateRef.current = onUnreadUpdate;
@@ -70,7 +76,17 @@ export default function useDiscordUserWS({
 
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const host = window.location.host;
-      const wsUrl = `${protocol}//${host}/api/v1/discord/ws/me?token=${encodeURIComponent(token)}`;
+      let sessionId = '';
+      if (typeof sessionStorage !== 'undefined') {
+        sessionId = sessionStorage.getItem('nexus_tab_session_id') || sessionStorage.getItem('current_session_id') || '';
+        if (!sessionId) {
+          sessionId = 'tab_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+          sessionStorage.setItem('nexus_tab_session_id', sessionId);
+          sessionStorage.setItem('current_session_id', sessionId);
+        }
+      }
+      const sessionQuery = sessionId ? `&session_id=${encodeURIComponent(sessionId)}` : '';
+      const wsUrl = `${protocol}//${host}/api/v1/discord/ws/me?token=${encodeURIComponent(token)}${sessionQuery}`;
 
       try {
         ws = new WebSocket(wsUrl);
@@ -87,8 +103,15 @@ export default function useDiscordUserWS({
           }, 25000);
         };
 
-        const handleDisconnect = () => {
+        const handleDisconnect = (ev) => {
           if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+          if (ev?.code === 4001) {
+            intentionalCloseRef.current = true;
+            if (onSessionTerminatedRef.current) {
+              onSessionTerminatedRef.current('Sua conta foi conectada em outra aba ou dispositivo.');
+            }
+            return;
+          }
           if (!intentionalCloseRef.current) {
             if (reconnectRef.current) clearTimeout(reconnectRef.current);
             reconnectRef.current = setTimeout(connectUserWS, 3000);
@@ -102,6 +125,14 @@ export default function useDiscordUserWS({
           try {
             const payload = JSON.parse(event.data);
             if (payload.type === 'pong' || payload.event === 'pong') return;
+
+            if (payload.event === 'session:terminated') {
+              intentionalCloseRef.current = true;
+              if (onSessionTerminatedRef.current) {
+                onSessionTerminatedRef.current(payload.detail || 'Sua conta foi conectada em outra aba ou dispositivo.');
+              }
+              return;
+            }
 
             if (payload.event === 'unread:update' || payload.type === 'unread_update') {
               if (onUnreadUpdateRef.current) {

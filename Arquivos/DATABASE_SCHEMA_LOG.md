@@ -159,6 +159,28 @@ Registro de migrações e atualizações estruturais do banco de dados (PostgreS
   - `uq_server_soundboard_server_name`: Constraint única para impedir duplicidade de nome de som dentro do mesmo servidor (`UNIQUE (server_id, name)`).
 - **Script de Migração:** `backend/scripts/migrate_server_soundboard.py`
 
+---
+
+### [10/11/2026] - Canais de Palco e Moderação de Voz (Stage Channels & Permissões)
+- **Colunas Adicionadas na tabela `server_roles`:**
+  - `server_roles.can_moderate_stage`: Campo booleano (`BOOLEAN NOT NULL DEFAULT FALSE`) concedendo poderes de orador e moderação de palco (permitir alunos falarem e mutar alunos) aos detentores do cargo.
+- **Suporte a tipo de canal:**
+  - `channels.type` passa a suportar oficialmente o tipo `'STAGE'` (ao lado de `'TEXT'` e `'VOICE'`).
+- **Script de Migração:** `backend/scripts/migrate_stage_moderation.py`
+
+---
+
+### [11/11/2026] - Otimização de Performance e 100% de Índices em ForeignKeys (Clean Architecture)
+- **Objetivo:** Eliminar Full Table Scans (Seq Scans) em operações de JOIN, cascade deletes e relacionamentos.
+- **Índices Criados:**
+  - `idx_servers_welcome_channel_id` em `servers(welcome_channel_id)`
+  - `idx_messages_reply_to_id` em `messages(reply_to_id)`
+  - `idx_server_invites_created_by_id` em `server_invites(created_by_id)`
+  - `idx_dm_messages_reply_to_id` em `dm_messages(reply_to_id)`
+  - `idx_server_emojis_user_id` em `server_emojis(user_id)`
+  - `idx_server_soundboard_sounds_user_id` em `server_soundboard_sounds(user_id)`
+- **Script de Migração:** `backend/scripts/migrate_discord_fk_indexes.py`
+
 
 
 

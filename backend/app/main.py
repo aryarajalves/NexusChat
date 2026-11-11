@@ -124,6 +124,23 @@ async def lifespan(app: FastAPI):
                 conn.commit()
         except Exception:
             pass
+        # Permissões de Palco (Stage Channels)
+        try:
+            conn.execute(text("ALTER TABLE server_roles ADD COLUMN IF NOT EXISTS can_moderate_stage BOOLEAN NOT NULL DEFAULT FALSE;"))
+            conn.commit()
+        except Exception:
+            pass
+        # Índices de ForeignKeys do Discord
+        try:
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_servers_welcome_channel_id ON servers (welcome_channel_id);"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_messages_reply_to_id ON messages (reply_to_id);"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_server_invites_created_by_id ON server_invites (created_by_id);"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_dm_messages_reply_to_id ON dm_messages (reply_to_id);"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_server_emojis_user_id ON server_emojis (user_id);"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS idx_server_soundboard_sounds_user_id ON server_soundboard_sounds (user_id);"))
+            conn.commit()
+        except Exception:
+            pass
 
     # Seed initial superadmin from env
     init_superadmin()

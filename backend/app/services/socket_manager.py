@@ -32,10 +32,19 @@ class ConnectionManager:
         self.voice_room_start_times: Dict[int, float] = {}
         # Mapeamento: dm_conversation_id -> set de instâncias WebSocket locais
         self.dm_rooms: Dict[int, Set[WebSocket]] = {}
+        # Mapeamento para Canais de Palco (Stage): channel_id -> set de user_ids com mãos levantadas
+        self.stage_raised_hands: Dict[int, Set[int]] = {}
+        # Mapeamento para Canais de Palco (Stage): channel_id -> set de user_ids autorizados a falar
+        self.stage_granted_speakers: Dict[int, Set[int]] = {}
         # Mapeamento: websocket -> (user_id, user_name)
         self.socket_users: Dict[WebSocket, tuple[int, str]] = {}
         # Mapeamento: user_id -> set de instâncias WebSocket locais
         self.user_sockets: Dict[int, Set[WebSocket]] = {}
+        # Mapeamento: websocket -> session_id da aba/dispositivo
+        self.ws_sessions: Dict[WebSocket, str] = {}
+        # Rastreamento do token mais recente por usuário (sessão única)
+        self.active_user_tokens: Dict[int, str] = {}
+        self.user_token_iat: Dict[int, int] = {}
 
         # Conexão e task do Redis Pub/Sub
         self.redis_client = None
@@ -161,6 +170,7 @@ class ConnectionManager:
             if not self.channel_rooms[channel_id]:
                 del self.channel_rooms[channel_id]
 
+        self.ws_sessions.pop(websocket, None)
         user_info = self.socket_users.pop(websocket, None)
         if user_info:
             uid, uname = user_info
@@ -185,6 +195,25 @@ class ConnectionManager:
 
             logger.info(f"[WebSocket] Usuário {uname} desconectado do canal #{channel_id}")
 
+    def register_active_token(self, user_id: int, token: str, iat: int = 0):
+        """Registra o token emitido mais recentemente para o usuário."""
+        self.active_user_tokens[user_id] = token
+        if iat:
+            self.user_token_iat[user_id] = max(self.user_token_iat.get(user_id, 0), iat)
+
+    def is_token_active(self, user_id: int, token: str, token_iat: int = 0) -> bool:
+        """
+        Valida se o token pertence à sessão ativa mais recente do usuário.
+        Rejeita tokens obsoletos quando um login posterior já ocorreu.
+        """
+        latest_iat = self.user_token_iat.get(user_id, 0)
+        if latest_iat and token_iat and token_iat < latest_iat:
+            return False
+        latest_token = self.active_user_tokens.get(user_id)
+        if latest_token and token != latest_token:
+            return False
+        return True
+
     # --- Entrega Local nos WebSockets ---
     async def _local_broadcast_to_channel(self, channel_id: int, data: Dict[str, Any], exclude: WebSocket = None):
         """Entrega o payload JSON para todos os clientes conectados localmente no canal."""
@@ -207,6 +236,57 @@ class ConnectionManager:
     async def broadcast_to_channel(self, channel_id: int, data: Dict[str, Any], exclude: WebSocket = None):
         """Publica evento no barramento de canais (Redis Pub/Sub se ativo, ou in-memory)."""
         await self._publish_event("channel", channel_id, data)
+
+    async def handle_channel_disconnect(
+        self,
+        channel_id: int,
+        channel_type: str,
+        user_id: int,
+        user_name: str,
+        websocket: WebSocket,
+    ):
+        """
+        Trata o encerramento da conexão WebSocket de canal:
+        1. Desconecta o socket da sala do canal.
+        2. Se canal VOICE ou STAGE, remove o participante da sala de voz e propaga atualização.
+        3. Se o usuário ficou totalmente sem conexões (offline), remove de todas as salas e propaga presença offline.
+        4. Notifica o canal restante sobre presence:leave com lista atualizada.
+        """
+        self.disconnect(channel_id, websocket)
+
+        is_voice_channel = channel_type in ["VOICE", "STAGE"]
+        still_in_this_channel = any(
+            self.socket_users.get(ws, (None,))[0] == user_id
+            for ws in self.channel_rooms.get(channel_id, set())
+        )
+
+        if is_voice_channel and not still_in_this_channel:
+            self.unregister_voice_user(channel_id, user_id)
+            await self.broadcast_voice_channel_update(channel_id)
+
+        if not self.is_user_online(user_id):
+            await self.remove_user_from_all_voice_rooms(user_id, user_name)
+            online_ids = list(self.user_sockets.keys())
+            if online_ids:
+                await self.broadcast_to_users(
+                    online_ids,
+                    {"event": "user:presence", "user_id": user_id, "is_online": False},
+                )
+
+        online_users = (
+            self.get_voice_users_in_channel(channel_id)
+            if is_voice_channel
+            else self.get_online_users_in_channel(channel_id)
+        )
+        await self.broadcast_to_channel(
+            channel_id,
+            {
+                "event": "presence:leave",
+                "user_id": user_id,
+                "user_name": user_name,
+                "online_users": online_users,
+            },
+        )
 
     def register_voice_user(
         self,
@@ -298,11 +378,14 @@ class ConnectionManager:
 
     def unregister_voice_user(self, channel_id: int, user_id: int):
         """Remove a presença de um usuário do canal de voz e reseta o cronômetro se todos saírem."""
+        self.clean_stage_user(channel_id, user_id)
         if channel_id in self.voice_rooms:
             self.voice_rooms[channel_id].pop(user_id, None)
             if not self.voice_rooms[channel_id]:
                 del self.voice_rooms[channel_id]
                 self.voice_room_start_times.pop(channel_id, None)
+                self.stage_raised_hands.pop(channel_id, None)
+                self.stage_granted_speakers.pop(channel_id, None)
                 logger.info(f"[Voz] Sala de voz #{channel_id} esvaziada. Cronômetro da call resetado.")
             else:
                 logger.info(f"[Voz] Usuário ID {user_id} removido da sala de voz #{channel_id}")
@@ -318,14 +401,67 @@ class ConnectionManager:
         return bool(self.user_sockets.get(user_id))
 
     def get_voice_users_in_channel(self, channel_id: int) -> List[Dict[str, Any]]:
-        """Retorna exclusivamente os participantes ativos registrados na sala de voz (voice_rooms)."""
+        """Retorna exclusivamente os participantes ativos registrados na sala de voz (voice_rooms), expurgando usuários offline."""
+        if channel_id not in self.voice_rooms:
+            return []
+
+        # Auto-limpeza preventiva: se há conexões WebSocket ativas no sistema, expurga quem não possui conexão WebSocket ativa
+        if self.user_sockets:
+            stale_uids = [
+                uid for uid in list(self.voice_rooms[channel_id].keys())
+                if not self.is_user_online(uid)
+            ]
+            for uid in stale_uids:
+                self.unregister_voice_user(channel_id, uid)
+
         if channel_id not in self.voice_rooms:
             return []
         return list(self.voice_rooms[channel_id].values())
 
+    # --- Gestão de Canal de Palco / Sala de Aula (Stage) ---
+    def raise_stage_hand(self, channel_id: int, user_id: int, hand_raised: bool = True) -> bool:
+        """Adiciona ou remove o usuário da fila de mãos levantadas no canal de palco."""
+        if channel_id not in self.stage_raised_hands:
+            self.stage_raised_hands[channel_id] = set()
+        if hand_raised:
+            self.stage_raised_hands[channel_id].add(user_id)
+        else:
+            self.stage_raised_hands[channel_id].discard(user_id)
+        return user_id in self.stage_raised_hands[channel_id]
+
+    def grant_stage_speak(self, channel_id: int, user_id: int) -> bool:
+        """Concede a palavra ao aluno: inclui nos oradores autorizados e remove das mãos levantadas."""
+        if channel_id not in self.stage_granted_speakers:
+            self.stage_granted_speakers[channel_id] = set()
+        self.stage_granted_speakers[channel_id].add(user_id)
+        if channel_id in self.stage_raised_hands:
+            self.stage_raised_hands[channel_id].discard(user_id)
+        return True
+
+    def revoke_stage_speak(self, channel_id: int, user_id: int) -> bool:
+        """Revoga a palavra do aluno: remove dos oradores autorizados."""
+        if channel_id in self.stage_granted_speakers:
+            self.stage_granted_speakers[channel_id].discard(user_id)
+        return True
+
+    def get_stage_hands_raised(self, channel_id: int) -> List[int]:
+        """Retorna a lista de IDs de usuários com a mão levantada."""
+        return list(self.stage_raised_hands.get(channel_id, set()))
+
+    def get_stage_granted_speakers(self, channel_id: int) -> List[int]:
+        """Retorna a lista de IDs de alunos autorizados a falar."""
+        return list(self.stage_granted_speakers.get(channel_id, set()))
+
+    def clean_stage_user(self, channel_id: int, user_id: int):
+        """Remove o usuário de qualquer estado pendente de palco ao sair da sala."""
+        if channel_id in self.stage_raised_hands:
+            self.stage_raised_hands[channel_id].discard(user_id)
+        if channel_id in self.stage_granted_speakers:
+            self.stage_granted_speakers[channel_id].discard(user_id)
+
     async def ensure_voice_ws_registered(self, channel_id: int, channel_type: str, user: Any):
         """Garante registro em voice_rooms ao conectar ou reconectar WebSocket de canal de voz."""
-        if channel_type != "VOICE":
+        if channel_type not in ["VOICE", "STAGE"]:
             return
         if user.id not in self.voice_rooms.get(channel_id, {}):
             prev_chs = self.register_voice_user(
@@ -356,7 +492,7 @@ class ConnectionManager:
         if target_screen_share is None and channel_id in self.voice_rooms and user.id in self.voice_rooms[channel_id]:
             target_screen_share = self.voice_rooms[channel_id][user.id].get("is_screen_sharing", False)
 
-        if channel_type == "VOICE":
+        if channel_type in ["VOICE", "STAGE"]:
             if user.id not in self.voice_rooms.get(channel_id, {}):
                 self.register_voice_user(
                     channel_id,
@@ -499,6 +635,7 @@ class ConnectionManager:
             if not self.dm_rooms[conversation_id]:
                 del self.dm_rooms[conversation_id]
 
+        self.ws_sessions.pop(websocket, None)
         user_info = self.socket_users.pop(websocket, None)
         if user_info:
             uid = user_info[0]

@@ -41,12 +41,13 @@ export default function ScheduleTab({
 
         {/* Frequência de Execução */}
         <div className="form-group" style={{ marginBottom: '20px' }}>
-          <label htmlFor="frequency-select" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Clock size={16} color="#0284c7" />
+          <label htmlFor="frequency-select" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f2f3f5', fontWeight: 600, fontSize: '13.5px', marginBottom: '8px' }}>
+            <Clock size={16} color="#5865f2" />
             <span>Frequência de Execução</span>
           </label>
           <select
             id="frequency-select"
+            className="form-control-modern"
             value={scheduleConfig.frequency}
             onChange={(e) =>
               setScheduleConfig((prev) => ({ ...prev, frequency: e.target.value }))
@@ -63,8 +64,8 @@ export default function ScheduleTab({
 
         {/* Pasta de Destino no S3 / Bucket B2 */}
         <div className="form-group" style={{ marginBottom: '20px' }}>
-          <label htmlFor="folder-input" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <HardDrive size={16} color="#0284c7" />
+          <label htmlFor="folder-input" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f2f3f5', fontWeight: 600, fontSize: '13.5px', marginBottom: '8px' }}>
+            <HardDrive size={16} color="#5865f2" />
             <span>Pasta de Destino no S3 / Bucket B2</span>
           </label>
           <input
@@ -85,8 +86,8 @@ export default function ScheduleTab({
 
         {/* Limite de Retenção de Backups */}
         <div className="form-group" style={{ marginBottom: '28px' }}>
-          <label htmlFor="retention-input" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <CheckCircle2 size={16} color="#0284c7" />
+          <label htmlFor="retention-input" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f2f3f5', fontWeight: 600, fontSize: '13.5px', marginBottom: '8px' }}>
+            <CheckCircle2 size={16} color="#5865f2" />
             <span>Limite de Retenção de Backups (Máximo de Dumps)</span>
           </label>
           <input

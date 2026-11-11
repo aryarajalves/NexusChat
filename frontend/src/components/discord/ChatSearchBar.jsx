@@ -123,7 +123,7 @@ export default function ChatSearchBar({
     }
   };
 
-  if (!channel || channel.type === 'VOICE') {
+  if (!channel || channel.type === 'VOICE' || channel.type === 'STAGE') {
     return null;
   }
 

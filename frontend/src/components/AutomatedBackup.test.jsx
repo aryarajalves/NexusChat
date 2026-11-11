@@ -116,11 +116,19 @@ describe('AutomatedBackup Component', () => {
 
     // Inicia na aba S3
     expect(screen.getByTestId('backups-s3-tab-content')).toBeInTheDocument();
+    const filterSelect = screen.getByTestId('filter-backup-type-select');
+    expect(filterSelect).toBeInTheDocument();
+    expect(filterSelect).toHaveClass('form-control-modern');
 
     // Troca para agendamento
     fireEvent.click(scheduleTabBtn);
     expect(screen.getByTestId('schedule-tab-content')).toBeInTheDocument();
     expect(screen.getByTestId('schedule-active-toggle')).toBeInTheDocument();
+
+    const frequencySelect = screen.getByTestId('frequency-select');
+    expect(frequencySelect).toBeInTheDocument();
+    expect(frequencySelect).toHaveClass('form-control-modern');
+    expect(frequencySelect.value).toBe('6h');
 
     // Troca para importação externa
     fireEvent.click(importTabBtn);

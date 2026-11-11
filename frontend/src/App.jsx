@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import './App.css';
 import Sidebar from './components/Sidebar';
 import Login from './components/Login';
@@ -60,10 +60,39 @@ function App() {
   };
 
   useEffect(() => {
+    // Se esta aba já tiver sido desconectada remotamente por outra aba
+    const isLoggedOutInThisTab = sessionStorage.getItem('nexus_tab_logged_out') === 'true';
+    if (isLoggedOutInThisTab) {
+      setUser(null);
+      setToken(null);
+      return;
+    }
+
     // Check local storage for existing session
     const savedToken = localStorage.getItem('auth_token');
     const savedUser = localStorage.getItem('auth_user');
+
     if (savedToken && savedUser) {
+      let mySessionId = sessionStorage.getItem('nexus_tab_session_id') || sessionStorage.getItem('current_session_id');
+      if (!mySessionId) {
+        mySessionId = 'tab_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+        sessionStorage.setItem('nexus_tab_session_id', mySessionId);
+        sessionStorage.setItem('current_session_id', mySessionId);
+      }
+
+      // Reivindica este identificador como a sessão de aba ativa
+      localStorage.setItem('nexus_active_tab_session_id', mySessionId);
+      localStorage.setItem('auth_session_id', mySessionId);
+
+      try {
+        const channel = new BroadcastChannel('nexus_session_channel');
+        channel.postMessage({
+          type: 'ACTIVE_SESSION_CLAIM',
+          sessionId: mySessionId,
+        });
+        channel.close();
+      } catch (_) {}
+
       setToken(savedToken);
       try {
         setUser(JSON.parse(savedUser));
@@ -107,7 +136,14 @@ function App() {
     });
   };
 
-  const handleLoginSuccess = async (loggedInUser, userToken) => {
+  const handleLoginSuccess = async (loggedInUser, userToken, newSessionId) => {
+    sessionStorage.removeItem('nexus_tab_logged_out');
+    if (newSessionId) {
+      sessionStorage.setItem('nexus_tab_session_id', newSessionId);
+      sessionStorage.setItem('current_session_id', newSessionId);
+      localStorage.setItem('nexus_active_tab_session_id', newSessionId);
+      localStorage.setItem('auth_session_id', newSessionId);
+    }
     setUser(loggedInUser);
     setToken(userToken);
 
@@ -140,6 +176,66 @@ function App() {
     }
   };
 
+  const handleRemoteLogout = useCallback((reason) => {
+    const activeToken = token || localStorage.getItem('auth_token');
+    if (activeToken) {
+      fetch('/api/v1/discord/channels/voice-leave-all', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + activeToken },
+        keepalive: true,
+      }).catch(() => {});
+    }
+    sessionStorage.removeItem('nexus_tab_session_id');
+    sessionStorage.removeItem('current_session_id');
+    sessionStorage.setItem('nexus_tab_logged_out', 'true');
+    setUser(null);
+    setToken(null);
+    setShowLogoutModal(false);
+    addToast(
+      reason || 'Sua conta foi conectada em outra aba. Você foi desconectado.',
+      'warning'
+    );
+  }, [token, addToast]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    const checkSessionMismatch = (incomingSessionId) => {
+      const mySessionId = sessionStorage.getItem('nexus_tab_session_id') || sessionStorage.getItem('current_session_id');
+      if (incomingSessionId && mySessionId && incomingSessionId !== mySessionId) {
+        handleRemoteLogout('Sua conta foi conectada em outra aba. Você foi desconectado.');
+      }
+    };
+
+    let channel = null;
+    try {
+      channel = new BroadcastChannel('nexus_session_channel');
+      channel.onmessage = (event) => {
+        if (
+          (event.data?.type === 'NEW_LOGIN' || event.data?.type === 'ACTIVE_SESSION_CLAIM') &&
+          event.data?.sessionId
+        ) {
+          checkSessionMismatch(event.data.sessionId);
+        }
+      };
+    } catch (_) {}
+
+    const handleStorageChange = (e) => {
+      if ((e.key === 'nexus_active_tab_session_id' || e.key === 'auth_session_id') && e.newValue) {
+        checkSessionMismatch(e.newValue);
+      }
+      if (e.key === 'auth_token' && !e.newValue) {
+        handleRemoteLogout('Você encerrou a sessão.');
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      if (channel) channel.close();
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [token, handleRemoteLogout]);
+
   const handlePromptLogout = () => {
     setShowLogoutModal(true);
   };
@@ -156,6 +252,11 @@ function App() {
     setShowLogoutModal(false);
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
+    localStorage.removeItem('auth_session_id');
+    localStorage.removeItem('nexus_active_tab_session_id');
+    sessionStorage.removeItem('current_session_id');
+    sessionStorage.removeItem('nexus_tab_session_id');
+    sessionStorage.removeItem('nexus_tab_logged_out');
     localStorage.removeItem('active_tab');
     localStorage.removeItem('active_subtab_usermanagement');
     localStorage.removeItem('active_backup_tab');
@@ -266,6 +367,7 @@ function App() {
             onToggleAppSidebar={handleToggleAppSidebarFromDiscord}
             isAppSidebarHidden={isSidebarHidden}
             onLogout={handlePromptLogout}
+            onSessionTerminated={handleRemoteLogout}
           />
         </div>
         {isSuperAdmin && (

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, WebSocket,
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 
-from app.core.database import get_db, SessionLocal
+from app.core.database import get_db, get_db_context
 from app.core.security import decode_access_token
 from app.core.logger import logger
 from app.models.user import User
@@ -431,31 +431,31 @@ async def toggle_dm_message_reaction(
 async def dm_websocket_endpoint(
     websocket: WebSocket,
     conversation_id: int,
-    token: str = Query(...),
-    db: Session = Depends(get_db)
+    token: str = Query(...)
 ):
-    """Endpoint WebSocket para troca de mensagens e digitação em tempo real na DM."""
+    """Endpoint WebSocket para troca de mensagens e digitação em tempo real na DM (zero pool leak)."""
     payload = decode_access_token(token)
     if not payload:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
     sub = payload.get("sub")
-    user = db.query(User).filter(
-        or_(User.email == str(sub), User.id == (int(sub) if str(sub).isdigit() else -1)),
-        User.is_active == True
-    ).first()
-    if not user:
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-        return
+    with get_db_context() as db:
+        user = db.query(User).filter(
+            or_(User.email == str(sub), User.id == (int(sub) if str(sub).isdigit() else -1)),
+            User.is_active == True
+        ).first()
+        if not user:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
 
-    conv = db.query(DMConversation).filter(DMConversation.id == conversation_id).first()
-    if not conv or user.id not in (conv.user1_id, conv.user2_id):
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-        return
+        conv = db.query(DMConversation).filter(DMConversation.id == conversation_id).first()
+        if not conv or user.id not in (conv.user1_id, conv.user2_id):
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
 
-    user_id = user.id
-    user_name = user.name
+        user_id = user.id
+        user_name = user.name
 
     await socket_manager.connect_dm(conversation_id, user_id, user_name, websocket)
 

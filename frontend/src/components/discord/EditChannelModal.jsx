@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Hash, Volume2, Lock, Loader2, Check, Trash2, AlertTriangle, X } from 'lucide-react';
+import { Hash, Volume2, Radio, Lock, Loader2, Check, Trash2, AlertTriangle, X } from 'lucide-react';
 
 const DEFAULT_ROLES = [];
 
@@ -127,6 +127,7 @@ export default function EditChannelModal({
   };
 
   const isVoice = channel.type === 'VOICE';
+  const isStage = channel.type === 'STAGE';
 
   return (
     <div
@@ -149,11 +150,11 @@ export default function EditChannelModal({
         {/* Cabeçalho */}
         <div className="modal-header" style={{ flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {isVoice ? <Volume2 size={22} color="#5865f2" /> : <Hash size={22} color="#5865f2" />}
+            {isStage ? <Radio size={22} color="#5865f2" /> : isVoice ? <Volume2 size={22} color="#5865f2" /> : <Hash size={22} color="#5865f2" />}
             <div>
               <h3 className="modal-title" style={{ margin: 0 }}>Configurações do Canal</h3>
               <div style={{ fontSize: '12px', color: '#949ba4', marginTop: '2px' }}>
-                {isVoice ? 'Canal de Voz' : 'Canal de Texto'} • #{channel.name}
+                {isStage ? 'Canal de Palco / Aula' : isVoice ? 'Canal de Voz' : 'Canal de Texto'} • #{channel.name}
               </div>
             </div>
           </div>
@@ -229,7 +230,7 @@ export default function EditChannelModal({
                 </label>
                 <div className="channel-name-input-wrapper">
                   <span className="channel-name-prefix">
-                    {isVoice ? '🔊' : '#'}
+                    {isStage ? '🎙️' : isVoice ? '🔊' : '#'}
                   </span>
                   <input
                     id="edit-channel-name"

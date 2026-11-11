@@ -85,6 +85,7 @@ def list_server_roles(
             color=r.color,
             position=r.position,
             is_admin=r.is_admin,
+            can_moderate_stage=bool(getattr(r, 'can_moderate_stage', False)),
             hoist=r.hoist,
             created_at=r.created_at,
             members_count=count
@@ -113,6 +114,7 @@ def create_server_role(
         color=color,
         position=payload.position or 0,
         is_admin=bool(payload.is_admin),
+        can_moderate_stage=bool(payload.can_moderate_stage),
         hoist=bool(payload.hoist)
     )
     db.add(new_role)
@@ -127,6 +129,7 @@ def create_server_role(
         color=new_role.color,
         position=new_role.position,
         is_admin=new_role.is_admin,
+        can_moderate_stage=bool(getattr(new_role, 'can_moderate_stage', False)),
         hoist=new_role.hoist,
         created_at=new_role.created_at,
         members_count=0
@@ -159,6 +162,8 @@ def update_server_role(
         role.position = payload.position
     if payload.is_admin is not None:
         role.is_admin = payload.is_admin
+    if payload.can_moderate_stage is not None:
+        role.can_moderate_stage = payload.can_moderate_stage
     if payload.hoist is not None:
         role.hoist = payload.hoist
 
@@ -173,6 +178,7 @@ def update_server_role(
         color=role.color,
         position=role.position,
         is_admin=role.is_admin,
+        can_moderate_stage=bool(getattr(role, 'can_moderate_stage', False)),
         hoist=role.hoist,
         created_at=role.created_at,
         members_count=count

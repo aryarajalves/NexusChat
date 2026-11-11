@@ -65,15 +65,16 @@ export default function S3BackupsTab({
         {/* Toolbar de Filtros e Exclusão em Lote */}
         <div className="table-toolbar">
           <div className="table-filter-group">
-            <Filter size={15} color="#64748b" />
+            <Filter size={15} color="#949ba4" />
             <label
               htmlFor="backup-type-filter"
-              style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}
+              style={{ fontSize: '13px', fontWeight: 600, color: '#949ba4' }}
             >
               Filtrar por tipo:
             </label>
             <select
               id="backup-type-filter"
+              className="form-control-modern"
               value={backupTypeFilter}
               onChange={(e) => {
                 setBackupTypeFilter(e.target.value);
@@ -81,6 +82,7 @@ export default function S3BackupsTab({
                 setSelectedBackupIds([]);
               }}
               data-testid="filter-backup-type-select"
+              style={{ width: 'auto', minWidth: '160px', padding: '8px 36px 8px 12px' }}
             >
               <option value="all">Todos os tipos</option>
               <option value="automatic">Automático</option>

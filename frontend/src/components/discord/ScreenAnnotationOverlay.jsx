@@ -1,18 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  Pen,
-  Zap,
-  ArrowUpRight,
-  Square,
-  Eraser,
-  Trash2,
-  Undo2,
-  Users,
-  Lock,
-  Eye,
-  EyeOff,
-  X,
-  PictureInPicture2,
+  Pen, Zap, ArrowUpRight, Square, Eraser, Trash2, Undo2,
+  Users, Lock, Eye, EyeOff, X, PictureInPicture2
 } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 

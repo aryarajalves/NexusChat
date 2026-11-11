@@ -3,6 +3,7 @@ from starlette.websockets import WebSocketDisconnect
 from app.core.config import settings
 from app.core.security import get_password_hash
 from app.models.user import User
+from app.services.socket_manager import socket_manager
 from conftest import client, TestingSessionLocal
 
 @pytest.fixture
@@ -206,4 +207,49 @@ def test_websocket_voice_signal_relay(two_users):
             assert draw_msg["action"] == "stroke"
             assert draw_msg["user_name"] == "Bob Construtor"
             assert draw_msg["payload"]["tool"] == "pen"
+
+
+def test_voice_websocket_disconnect_removes_user_from_call():
+    """Valida que desconectar o WebSocket do canal de voz remove o participante da sala e reseta timer."""
+    token = get_token()
+    headers = {"Authorization": f"Bearer {token}"}
+    srv_res = client.post("/api/v1/discord/servers", json={"name": "Servidor Teste Desconexao Voz"}, headers=headers)
+    assert srv_res.status_code == 201
+    voice_ch = next(c for c in srv_res.json()["channels"] if c["type"] == "VOICE")
+    voice_id = voice_ch["id"]
+
+    # Conecta no WebSocket do canal de voz
+    with client.websocket_connect(f"/api/v1/discord/ws/channels/{voice_id}?token={token}") as ws:
+        _ = ws.receive_json()
+        assert voice_id in socket_manager.voice_rooms
+        assert 1 in socket_manager.voice_rooms[voice_id]
+        assert socket_manager.get_call_started_at(voice_id) is not None
+
+    # Ao sair do bloco 'with', o WebSocket foi desconectado
+    # A sala de voz deve ter sido limpa e o cronômetro resetado
+    assert voice_id not in socket_manager.voice_rooms or 1 not in socket_manager.voice_rooms.get(voice_id, {})
+    assert socket_manager.get_call_started_at(voice_id) is None
+
+
+def test_voice_status_purges_offline_ghost_user():
+    """Valida que o backend expurga automaticamente da call participantes que ficaram offline."""
+    voice_ch_id = 8888
+    fake_user_id = 9999
+    # Registra o usuário fantasma na sala de voz
+    socket_manager.register_voice_user(voice_ch_id, fake_user_id, "Fantasma Offline")
+    assert fake_user_id in socket_manager.voice_rooms.get(voice_ch_id, {})
+
+    # Simula que existe outro usuário conectado no sistema (ex: user 1 online)
+    dummy_ws = object()
+    socket_manager.user_sockets[1] = {dummy_ws}
+
+    try:
+        # Consulta os participantes da sala: o fantasma offline deve ser purgado automaticamente
+        active = socket_manager.get_voice_users_in_channel(voice_ch_id)
+        assert len(active) == 0
+        assert voice_ch_id not in socket_manager.voice_rooms
+        assert socket_manager.get_call_started_at(voice_ch_id) is None
+    finally:
+        socket_manager.user_sockets.pop(1, None)
+
 

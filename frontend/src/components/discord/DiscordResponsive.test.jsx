@@ -6,12 +6,7 @@ import VoiceChannelArea from './VoiceChannelArea';
 import fs from 'fs';
 import path from 'path';
 
-// Mock do ToastContext
-vi.mock('../../context/ToastContext', () => ({
-  useToast: () => ({
-    addToast: vi.fn(),
-  }),
-}));
+import { ToastProvider } from '../../context/ToastContext';
 
 describe('Discord Mobile Responsiveness', () => {
   const mockChannel = {
@@ -26,12 +21,14 @@ describe('Discord Mobile Responsiveness', () => {
     const handleToggleMobileNav = vi.fn();
 
     render(
-      <ChatArea
-        channel={mockChannel}
-        messages={[]}
-        channels={[mockChannel]}
-        onToggleMobileNav={handleToggleMobileNav}
-      />
+      <ToastProvider>
+        <ChatArea
+          channel={mockChannel}
+          messages={[]}
+          channels={[mockChannel]}
+          onToggleMobileNav={handleToggleMobileNav}
+        />
+      </ToastProvider>
     );
 
     const hamburgerBtn = screen.getByTestId('chat-mobile-nav-btn');
@@ -45,13 +42,15 @@ describe('Discord Mobile Responsiveness', () => {
     const handleToggleMembers = vi.fn();
 
     render(
-      <ChatArea
-        channel={mockChannel}
-        messages={[]}
-        channels={[mockChannel]}
-        showMembers={false}
-        onToggleMembers={handleToggleMembers}
-      />
+      <ToastProvider>
+        <ChatArea
+          channel={mockChannel}
+          messages={[]}
+          channels={[mockChannel]}
+          showMembers={false}
+          onToggleMembers={handleToggleMembers}
+        />
+      </ToastProvider>
     );
 
     const membersBtn = screen.getByTestId('toggle-members-btn');
@@ -64,17 +63,21 @@ describe('Discord Mobile Responsiveness', () => {
   it('renders hamburger menu button in VoiceChannelArea when onToggleMobileNav is provided', () => {
     const handleToggleMobileNav = vi.fn();
     const voiceChannel = {
-      id: 'ch-voice',
+      id: 2,
       name: 'Sala de Voz',
       type: 'VOICE',
     };
 
     render(
-      <VoiceChannelArea
-        channel={voiceChannel}
-        currentUser={{ id: 'u1', name: 'Tester' }}
-        onToggleMobileNav={handleToggleMobileNav}
-      />
+      <ToastProvider>
+        <VoiceChannelArea
+          channel={voiceChannel}
+          connectionStatus="connected"
+          currentUser={{ id: 1, name: 'Tester' }}
+          onlineUsers={[]}
+          onToggleMobileNav={handleToggleMobileNav}
+        />
+      </ToastProvider>
     );
 
     const hamburgerBtn = screen.getByTestId('chat-mobile-nav-btn');

@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from app.core.config import settings
@@ -28,3 +29,38 @@ def get_db():
         yield db
     finally:
         db.close()
+
+@contextmanager
+def get_db_context():
+    """
+    Context manager sob demanda para abrir e fechar sessões de banco pontualmente.
+    Em testes, respeita app.dependency_overrides[get_db].
+    Em produção, utiliza SessionLocal() e devolve imediatamente a conexão ao pool ao sair do bloco with.
+    """
+    override = None
+    try:
+        from app.main import app
+        override = app.dependency_overrides.get(get_db)
+    except Exception:
+        pass
+
+    if override:
+        gen = override()
+        db = next(gen)
+        try:
+            yield db
+        finally:
+            try:
+                next(gen)
+            except Exception:
+                pass
+            try:
+                db.close()
+            except Exception:
+                pass
+    else:
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()

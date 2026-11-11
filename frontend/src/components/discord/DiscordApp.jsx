@@ -23,6 +23,7 @@ export default function DiscordApp({
   onToggleAppSidebar,
   isAppSidebarHidden,
   onLogout,
+  onSessionTerminated,
 }) {
   const [servers, setServers] = useState([]), [channels, setChannels] = useState([]), [members, setMembers] = useState([]);
   const [connectedVoiceChannelId, setConnectedVoiceChannelId] = useState(null);
@@ -214,6 +215,7 @@ export default function DiscordApp({
     setMessages,
     setConversations,
     addToast,
+    onSessionTerminated,
   });
 
   const activeServer = servers.find((s) => s.id === activeServerId);
