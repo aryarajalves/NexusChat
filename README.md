@@ -1,4 +1,4 @@
-# NexusChat (Discord Clone Completo & Escalável) - v1.0.8
+# NexusChat (Discord Clone Completo & Escalável) - v1.1.1
 
 Plataforma completa de comunicação e colaboração em tempo real inspirada no Discord, desenvolvida com **FastAPI (Backend)**, **React + Vite (Frontend)**, banco de dados **PostgreSQL**, barramento de eventos **Redis Pub/Sub**, orquestração de áudio e vídeo **LiveKit SFU**, armazenamento de mídias em nuvem **Backblaze B2 / AWS S3** e monitoramento avançado de infraestrutura orquestrados via **Docker**.
 

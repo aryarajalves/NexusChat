@@ -21,8 +21,9 @@ flowchart TD
     I --> J["9. Bateria de Testes Unitários Frontend (Vitest)"]
     J --> K["10. Build de Produção do Frontend (npm run build)"]
     K --> L["11. Incremento Decimal de Versão (release.py)"]
-    L --> M["12. Higienização da Raiz e Git Commit (Conventional Commits pt-BR)"]
-    M --> N["Push Seguro para GitHub (origin/main)"]
+    L --> M["12. Build e Push Imagens Docker (SEM TAG LATEST)"]
+    M --> N["13. Higienização da Raiz e Git Commit (Conventional Commits pt-BR)"]
+    N --> O["Push Seguro para GitHub (origin/main)"]
 ```
 
 ---

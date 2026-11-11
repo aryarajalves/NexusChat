@@ -120,8 +120,12 @@ def update_version_files(new_version: str):
             readme_content = f.read()
         if "Versão:" in readme_content:
             readme_content = re.sub(r'Versão:\s*`[0-9.]+`', f'Versão: `{new_version}`', readme_content)
-        elif "# NexusChat" in readme_content:
-            readme_content = readme_content.replace("# NexusChat (Discord Clone Completo & Escalável)", f"# NexusChat (Discord Clone Completo & Escalável) - v{new_version}")
+        if "# NexusChat" in readme_content:
+            readme_content = re.sub(
+                r'# NexusChat \(Discord Clone Completo & Escalável\)( - v[0-9.]+)?',
+                f'# NexusChat (Discord Clone Completo & Escalável) - v{new_version}',
+                readme_content
+            )
         with open(README_PATH, "w", encoding="utf-8") as f:
             f.write(readme_content)
         print(f"   [OK] {os.path.relpath(README_PATH, BASE_DIR)}")
@@ -174,9 +178,12 @@ def run_step(name: str, cmd: list, cwd: str = BASE_DIR, check: bool = True) -> b
 
 def main():
     parser = argparse.ArgumentParser(description="Esteira completa de validação, testes e release")
-    parser.add_argument("--version", type=str, help="Forçar uma versão específica (ex: 1.0.8)")
+    parser.add_argument("--version", type=str, help="Forçar uma versão específica (ex: 1.1.1)")
     parser.add_argument("--dry-run", action="store_true", help="Executa testes e validações sem atualizar arquivos nem commitar")
     parser.add_argument("--skip-tests", action="store_true", help="Pula execução da suíte de testes unitários")
+    parser.add_argument("--skip-docker", action="store_true", help="Pula o build das imagens Docker")
+    parser.add_argument("--push", action="store_true", default=True, help="Faz push das imagens para o Docker Hub (padrão: True)")
+    parser.add_argument("--no-push", action="store_false", dest="push", help="Gera as imagens localmente sem enviar ao Docker Hub")
     args = parser.parse_args()
 
     curr_version = get_current_version()
@@ -271,9 +278,43 @@ def main():
     # Atualiza versão nos arquivos
     update_version_files(target_version)
 
+    # 11. Build e Push das Imagens Docker de Produção (SEM TAG LATEST)
+    backend_tag_hub = f"aryalvesfernandes/nexus-chat:backend-{target_version}"
+    frontend_tag_hub = f"aryalvesfernandes/nexus-chat:frontend-{target_version}"
+
+    if not args.skip_docker:
+        print("\n" + "=" * 70)
+        print("🐳 [DOCKER BUILD] Gerando imagens de produção (SEM TAG LATEST)...")
+        print("=" * 70)
+
+        # Build Backend
+        run_step(
+            f"Docker Build Backend: {backend_tag_hub}",
+            ["docker", "build", "-t", backend_tag_hub, "."],
+            cwd=BACKEND_DIR
+        )
+
+        # Build Frontend
+        run_step(
+            f"Docker Build Frontend: {frontend_tag_hub}",
+            ["docker", "build", "-t", frontend_tag_hub, "."],
+            cwd=FRONTEND_DIR
+        )
+
+        # Push para Docker Hub
+        if args.push:
+            print("\n" + "=" * 70)
+            print("🚀 [DOCKER PUSH] Enviando imagens para o Docker Hub...")
+            print("=" * 70)
+            run_step(f"Push Backend: {backend_tag_hub}", ["docker", "push", backend_tag_hub])
+            run_step(f"Push Frontend: {frontend_tag_hub}", ["docker", "push", frontend_tag_hub])
+
     print("\n" + "=" * 70)
-    print("🎉 [SUCESSO TOTAL] Todas as 10 etapas foram aprovadas!")
-    print(f"✨ Versão atualizada para: {target_version}")
+    print("🎉 [SUCESSO TOTAL] Todas as etapas foram aprovadas!")
+    print(f"✨ Versão Oficial: {target_version}")
+    print(f"🐳 Backend Tag:   {backend_tag_hub}")
+    print(f"🐳 Frontend Tag:  {frontend_tag_hub}")
+    print("🚫 Nenhuma tag 'latest' utilizada.")
     print("=" * 70 + "\n")
 
 if __name__ == "__main__":
