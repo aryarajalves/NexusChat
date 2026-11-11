@@ -6,7 +6,7 @@ trigger: always_on
 
 O repositório oficial do projeto é:
 
-**URL:** https://github.com/aryarajalves/projeto-base.git
+**URL:** https://github.com/aryarajalves/NexusChat.git
 
 **Protocolo Obrigatório:**
 1. Todo `git push` deve ser direcionado para este repositório.
@@ -15,8 +15,18 @@ O repositório oficial do projeto é:
 4. O branch principal é o `main` — nunca fazer force push no `main`.
 5. Toda mensagem de commit (título e corpo) deve obrigatoriamente estar em **português do Brasil**.
 6. É OBRIGATÓRIO manter o arquivo `README.md` atualizado com a versão corrente antes de realizar qualquer commit ou push.
-7. É OBRIGATÓRIO executar a auditoria unificada de segurança de dependências (`python scripts/audit_security.py`, cobrindo Backend com `pip-audit` e Frontend com `npm audit`) antes de qualquer commit ou push no repositório.
-8. **Bloqueio Obrigatório por Falhas de Segurança:** Se a auditoria detectar qualquer vulnerabilidade, o push é **TERMINANTEMENTE BLOQUEADO**. O agente deve reportar detalhadamente o problema ao usuário antes de aplicar correções.
+7. É OBRIGATÓRIO executar a esteira completa de validação pré-push dos **10 Pontos de Integridade** antes de qualquer commit ou push:
+   - `python scripts/check_db_schema.py` (Integridade de colunas e auto-migração PostgreSQL para novos servidores)
+   - `python scripts/check_secrets.py` (Scanner de chaves e credenciais expostas)
+   - `python scripts/check_env_sync.py` (Sincronia do backend/.env.example)
+   - `python scripts/check_limits.py` (Limites de Clean Code: Frontend <= 500 linhas, Backend <= 1000 linhas)
+   - `python scripts/audit_security.py` (Auditoria de dependências: pip-audit no Backend e npm audit no Frontend)
+   - `python scripts/audit_endpoints.py` (Auditoria de documentação OpenAPI e proteção/autenticação de rotas)
+   - `python scripts/check_db_optimization.py` (Pool de conexões, 100% de Foreign Keys indexadas, zero session leaks)
+   - Testes unitários do Backend (`pytest`)
+   - Testes unitários do Frontend (`vitest`)
+   - Build de produção do Frontend (`npm run build`)
+8. **Bloqueio Obrigatório por Falhas:** Se qualquer um dos testes ou auditorias falhar (especialmente vulnerabilidades de segurança ou colunas faltando no PostgreSQL), o push é **TERMINANTEMENTE BLOQUEADO**. O agente deve reportar detalhadamente o problema ao usuário antes de aplicar correções.
 
 ## 🛡️ Auditoria de Segurança de Dependências (Backend + Frontend) Antes do Push
 
