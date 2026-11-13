@@ -53,11 +53,29 @@ def init_superadmin():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Aguarda o banco de dados estar 100% pronto antes de criar tabelas e migrações
+    import time
+    from sqlalchemy import text
+    from sqlalchemy.exc import OperationalError
+
+    max_retries = 15
+    for attempt in range(1, max_retries + 1):
+        try:
+            with engine.connect() as test_conn:
+                test_conn.execute(text("SELECT 1"))
+            logger.info("Conexão com o banco de dados verificada e ativa.")
+            break
+        except OperationalError as e:
+            if attempt == max_retries:
+                logger.error(f"Falha crítica ao conectar no banco de dados após {max_retries} tentativas: {e}")
+                raise
+            logger.warning(f"Banco de dados ainda iniciando (tentativa {attempt}/{max_retries}). Aguardando 2s...")
+            time.sleep(2)
+
     # Create tables
     Base.metadata.create_all(bind=engine)
     # Ensure columns exist on already created tables
     with engine.connect() as conn:
-        from sqlalchemy import text
         try:
             conn.execute(text("ALTER TABLE invites ADD COLUMN IF NOT EXISTS used_by_email VARCHAR;"))
             conn.commit()

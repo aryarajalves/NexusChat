@@ -1,4 +1,4 @@
-# NexusChat (Discord Clone Completo & Escalável) - v1.1.2
+# NexusChat (Discord Clone Completo & Escalável) - v1.1.3
 
 Plataforma completa de comunicação e colaboração em tempo real inspirada no Discord, desenvolvida com **FastAPI (Backend)**, **React + Vite (Frontend)**, banco de dados **PostgreSQL**, barramento de eventos **Redis Pub/Sub**, orquestração de áudio e vídeo **LiveKit SFU**, armazenamento de mídias em nuvem **Backblaze B2 / AWS S3** e monitoramento avançado de infraestrutura orquestrados via **Docker**.
 
@@ -14,14 +14,15 @@ Plataforma completa de comunicação e colaboração em tempo real inspirada no 
   - Canais Públicos e Privados com controle granular de acesso por cargos específicos do servidor e bloqueio automático de acesso não autorizado;
   - Gestão de Cargos e Permissões do Servidor (Dono e Administradores) com cores customizadas e agrupamento de membros (`hoist`).
 - **Mensagens e Interações no Chat:**
-  - Suporte a envio de texto (até 2.000 caracteres), links e anexos de mídia de até 50 MB;
+  - Suporte a envio de texto (até 2.000 caracteres), links, quebras de parágrafo preservadas e anexos de mídia de até 50 MB;
   - Respostas a mensagens específicas (*Reply*) com citação visual e atalho de rolagem;
   - Edição e exclusão de mensagens pelo próprio autor em tempo real;
   - Reações com emojis em mensagens e seletor inteligente de emojis com prevenção de transbordamento de tela e histórico recente;
   - Sistema de menções inteligentes (`@nome`, `@everyone`, `@here`) com menu suspenso de autocompletar e destaque visual;
   - Mensagens fixadas (*Pinned Messages*) com renderização direta de mídias (áudio, vídeo e imagem) e paginação de 20 mensagens por página;
   - Gravação e envio de notas de voz nativas no chat com equalizador de ondas sonoras;
-  - Busca global e filtragem de mensagens por texto e por arquivos anexados (`has_attachment`).
+  - Busca global e filtragem de mensagens por texto e por arquivos anexados (`has_attachment`);
+  - Rolagem inteligente no feed com ancoragem automática nas mensagens mais recentes na carga inicial e navegação fluida pelo histórico sem saltos.
 - **Mensagens Diretas Bilaterais (DMs 1x1):**
   - Conversas privadas entre quaisquer usuários cadastrados com sincronização em tempo real e compartilhamento de mídias;
   - WebSocket unificado de eventos do usuário (`/ws/me`) transmitindo em tempo real novas DMs, edições, remoções e reações;
@@ -30,7 +31,8 @@ Plataforma completa de comunicação e colaboração em tempo real inspirada no 
   - Suporte completo a avatares e fotos de perfil dos contatos;
 - **Voz, Vídeo & Gravação com Webcam PiP:**
   - Canais de voz em grupo com controle de mudo e ensurdecer;
-  - Player flutuante Picture-in-Picture (PiP) totalmente arrastável (Drag & Drop) com persistência de coordenadas e limitação na viewport;
+  - Player flutuante Picture-in-Picture (PiP) totalmente arrastável (Drag & Drop) com persistência de coordenadas, limitação na viewport e botão de maximizar com navegação direta inter-servidores para o canal de voz ativo;
+  - Efeitos sonoros característicos ao entrar e sair de salas de voz sintetizados nativamente via Web Audio API;
   - Presença em tempo real de múltiplos participantes conectados nos canais de voz com separação estrita de presença;
   - Gravação de áudio e vídeo da transmissão via `MediaRecorder` com opção de exportação em **MP4** ou **WebM** e compressão inteligente sem perda de qualidade;
   - Gravação com webcam sobreposta em *Picture-in-Picture* (PiP) móvel nos 4 cantos da tela ou com livre arrasto;

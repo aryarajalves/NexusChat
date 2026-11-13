@@ -253,6 +253,150 @@ export const renderContentWithMentions = (
     }
 
     const linkified = renderTextWithLinks(part, `txt-${i}`);
-    return Array.isArray(linkified) ? linkified : [linkified];
+    const linkNodes = Array.isArray(linkified) ? linkified : [linkified];
+    return linkNodes.flatMap((node, nodeIdx) => {
+      if (typeof node === 'string') {
+        const formatted = renderFormattedText(node, `fmt-${i}-${nodeIdx}`);
+        return Array.isArray(formatted) ? formatted : [formatted];
+      }
+      return [node];
+    });
   });
+};
+
+/**
+ * Renderiza textos aplicando estilos de formatação (Markdown & WhatsApp style):
+ * - Negrito: *texto* (estilo WhatsApp) ou **texto** (estilo Discord)
+ * - Itálico: _texto_
+ * - Tachado: ~texto~ ou ~~texto~~
+ * - Código inline: `código`
+ * - Bloco de código: ```bloco```
+ * - Variáveis / Parâmetros: {{1}}, {{nome}}, etc.
+ */
+export const renderFormattedText = (text, keyPrefix = 'fmt') => {
+  if (!text || typeof text !== 'string') return text;
+
+  const TOKEN_REGEX = /(```[\s\S]*?```|`[^`\n]+`|\*\*(?!\s)[^*\n]+?(?<!\s)\*\*|\*(?!\s)[^*\n]+?(?<!\s)\*|_(?!\s)[^_\n]+?(?<!\s)_|~{1,2}(?!\s)[^~\n]+?(?<!\s)~{1,2}|\{\{[^{}\n]+?\}\})/g;
+
+  if (!TOKEN_REGEX.test(text)) {
+    return text;
+  }
+
+  const parts = text.split(TOKEN_REGEX);
+  let counter = 0;
+
+  const nodes = parts.flatMap((part) => {
+    if (!part) return [];
+
+    // Bloco de código ```...```
+    if (part.startsWith('```') && part.endsWith('```') && part.length >= 6) {
+      const codeContent = part.slice(3, -3).replace(/^\n/, '');
+      return [
+        React.createElement(
+          'pre',
+          {
+            key: `${keyPrefix}-codeblock-${counter++}`,
+            className: 'chat-format-codeblock',
+            'data-testid': 'chat-format-codeblock',
+          },
+          React.createElement('code', null, codeContent)
+        ),
+      ];
+    }
+
+    // Código inline `...`
+    if (part.startsWith('`') && part.endsWith('`') && part.length >= 2) {
+      return [
+        React.createElement(
+          'code',
+          {
+            key: `${keyPrefix}-code-${counter++}`,
+            className: 'chat-format-code',
+            'data-testid': 'chat-format-code',
+          },
+          part.slice(1, -1)
+        ),
+      ];
+    }
+
+    // Negrito duplo **...**
+    if (part.startsWith('**') && part.endsWith('**') && part.length >= 4) {
+      return [
+        React.createElement(
+          'strong',
+          {
+            key: `${keyPrefix}-bold-${counter++}`,
+            className: 'chat-format-bold',
+            'data-testid': 'chat-format-bold',
+          },
+          part.slice(2, -2)
+        ),
+      ];
+    }
+
+    // Negrito simples estilo WhatsApp *...*
+    if (part.startsWith('*') && part.endsWith('*') && part.length >= 2) {
+      return [
+        React.createElement(
+          'strong',
+          {
+            key: `${keyPrefix}-bold-${counter++}`,
+            className: 'chat-format-bold',
+            'data-testid': 'chat-format-bold',
+          },
+          part.slice(1, -1)
+        ),
+      ];
+    }
+
+    // Itálico _..._
+    if (part.startsWith('_') && part.endsWith('_') && part.length >= 2) {
+      return [
+        React.createElement(
+          'em',
+          {
+            key: `${keyPrefix}-italic-${counter++}`,
+            className: 'chat-format-italic',
+            'data-testid': 'chat-format-italic',
+          },
+          part.slice(1, -1)
+        ),
+      ];
+    }
+
+    // Tachado ~...~ ou ~~...~~
+    if (part.startsWith('~') && part.endsWith('~') && part.length >= 2) {
+      const stripped = part.startsWith('~~') && part.endsWith('~~') ? part.slice(2, -2) : part.slice(1, -1);
+      return [
+        React.createElement(
+          's',
+          {
+            key: `${keyPrefix}-strike-${counter++}`,
+            className: 'chat-format-strikethrough',
+            'data-testid': 'chat-format-strike',
+          },
+          stripped
+        ),
+      ];
+    }
+
+    // Parâmetro / Variável {{...}}
+    if (part.startsWith('{{') && part.endsWith('}}') && part.length >= 4) {
+      return [
+        React.createElement(
+          'span',
+          {
+            key: `${keyPrefix}-var-${counter++}`,
+            className: 'chat-variable-badge',
+            'data-testid': 'chat-variable-badge',
+          },
+          part
+        ),
+      ];
+    }
+
+    return [part];
+  });
+
+  return nodes.length === 1 && typeof nodes[0] === 'string' ? nodes[0] : nodes;
 };

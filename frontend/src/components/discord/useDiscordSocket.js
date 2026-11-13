@@ -282,7 +282,7 @@ export function useDiscordSocket({
       ws.onclose = handleDisconnection;
       ws.onerror = (err) => {
         console.warn('[WebSocket] Erro na conexão:', err);
-        handleDisconnection();
+        handleDisconnection(err);
       };
     } catch (err) {
       console.warn('[WebSocket] Falha ao inicializar socket:', err);

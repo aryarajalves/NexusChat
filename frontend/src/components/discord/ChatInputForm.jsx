@@ -93,6 +93,15 @@ export default function ChatInputForm({
     }
   }, [replyingTo, textInputRef]);
 
+  // Auto-resize do textarea conforme o usuário digita ou cola múltiplos parágrafos
+  useEffect(() => {
+    const el = textInputRef.current;
+    if (!el || el.tagName !== 'TEXTAREA') return;
+    el.style.height = 'auto';
+    const newHeight = Math.min(el.scrollHeight, 180);
+    el.style.height = `${Math.max(newHeight, 24)}px`;
+  }, [inputText, textInputRef]);
+
   // Trata arquivos soltos via Drag & Drop na área de chat
   useEffect(() => {
     const list = droppedFiles?.length > 0 ? droppedFiles : (droppedFile ? [droppedFile] : []);
@@ -382,10 +391,10 @@ export default function ChatInputForm({
             <Paperclip size={20} />
           </button>
 
-          <input
-            type="text"
+          <textarea
             ref={textInputRef}
             className="chat-text-input"
+            rows={1}
             placeholder={
               pendingFiles.length === 1
                 ? `Adicionar uma legenda para ${pendingFiles[0].file.name}...`

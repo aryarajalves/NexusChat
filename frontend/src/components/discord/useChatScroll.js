@@ -63,6 +63,7 @@ export function useChatScroll({ messages = [], channelId, currentUserId }) {
       prevChannelIdRef.current = channelId;
       isInitialLoadRef.current = true;
       isNearBottomRef.current = true;
+      prevMessagesLengthRef.current = 0;
     }
 
     scrollToBottom('auto');
@@ -74,7 +75,7 @@ export function useChatScroll({ messages = [], channelId, currentUserId }) {
     const t4 = setTimeout(() => scrollToBottom('auto'), 650);
     const tDone = setTimeout(() => {
       isInitialLoadRef.current = false;
-    }, 1200);
+    }, 1500);
 
     return () => {
       cancelAnimationFrame(raf);
@@ -86,17 +87,23 @@ export function useChatScroll({ messages = [], channelId, currentUserId }) {
     };
   }, [channelId, scrollToBottom]);
 
-  // Ao atualizar mensagens: rola para o fim se for envio próprio ou se estiver no fundo
+  // Ao atualizar mensagens: rola para o fim se for carga inicial, envio próprio ou se estiver no fundo
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
 
+    const isFirstPopulation = prevMessagesLengthRef.current === 0 && messages.length > 0;
     const isNewMessage = messages.length > prevMessagesLengthRef.current;
     prevMessagesLengthRef.current = messages.length;
 
-    if (isInitialLoadRef.current) {
+    if (isInitialLoadRef.current || isFirstPopulation) {
       scrollToBottom('auto');
-      return;
+      const raf = requestAnimationFrame(() => scrollToBottom('auto'));
+      const t = setTimeout(() => scrollToBottom('auto'), 80);
+      return () => {
+        cancelAnimationFrame(raf);
+        clearTimeout(t);
+      };
     }
 
     if (isNewMessage) {

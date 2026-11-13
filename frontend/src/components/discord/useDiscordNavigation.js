@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export function useDiscordNavigation({ token, servers, setServers, channels, setChannels, setMembers }) {
+  const pendingVoiceChannelRef = useRef(null);
+
   // 1. activeServerId: null = DMs, number = server ID
   const [activeServerId, setActiveServerId] = useState(() => {
     const saved = localStorage.getItem('discord_active_server_id');
@@ -57,6 +59,21 @@ export function useDiscordNavigation({ token, servers, setServers, channels, set
     }
   }, [channels, activeServerId]);
 
+  // Handler para retornar diretamente para a call de voz (inclusive em outro servidor)
+  const handleReturnToVoice = useCallback((voiceChannel, explicitServerId = null) => {
+    if (!voiceChannel) return;
+    const targetServerId = explicitServerId || voiceChannel.server_id;
+    if (targetServerId && String(targetServerId) !== String(activeServerId)) {
+      pendingVoiceChannelRef.current = voiceChannel.id;
+      const parsedSrvId = parseInt(targetServerId, 10);
+      setActiveServerId(isNaN(parsedSrvId) ? targetServerId : parsedSrvId);
+      localStorage.setItem('discord_active_server_id', String(targetServerId));
+      setActiveChannelId(voiceChannel.id);
+    } else {
+      setActiveChannelId(voiceChannel.id);
+    }
+  }, [activeServerId]);
+
   // Carrega servidores e sincroniza servidor ativo persistido
   useEffect(() => {
     if (!token) return;
@@ -93,14 +110,25 @@ export function useDiscordNavigation({ token, servers, setServers, channels, set
       setMembers([]);
       return;
     }
+    let isMounted = true;
     Promise.all([
       fetch(`/api/v1/discord/servers/${activeServerId}/channels`, { headers: { Authorization: `Bearer ${token}` } }),
       fetch(`/api/v1/discord/servers/${activeServerId}/members`, { headers: { Authorization: `Bearer ${token}` } }),
     ]).then(async ([chRes, memRes]) => {
+      if (!isMounted) return;
       if (chRes.ok) {
         const chData = await chRes.json();
         setChannels(chData);
         if (chData.length > 0) {
+          if (pendingVoiceChannelRef.current) {
+            const targetVoiceId = pendingVoiceChannelRef.current;
+            const targetVoiceCh = chData.find((c) => String(c.id) === String(targetVoiceId));
+            if (targetVoiceCh) {
+              pendingVoiceChannelRef.current = null;
+              setActiveChannelId(targetVoiceCh.id);
+              return;
+            }
+          }
           const savedChId = localStorage.getItem(`discord_active_channel_${activeServerId}`)
             || localStorage.getItem('discord_active_channel_id');
           const parsedChId = savedChId ? parseInt(savedChId, 10) : null;
@@ -117,6 +145,10 @@ export function useDiscordNavigation({ token, servers, setServers, channels, set
       }
       if (memRes.ok) setMembers(await memRes.json());
     }).catch((err) => console.error('Erro ao carregar canais/membros:', err));
+
+    return () => {
+      isMounted = false;
+    };
   }, [activeServerId, token, setChannels, setMembers]);
 
   return {
@@ -126,5 +158,6 @@ export function useDiscordNavigation({ token, servers, setServers, channels, set
     setActiveChannelId,
     handleSelectServer,
     handleSelectChannel,
+    handleReturnToVoice,
   };
 }

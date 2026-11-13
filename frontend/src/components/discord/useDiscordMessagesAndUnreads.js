@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { playDiscordSound } from './discordSounds';
 
 /**
@@ -90,13 +90,22 @@ export function useDiscordFeedEffects({
   setLoadingPins,
 }) {
   const activeChannelType = channels.find((c) => c.id === activeChannelId)?.type;
+  const prevTargetRef = useRef(null);
 
   // 1. Carrega mensagens (seja de canal ou de DM)
   useEffect(() => {
-    setMessages([]);
-    if (activeServerId === null) {
+    const isDM = activeServerId === null;
+    const currentTarget = isDM ? `dm_${activeDMId}` : `ch_${activeChannelId}`;
+
+    if (isDM) {
       if (!activeDMId) {
+        setMessages([]);
+        prevTargetRef.current = null;
         return;
+      }
+      if (prevTargetRef.current !== currentTarget) {
+        prevTargetRef.current = currentTarget;
+        setMessages([]);
       }
       fetch(`/api/v1/discord/dms/conversations/${activeDMId}/messages?limit=50`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -108,6 +117,10 @@ export function useDiscordFeedEffects({
     }
     if (!activeChannelId || activeChannelType === 'VOICE') {
       return;
+    }
+    if (prevTargetRef.current !== currentTarget) {
+      prevTargetRef.current = currentTarget;
+      setMessages([]);
     }
     fetch(`/api/v1/discord/channels/${activeChannelId}/messages?limit=50`, {
       headers: { Authorization: `Bearer ${token}` },

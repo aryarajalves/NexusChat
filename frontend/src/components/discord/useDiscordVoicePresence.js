@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { playDiscordSound } from './discordSounds';
 
 /**
  * Hook para gerenciar os participantes ativos de cada canal de voz do servidor
@@ -204,6 +205,36 @@ export default function useDiscordVoicePresence({
     const emptiedChannels = [];
 
     setVoiceChannelUsers((prev) => {
+      // Disparo sonoro quando outro participante entra ou sai da sala em que o usuário está conectado
+      const currentConnected = connectedVoiceChannelIdRef.current;
+      const myId = Number(currentUserRef.current?.id);
+
+      if (currentConnected && String(currentConnected) === String(chId)) {
+        const prevParticipants = prev[chId] || [];
+        const prevOtherIds = new Set(
+          prevParticipants.map((u) => Number(u.user_id || u.id)).filter((id) => id && id !== myId)
+        );
+        const newOtherIds = new Set(
+          (payload.active_participants || []).map((u) => Number(u.user_id || u.id)).filter((id) => id && id !== myId)
+        );
+
+        let someoneJoined = false;
+        newOtherIds.forEach((id) => {
+          if (!prevOtherIds.has(id)) someoneJoined = true;
+        });
+
+        let someoneLeft = false;
+        prevOtherIds.forEach((id) => {
+          if (!newOtherIds.has(id)) someoneLeft = true;
+        });
+
+        if (someoneJoined) {
+          playDiscordSound('voice_join');
+        } else if (someoneLeft) {
+          playDiscordSound('voice_leave');
+        }
+      }
+
       const map = new Map();
       const incomingUserIds = new Set();
       (payload.active_participants || []).forEach((u) => {
@@ -222,7 +253,6 @@ export default function useDiscordVoicePresence({
         }
       });
       if (String(connectedVoiceChannelIdRef.current) === String(chId) && currentUserRef.current) {
-        const myId = Number(currentUserRef.current.id);
         const existing = map.get(myId) || {};
         incomingUserIds.add(myId);
         map.set(myId, {
@@ -233,6 +263,17 @@ export default function useDiscordVoicePresence({
         });
       } else if (currentUserRef.current && connectedVoiceChannelIdRef.current) {
         map.delete(Number(currentUserRef.current.id));
+      }
+
+      // Se outro participante saiu da minha sala conectada para outra sala
+      if (currentConnected && String(currentConnected) !== String(chId)) {
+        const myChannelParticipants = prev[currentConnected] || [];
+        const someoneLeftMyRoom = myChannelParticipants.some(
+          (u) => incomingUserIds.has(Number(u.user_id || u.id)) && Number(u.user_id || u.id) !== myId
+        );
+        if (someoneLeftMyRoom) {
+          playDiscordSound('voice_leave');
+        }
       }
 
       // Garante unicidade global: qualquer participante que esteja ativo em `chId` é removido de todas as outras salas de voz

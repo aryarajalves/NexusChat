@@ -125,3 +125,119 @@ describe('chatUtils - renderTextWithLinks e renderContentWithMentions (Links Cli
     expect(hasLink).toBe(true);
   });
 });
+
+describe('chatUtils - Formatação Rica de Texto (Markdown, WhatsApp style e Parágrafos)', () => {
+  it('formata texto em negrito no estilo WhatsApp (*texto*)', () => {
+    const text = 'Aqui é o *Crassus Gobbi* 🧭';
+    const result = renderContentWithMentions(text);
+
+    expect(Array.isArray(result)).toBe(true);
+    const boldNode = result.find(
+      (node) => node && node.props && node.props['data-testid'] === 'chat-format-bold'
+    );
+    expect(boldNode).toBeDefined();
+    expect(boldNode.type).toBe('strong');
+    expect(boldNode.props.className).toBe('chat-format-bold');
+    expect(boldNode.props.children).toBe('Crassus Gobbi');
+  });
+
+  it('formata texto em negrito estilo markdown duplo (**texto**)', () => {
+    const text = 'Mensagem com **destaque importante** aqui';
+    const result = renderContentWithMentions(text);
+
+    const boldNode = result.find(
+      (node) => node && node.props && node.props['data-testid'] === 'chat-format-bold'
+    );
+    expect(boldNode).toBeDefined();
+    expect(boldNode.props.children).toBe('destaque importante');
+  });
+
+  it('formata parâmetros e variáveis estilo {{1}} ou {{nome}}', () => {
+    const text = 'Olá, {{1}}! Seja bem-vindo {{nome}}';
+    const result = renderContentWithMentions(text);
+
+    const varNodes = result.filter(
+      (node) => node && node.props && node.props['data-testid'] === 'chat-variable-badge'
+    );
+    expect(varNodes.length).toBe(2);
+    expect(varNodes[0].props.children).toBe('{{1}}');
+    expect(varNodes[1].props.children).toBe('{{nome}}');
+  });
+
+  it('formata itálico (_texto_), tachado (~texto~) e código inline (`código`)', () => {
+    const text = 'Teste _italico_ e ~tachado~ e `codigo` inline';
+    const result = renderContentWithMentions(text);
+
+    const italicNode = result.find(
+      (node) => node && node.props && node.props['data-testid'] === 'chat-format-italic'
+    );
+    const strikeNode = result.find(
+      (node) => node && node.props && node.props['data-testid'] === 'chat-format-strike'
+    );
+    const codeNode = result.find(
+      (node) => node && node.props && node.props['data-testid'] === 'chat-format-code'
+    );
+
+    expect(italicNode?.props?.children).toBe('italico');
+    expect(strikeNode?.props?.children).toBe('tachado');
+    expect(codeNode?.props?.children).toBe('codigo');
+  });
+
+  it('formata bloco de código cercado por três crases (```)', () => {
+    const text = 'Código:\n```const x = 10;```\nFim';
+    const result = renderContentWithMentions(text);
+
+    const codeBlock = result.find(
+      (node) => node && node.props && node.props['data-testid'] === 'chat-format-codeblock'
+    );
+    expect(codeBlock).toBeDefined();
+    expect(codeBlock.type).toBe('pre');
+  });
+
+  it('preserva parágrafos, quebras de linha e formatações completas do exemplo do usuário', () => {
+    const fullText = `Olá, {{1}}! Aqui é o *Crassus Gobbi* 🧭
+
+Durante todo esse ano, muita gente tentou mudar de vida no escuro, na tentativa e erro — jogando no verdadeiro *Modo Difícil*.
+
+Neste *domingo, dia 15, às 18h*, faremos um encontro ao vivo para você virar essa chave antes de 2027 e revelar a *condição única de Black Friday (Embaixador)* da *Comunidade Astrowake*.
+
+📄 *Anexei acima o dossiê oficial* para você ler com calma tudo o que preparamos para os próximos 12 meses:
+
+✨ Método dos 8 Passos
+📱 Software Bússola Astrológica
+📖 Guia Visual
+🤝 24 encontros ao vivo comigo durante 12 meses
+
+Essa condição de fundação NÃO será aberta ao público geral. Toque no botão abaixo para entrar no *Grupo VIP* e receber o link da aula 👇`;
+
+    const result = renderContentWithMentions(fullText);
+    expect(Array.isArray(result)).toBe(true);
+
+    // Deve encontrar a variável {{1}}
+    const hasVar = result.some(
+      (n) => n && n.props && n.props['data-testid'] === 'chat-variable-badge' && n.props.children === '{{1}}'
+    );
+    expect(hasVar).toBe(true);
+
+    // Deve encontrar os 7 blocos em negrito
+    const boldNodes = result.filter(
+      (n) => n && n.props && n.props['data-testid'] === 'chat-format-bold'
+    );
+    expect(boldNodes.length).toBe(7);
+
+    const boldTexts = boldNodes.map((n) => n.props.children);
+    expect(boldTexts).toContain('Crassus Gobbi');
+    expect(boldTexts).toContain('Modo Difícil');
+    expect(boldTexts).toContain('domingo, dia 15, às 18h');
+    expect(boldTexts).toContain('condição única de Black Friday (Embaixador)');
+    expect(boldTexts).toContain('Comunidade Astrowake');
+    expect(boldTexts).toContain('Anexei acima o dossiê oficial');
+    expect(boldTexts).toContain('Grupo VIP');
+
+    // As quebras de linha de parágrafo devem estar intactas nos fragmentos de texto
+    const textPieces = result.filter((n) => typeof n === 'string').join('');
+    expect(textPieces).toContain('\n\nDurante todo esse ano');
+    expect(textPieces).toContain('\n\nNeste ');
+    expect(textPieces).toContain('✨ Método dos 8 Passos\n📱 Software Bússola Astrológica\n');
+  });
+});

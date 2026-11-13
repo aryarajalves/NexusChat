@@ -42,6 +42,17 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
     - Configurar os cargos com permissão de acesso ao canal privado.
     - Excluir o canal através do botão 'Excluir Canal', com painel de confirmação centralizado e proteção no backend que impede deletar o último canal de texto do servidor.
 - **Formatação de Horário:** As mensagens no chat exibem a data e o horário no fuso Horário de Brasília (`America/Sao_Paulo`), no padrão `DD/MM/YYYY, HH:mm`.
+- **Formatação Rica de Texto e Parágrafos (Markdown & WhatsApp Style):**
+  - O campo de envio de mensagens disponibiliza uma área de texto auto-expansível (`<textarea>`) com suporte pleno a múltiplas linhas e parágrafos sem quebrar o layout.
+  - Atalhos de envio: `Shift + Enter` pula a linha permitindo criar novos parágrafos livremente; `Enter` (sem Shift) submete a mensagem para envio.
+  - Preserva integralmente quebras de linha e espaçamentos entre parágrafos ao colar textos longos.
+  - Suporta e renderiza marcações de formatação inline:
+    - **Negrito:** Delimitado por asterisco simples estilo WhatsApp (`*texto*`) ou duplo estilo Discord/Markdown (`**texto**`).
+    - **Itálico:** Delimitado por sublinhados (`_texto_`).
+    - **Tachado:** Delimitado por tis (`~texto~` ou `~~texto~~`).
+    - **Código Inline e Blocos de Código:** Delimitados por crase única (`` `código` ``) ou blocos com três crases (```` ```bloco``` ````).
+    - **Parâmetros e Variáveis:** Padrão de chaves duplas (ex: `{{1}}`, `{{nome}}`) com destaque visual em badge (`chat-variable-badge`).
+  - Coexiste harmonicamente com links clicáveis, menções interativas com `@` e emojis customizados.
 - **Ações em Mensagens:** No hover da mensagem são disponibilizadas opções de reagir com emoji, responder mensagem específica, encaminhar para outro canal via modal, copiar texto e editar o texto (exclusivo para o autor, marcando `(editado)`).
 - **Respostas a Mensagens (Reply):** No hover de qualquer mensagem, o menu de 3 pontinhos ('Mais opções') e o botão direto permitem responder à mensagem específica. O input exibe um banner indicando o autor e prévia do texto original com opção de cancelar. Ao enviar, a mensagem é vinculada via `reply_to_id`, exibindo no feed a indicação visual em curva (spine), autor de referência e atalho que rola e destaca a mensagem original.
 - **Mensagens Diretas (DMs Privadas):**
@@ -109,6 +120,13 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
   - Um usuário só pode estar conectado em **uma única sala de voz por vez**.
   - Ao clicar para ingressar em um novo canal de voz enquanto já estiver conectado em outro, o sistema desconecta e remove o usuário automaticamente da sala anterior no frontend e no backend.
   - O backend (`socket_manager.register_voice_user`) varre e desvincula a presença anterior do usuário, notificando a sala anterior em tempo real via WebSocket (`presence:leave` e `voice:channel_update`) e garantindo que o usuário nunca seja exibido simultaneamente em múltiplos canais.
+  - **Navegação Inter-Servidores ao Maximizar o Mini-Player PiP ou Clicar na Barra de Status:**
+    - Quando o usuário está conectado em um canal de voz de um servidor A e navega pelos canais de texto de outro servidor B ou pela aba de Mensagens Diretas (DMs), a call de voz permanece ativa em segundo plano com o Mini-Player Picture-in-Picture (`VoicePipPlayer`) flutuante e a barra de status inferior ("Voz Conectada").
+    - Ao clicar no botão de Maximizar (`Maximize2`) no canto superior direito do PiP, no título do canal no cabeçalho do PiP, no corpo do PiP, ou na barra de status "Voz Conectada" do rodapé:
+      - O sistema detecta automaticamente que a call pertence ao servidor A.
+      - Alterna o servidor ativo (`activeServerId`) diretamente para o servidor A.
+      - Seleciona o canal de voz conectado como o canal ativo (`activeChannelId`), restaurando a visualização em tela cheia do palco de voz (`VoiceChannelArea`) e minimizando o PiP flutuante.
+      - A troca preserva a conexão WebRTC da call sem interrupções e sem sobrescrever a seleção para o canal de texto padrão do servidor.
 - **Efeitos Sonoros do Discord (Sound Effects / Web Audio):**
   - O sistema conta com gerador de efeitos sonoros nativos sintetizados via Web Audio API (sem dependência de arquivos de áudio externos).
   - Inclui os sons característicos do Discord:
@@ -117,6 +135,12 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
     - Conexão em canal de voz (três notas ascendentes de entrada).
     - Desconexão de canal de voz (duas notas descendentes de saída).
     - Mudo / Desmudo de áudio (cliques sutis de alternância).
+  - **Sons de Entrada e Saída de Participantes (Voice Join & Leave):**
+    - Quando o próprio usuário entra ou se desconecta de uma sala de voz, o sistema emite os efeitos sonoros correspondentes (`voice_join` e `voice_leave`).
+    - Quando **qualquer outro membro entra na mesma sala de voz** em que o usuário está conectado, o sistema emite em tempo real o som de entrada (`voice_join`).
+    - Quando **qualquer membro sai da sala de voz conectada** (seja desconectando ou alternando para outra sala), o sistema emite em tempo real o som de saída (`voice_leave`).
+    - Alterações em salas de voz diferentes da qual o usuário está conectado não emitem áudio para não poluir a experiência.
+    - O `AudioContext` é desbloqueado automaticamente no primeiro gesto de interação do usuário na página para garantir conformidade com as políticas de autoplay dos navegadores.
   - Permite silenciar todos os efeitos sonoros através do botão de fones de ouvido no rodapé do usuário, persistindo a preferência no `localStorage`.
 - **Controle de Volume Individual por Contato em Canais de Voz (User Volume Slider):**
   - Ao passar o cursor do mouse sobre qualquer participante remoto conectado a um canal de voz na barra lateral ou no palco de transmissão (ou via clique com o botão direito / menu de contexto), é exibido o botão de ajuste de volume (`🔊`).

@@ -9,6 +9,7 @@ export default function ChannelSidebarFooter({
   connectedVoiceChannel,
   server,
   onSelectChannel,
+  onReturnToVoice = null,
   onDisconnectVoice,
   isNoiseSuppressionEnabled = true,
   onToggleNoiseSuppression,
@@ -30,10 +31,11 @@ export default function ChannelSidebarFooter({
         <div className="discord-voice-connection-status" data-testid="discord-voice-status-bar">
           <div
             className="voice-connection-info"
-            onClick={() => onSelectChannel(connectedVoiceChannel.id)}
+            onClick={() => (onReturnToVoice ? onReturnToVoice() : onSelectChannel(connectedVoiceChannel.id))}
             title="Ir para o Canal de Voz"
             role="button"
             tabIndex={0}
+            style={{ cursor: 'pointer' }}
           >
             <div className="voice-connection-title">
               <Volume2 size={15} className="voice-conn-icon" />

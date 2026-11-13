@@ -53,9 +53,11 @@ async def user_notification_websocket(
 
     socket_manager.register_active_token(user_id, token, token_iat)
 
-    # Se o usuário já possuir conexões ativas de outra sessão/aba/dispositivo, desconecta a anterior
+    # Se o usuário já possuir conexões ativas de outra sessão/aba/dispositivo no canal /ws/me, desconecta a anterior
     if user_id in socket_manager.user_sockets:
         for old_ws in list(socket_manager.user_sockets[user_id]):
+            if old_ws not in socket_manager.ws_sessions:
+                continue
             old_sid = socket_manager.ws_sessions.get(old_ws)
             is_same_session = bool(session_id and old_sid and session_id == old_sid)
             if old_ws != websocket and not is_same_session:

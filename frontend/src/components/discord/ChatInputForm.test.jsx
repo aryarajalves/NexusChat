@@ -109,4 +109,30 @@ describe('ChatInputForm Component', () => {
     fireEvent.click(micBtn);
     expect(screen.getByTestId('chat-voice-recorder-bar')).toBeInTheDocument();
   });
+
+  it('renders textarea supporting multiline text and paragraphs', async () => {
+    const onSendMessageMock = vi.fn().mockResolvedValue({});
+    renderWithToast(<ChatInputForm channel={mockChannel} onSendMessage={onSendMessageMock} />);
+
+    const textarea = screen.getByTestId('chat-message-input');
+    expect(textarea.tagName).toBe('TEXTAREA');
+
+    const multilineText = 'Primeiro parágrafo\n\nSegundo parágrafo com *negrito*\n\nTerceiro parágrafo';
+    fireEvent.change(textarea, { target: { value: multilineText } });
+    expect(textarea.value).toBe(multilineText);
+
+    // Enter com Shift NÃO deve enviar a mensagem (permite pular linha)
+    fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: true });
+    expect(onSendMessageMock).not.toHaveBeenCalled();
+
+    // Enter sem Shift deve enviar a mensagem com todos os parágrafos preservados
+    fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false });
+    await waitFor(() => {
+      expect(onSendMessageMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: multilineText,
+        })
+      );
+    });
+  });
 });

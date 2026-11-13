@@ -18,6 +18,7 @@ export default function DMSidebar({
   onToggleNoiseSuppression,
   connectedVoiceChannel = null,
   connectedVoiceServerName = null,
+  onReturnToVoice,
   onDisconnectVoice,
   onOpenUserSettings,
 }) {
@@ -277,7 +278,14 @@ export default function DMSidebar({
       {/* Barra de Status de Conexão de Voz Flutuante no Rodapé (quando em call) */}
       {connectedVoiceChannel && (
         <div className="discord-voice-connection-status" data-testid="dm-voice-status-bar">
-          <div className="voice-connection-info" title="Canal de Voz Conectado">
+          <div
+            className="voice-connection-info"
+            onClick={() => onReturnToVoice?.()}
+            title="Ir para o Canal de Voz"
+            role="button"
+            tabIndex={0}
+            style={{ cursor: 'pointer' }}
+          >
             <div className="voice-connection-title">
               <Volume2 size={15} className="voice-conn-icon" />
               <span>Voz Conectada</span>

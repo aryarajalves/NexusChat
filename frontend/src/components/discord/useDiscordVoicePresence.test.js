@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import useDiscordVoicePresence from './useDiscordVoicePresence';
+import * as discordSounds from './discordSounds';
 
 describe('useDiscordVoicePresence hook', () => {
   beforeEach(() => {
@@ -370,5 +371,78 @@ describe('useDiscordVoicePresence hook', () => {
       String(url).includes('voice-leave-all')
     );
     expect(leaveAllCalls).toHaveLength(0);
+  });
+
+  it('dispara efeito sonoro voice_join e voice_leave quando outro participante entra ou sai da sala conectada', async () => {
+    const playSoundSpy = vi.spyOn(discordSounds, 'playDiscordSound').mockImplementation(() => true);
+    const mockChannels = [{ id: 10, name: 'Sala Conectada', type: 'VOICE' }];
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ active_participants: [] }),
+    });
+
+    const currentUser = { id: 1, name: 'Super Admin' };
+
+    const { result, unmount } = renderHook(() =>
+      useDiscordVoicePresence({
+        token: 'test-token',
+        channels: mockChannels,
+        connectedVoiceChannelId: 10,
+        currentUser,
+      })
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    playSoundSpy.mockClear();
+
+    // 1. Outro usuário (ID 2 - Hokage) entra na mesma sala (canal 10)
+    act(() => {
+      result.current.handleVoiceChannelUpdate({
+        channel_id: 10,
+        active_participants: [
+          { user_id: 1, user_name: 'Super Admin' },
+          { user_id: 2, user_name: 'Hokage' },
+        ],
+        total_participants: 2,
+      });
+    });
+
+    expect(playSoundSpy).toHaveBeenCalledWith('voice_join');
+
+    playSoundSpy.mockClear();
+
+    // 2. Hokage sai da sala (canal 10)
+    act(() => {
+      result.current.handleVoiceChannelUpdate({
+        channel_id: 10,
+        active_participants: [
+          { user_id: 1, user_name: 'Super Admin' },
+        ],
+        total_participants: 1,
+      });
+    });
+
+    expect(playSoundSpy).toHaveBeenCalledWith('voice_leave');
+
+    playSoundSpy.mockClear();
+
+    // 3. Alteração em outra sala (canal 99) onde o usuário NÃO está conectado não deve disparar som
+    act(() => {
+      result.current.handleVoiceChannelUpdate({
+        channel_id: 99,
+        active_participants: [
+          { user_id: 3, user_name: 'Outro Usuário' },
+        ],
+        total_participants: 1,
+      });
+    });
+
+    expect(playSoundSpy).not.toHaveBeenCalled();
+
+    playSoundSpy.mockRestore();
+    unmount();
   });
 });

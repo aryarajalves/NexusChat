@@ -5,9 +5,31 @@ const SOUND_MUTED_KEY = 'discord_sound_muted';
 const SOUND_VOLUME_KEY = 'discord_sound_volume';
 
 let audioCtx = null;
+const lastPlayedMap = {};
 
 export function resetAudioContextForTesting() {
   audioCtx = null;
+}
+
+export function resumeAudioContext() {
+  const ctx = getAudioContext();
+  if (ctx && ctx.state === 'suspended') {
+    ctx.resume().catch(() => {});
+  }
+  return ctx;
+}
+
+// Desbloqueia o AudioContext no primeiro gesto do usuário no navegador (Autoplay Policy)
+if (typeof window !== 'undefined') {
+  const unlockAudio = () => {
+    resumeAudioContext();
+    window.removeEventListener('click', unlockAudio);
+    window.removeEventListener('keydown', unlockAudio);
+    window.removeEventListener('touchstart', unlockAudio);
+  };
+  window.addEventListener('click', unlockAudio, { passive: true });
+  window.addEventListener('keydown', unlockAudio, { passive: true });
+  window.addEventListener('touchstart', unlockAudio, { passive: true });
 }
 
 function getAudioContext() {
@@ -72,6 +94,12 @@ export function setSoundVolume(volume) {
  */
 export function playDiscordSound(type) {
   if (isSoundMuted()) return false;
+
+  const nowMs = Date.now();
+  if (lastPlayedMap[type] && nowMs - lastPlayedMap[type] < 200) {
+    return false;
+  }
+  lastPlayedMap[type] = nowMs;
 
   const ctx = getAudioContext();
   if (!ctx) return false;

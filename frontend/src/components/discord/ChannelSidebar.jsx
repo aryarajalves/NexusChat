@@ -22,6 +22,9 @@ export default function ChannelSidebar({
   members = [],
   activeChannelId,
   connectedVoiceChannelId,
+  connectedVoiceChannel: externalConnectedVoiceChannel = null,
+  connectedVoiceServer = null,
+  onReturnToVoice = null,
   onSelectChannel,
   onOpenVoiceChat,
   onOpenCreateChannel,
@@ -124,7 +127,8 @@ export default function ChannelSidebar({
   };
 
   const userInitial = (currentUser?.name || 'U').charAt(0).toUpperCase();
-  const connectedVoiceChannel = channels.find((c) => c.id === connectedVoiceChannelId);
+  const connectedVoiceChannel = externalConnectedVoiceChannel || channels.find((c) => c.id === connectedVoiceChannelId);
+  const voiceDisplayServer = connectedVoiceServer || server;
 
   return (
     <aside className="discord-channel-sidebar" aria-label="Canais do Servidor">
@@ -409,8 +413,9 @@ export default function ChannelSidebar({
 
       <ChannelSidebarFooter
         connectedVoiceChannel={connectedVoiceChannel}
-        server={server}
+        server={voiceDisplayServer}
         onSelectChannel={onSelectChannel}
+        onReturnToVoice={onReturnToVoice}
         onDisconnectVoice={onDisconnectVoice}
         isNoiseSuppressionEnabled={isNoiseSuppressionEnabled}
         onToggleNoiseSuppression={onToggleNoiseSuppression}

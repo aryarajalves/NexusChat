@@ -1,0 +1,79 @@
+/**
+ * discord-formatting.css
+ * Estilos para formatação de texto de mensagens (Markdown, WhatsApp style e Parágrafos)
+ */
+
+/* Formatação rica em mensagens */
+.chat-format-bold {
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.chat-format-italic {
+  font-style: italic;
+}
+
+.chat-format-strikethrough {
+  text-decoration: line-through;
+  opacity: 0.85;
+}
+
+.chat-format-code {
+  font-family: 'Consolas', 'Courier New', monospace;
+  background: rgba(0, 0, 0, 0.32);
+  color: #eb459e;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.chat-format-codeblock {
+  display: block;
+  font-family: 'Consolas', 'Courier New', monospace;
+  background: #2b2d31;
+  color: #dbdee1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin: 6px 0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* Marcações de Parâmetros / Variáveis (ex: {{1}}, {{nome}}) */
+.chat-variable-badge {
+  display: inline-block;
+  background: rgba(88, 101, 242, 0.18);
+  color: #5865f2;
+  border: 1px solid rgba(88, 101, 242, 0.35);
+  border-radius: 4px;
+  padding: 0 5px;
+  font-family: monospace;
+  font-size: 0.9em;
+  font-weight: 600;
+  line-height: 1.4;
+  vertical-align: baseline;
+}
+
+/* Suporte a múltiplas linhas e auto-resize no ChatInput */
+.chat-input-form textarea.chat-text-input {
+  resize: none;
+  overflow-y: auto;
+  min-height: 24px;
+  max-height: 180px;
+  line-height: 1.4;
+  padding: 10px 0;
+  display: block;
+}
+
+.chat-input-form {
+  align-items: flex-end !important;
+}
+
+.chat-attach-btn,
+.chat-emoji-btn,
+.chat-mic-btn,
+.chat-send-btn {
+  margin-bottom: 3px !important;
+}
