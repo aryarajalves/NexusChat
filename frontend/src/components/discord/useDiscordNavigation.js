@@ -116,6 +116,10 @@ export function useDiscordNavigation({ token, servers, setServers, channels, set
       fetch(`/api/v1/discord/servers/${activeServerId}/members`, { headers: { Authorization: `Bearer ${token}` } }),
     ]).then(async ([chRes, memRes]) => {
       if (!isMounted) return;
+      if (memRes.ok) {
+        const memData = await memRes.json();
+        setMembers(memData);
+      }
       if (chRes.ok) {
         const chData = await chRes.json();
         setChannels(chData);
@@ -143,7 +147,6 @@ export function useDiscordNavigation({ token, servers, setServers, channels, set
           }
         }
       }
-      if (memRes.ok) setMembers(await memRes.json());
     }).catch((err) => console.error('Erro ao carregar canais/membros:', err));
 
     return () => {

@@ -11,11 +11,11 @@ const BUFFER_ITEMS = 12;
 export function useVirtualMessageList({
   messages = [],
   containerRef,
-  enabledThreshold = 40,
+  enabledThreshold = 100,
   itemHeight = ESTIMATED_ITEM_HEIGHT,
   overscan = BUFFER_ITEMS,
 }) {
-  const [scrollTop, setScrollTop] = useState(0);
+  const [scrollTop, setScrollTop] = useState(() => containerRef?.current?.scrollTop || 0);
   const [containerHeight, setContainerHeight] = useState(800);
 
   const isVirtual = messages.length > enabledThreshold;
@@ -30,6 +30,9 @@ export function useVirtualMessageList({
     if (!el) return;
 
     setContainerHeight(el.clientHeight || 800);
+    if (el.scrollTop) {
+      setScrollTop(el.scrollTop);
+    }
 
     const onScroll = () => {
       setScrollTop(el.scrollTop);

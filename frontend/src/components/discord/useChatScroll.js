@@ -99,10 +99,16 @@ export function useChatScroll({ messages = [], channelId, currentUserId }) {
     if (isInitialLoadRef.current || isFirstPopulation) {
       scrollToBottom('auto');
       const raf = requestAnimationFrame(() => scrollToBottom('auto'));
-      const t = setTimeout(() => scrollToBottom('auto'), 80);
+      const t1 = setTimeout(() => scrollToBottom('auto'), 50);
+      const t2 = setTimeout(() => scrollToBottom('auto'), 150);
+      const t3 = setTimeout(() => scrollToBottom('auto'), 350);
+      const t4 = setTimeout(() => scrollToBottom('auto'), 600);
       return () => {
         cancelAnimationFrame(raf);
-        clearTimeout(t);
+        clearTimeout(t1);
+        clearTimeout(t2);
+        clearTimeout(t3);
+        clearTimeout(t4);
       };
     }
 

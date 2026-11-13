@@ -91,6 +91,7 @@ export function useDiscordFeedEffects({
 }) {
   const activeChannelType = channels.find((c) => c.id === activeChannelId)?.type;
   const prevTargetRef = useRef(null);
+  const lastLoadedMessagesRef = useRef([]);
 
   // 1. Carrega mensagens (seja de canal ou de DM)
   useEffect(() => {
@@ -101,17 +102,29 @@ export function useDiscordFeedEffects({
       if (!activeDMId) {
         setMessages([]);
         prevTargetRef.current = null;
+        lastLoadedMessagesRef.current = [];
         return;
       }
       if (prevTargetRef.current !== currentTarget) {
         prevTargetRef.current = currentTarget;
+        lastLoadedMessagesRef.current = [];
         setMessages([]);
       }
       fetch(`/api/v1/discord/dms/conversations/${activeDMId}/messages?limit=50`, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((r) => (r.ok ? r.json() : []))
-        .then((d) => setMessages(Array.isArray(d) ? d : []))
+        .then((d) => {
+          const nextList = Array.isArray(d) ? d : [];
+          const prev = lastLoadedMessagesRef.current;
+          const isIdentical =
+            prev.length === nextList.length &&
+            prev.every((m, idx) => m.id === nextList[idx]?.id && m.content === nextList[idx]?.content);
+          if (!isIdentical) {
+            lastLoadedMessagesRef.current = nextList;
+            setMessages(nextList);
+          }
+        })
         .catch(() => setMessages([]));
       return;
     }
@@ -120,13 +133,24 @@ export function useDiscordFeedEffects({
     }
     if (prevTargetRef.current !== currentTarget) {
       prevTargetRef.current = currentTarget;
+      lastLoadedMessagesRef.current = [];
       setMessages([]);
     }
     fetch(`/api/v1/discord/channels/${activeChannelId}/messages?limit=50`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => (r.ok ? r.json() : []))
-      .then((d) => setMessages(Array.isArray(d) ? d : []))
+      .then((d) => {
+        const nextList = Array.isArray(d) ? d : [];
+        const prev = lastLoadedMessagesRef.current;
+        const isIdentical =
+          prev.length === nextList.length &&
+          prev.every((m, idx) => m.id === nextList[idx]?.id && m.content === nextList[idx]?.content);
+        if (!isIdentical) {
+          lastLoadedMessagesRef.current = nextList;
+          setMessages(nextList);
+        }
+      })
       .catch(() => setMessages([]));
   }, [activeServerId, activeDMId, activeChannelId, activeChannelType, token, setMessages]);
 

@@ -112,7 +112,7 @@ export function useDiscordSocket({
       ws.onopen = () => {
         if (isMountedRef.current) {
           setConnectionStatus('connected');
-          // Heartbeat periódico (ping a cada 25s para manter a conexão aberta no Nginx e Traefik)
+          // Heartbeat periódico (ping a cada 8s para manter a conexão permanentemente aberta em proxies/Cloudflare)
           if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
           heartbeatIntervalRef.current = setInterval(() => {
             if (ws.readyState === WebSocket.OPEN) {
@@ -122,7 +122,7 @@ export function useDiscordSocket({
                 // Falha silenciosa no envio do heartbeat
               }
             }
-          }, 25000);
+          }, 8000);
         }
       };
 

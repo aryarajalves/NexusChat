@@ -55,7 +55,7 @@ export default function ChatArea({
   } = useVirtualMessageList({
     messages,
     containerRef: messagesContainerRef,
-    enabledThreshold: 40,
+    enabledThreshold: 100,
   });
 
   const isFileDragEvent = (e) => {

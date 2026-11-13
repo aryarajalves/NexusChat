@@ -398,7 +398,7 @@ export default function useWebRTCVoiceRoom({
               ws.send(JSON.stringify({ event: 'ping' }));
             } catch {}
           }
-        }, 25000);
+        }, 8000);
       };
 
       ws.onmessage = (e) => {

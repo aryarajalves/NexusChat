@@ -137,7 +137,7 @@ export function useDiscordDMs({
 
         ws.onopen = () => {
           setDmConnectionStatus('connected');
-          // Inicia heartbeat a cada 25s
+          // Inicia heartbeat a cada 8s
           if (dmHeartbeatIntervalRef.current) clearInterval(dmHeartbeatIntervalRef.current);
           dmHeartbeatIntervalRef.current = setInterval(() => {
             if (ws && ws.readyState === WebSocket.OPEN) {
@@ -147,7 +147,7 @@ export function useDiscordDMs({
                 // Silencioso
               }
             }
-          }, 25000);
+          }, 8000);
         };
 
         const handleDMDisconnect = () => {

@@ -218,8 +218,8 @@ export default function DiscordApp({
     onSessionTerminated,
   });
 
-  const activeServer = servers.find((s) => s.id === activeServerId);
-  const activeChannel = channels.find((c) => c.id === activeChannelId);
+  const activeServer = servers.find((s) => String(s.id) === String(activeServerId));
+  const activeChannel = channels.find((c) => String(c.id) === String(activeChannelId));
   const connectedVoiceChannel = channels.find((c) => String(c.id) === String(connectedVoiceChannelId)) || (connectedVoiceChannelId ? connectedVoiceChannelSnapshot : null);
   const connectedVoiceServer = servers.find((s) => String(s.id) === String(connectedVoiceServerId || connectedVoiceChannel?.server_id)) || activeServer;
   const isVoiceInView = Boolean(connectedVoiceChannel) && String(activeServerId) === String(connectedVoiceServerId || connectedVoiceChannel?.server_id) && String(activeChannelId) === String(connectedVoiceChannelId);

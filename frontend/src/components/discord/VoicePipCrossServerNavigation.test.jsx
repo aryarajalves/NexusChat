@@ -106,6 +106,16 @@ describe('VoicePip Cross-Server Navigation', () => {
               ]),
           });
         }
+        if (url.includes('/servers/10/members')) {
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve([
+                { user_id: 1, name: 'Alice', role: 'OWNER' },
+                { user_id: 2, name: 'Bob', role: 'MEMBER' },
+              ]),
+          });
+        }
         if (url.includes('/servers/5/channels')) {
           return Promise.resolve({
             ok: true,
@@ -149,6 +159,11 @@ describe('VoicePip Cross-Server Navigation', () => {
       expect(result.current.activeServerId).toBe(10);
       expect(result.current.activeChannelId).toBe(42);
       expect(localStorage.getItem('discord_active_server_id')).toBe('10');
+      // Garante que os membros do servidor 10 foram carregados e atualizados na barra lateral
+      expect(setMembers).toHaveBeenCalledWith([
+        { user_id: 1, name: 'Alice', role: 'OWNER' },
+        { user_id: 2, name: 'Bob', role: 'MEMBER' },
+      ]);
     });
 
     it('keeps activeServerId if already in the same server and activates the voice channel', () => {

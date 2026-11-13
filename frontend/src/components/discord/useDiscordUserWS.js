@@ -100,7 +100,7 @@ export default function useDiscordUserWS({
                 ws.send(JSON.stringify({ type: 'ping', event: 'ping' }));
               } catch (_) {}
             }
-          }, 25000);
+          }, 8000);
         };
 
         const handleDisconnect = (ev) => {
