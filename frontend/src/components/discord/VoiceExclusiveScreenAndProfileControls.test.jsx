@@ -4,7 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import ChannelSidebar from './ChannelSidebar';
 import DMSidebar from './DMSidebar';
 import VoiceStageView from './VoiceStageView';
-import { createMixedCallAudioStream } from './webrtcMediaUtils';
+import { createMixedCallAudioStream, createRecordingMasterAudioStream } from './webrtcMediaUtils';
 import { ToastProvider } from '../../context/ToastContext';
 
 describe('Voice Exclusive Screen Share, Maximize & Profile Controls', () => {
@@ -362,6 +362,43 @@ describe('Voice Exclusive Screen Share, Maximize & Profile Controls', () => {
     const mixed = createMixedCallAudioStream(micStream, remotePeersMedia);
     expect(mixed).toBe(destStream);
     expect(mockAudioContext.createMediaStreamSource).toHaveBeenCalledTimes(2);
+  });
+
+  it('unifica áudio da tela compartilhada e da call de voz em createRecordingMasterAudioStream com resume do AudioContext', async () => {
+    const screenAudioTrack = { kind: 'audio', id: 'screen-audio-1', enabled: true };
+    const micAudioTrack = { kind: 'audio', id: 'mic-audio-1', enabled: true };
+    const screenStream = { getAudioTracks: () => [screenAudioTrack] };
+    const micStream = { getAudioTracks: () => [micAudioTrack] };
+
+    const destStream = { getAudioTracks: () => [{ kind: 'audio', id: 'master-audio' }] };
+    let resumed = false;
+    const mockAudioContext = {
+      state: 'suspended',
+      resume: vi.fn(async () => { resumed = true; }),
+      createMediaStreamSource: vi.fn(() => ({ connect: vi.fn(), disconnect: vi.fn() })),
+      createMediaStreamDestination: vi.fn(() => ({ stream: destStream })),
+      close: vi.fn(async () => {}),
+    };
+
+    globalThis.AudioContext = class {
+      constructor() {
+        return mockAudioContext;
+      }
+    };
+
+    const { stream, cleanup } = await createRecordingMasterAudioStream({
+      screenStream,
+      audioStream: null,
+      micStream,
+    });
+
+    expect(stream).toBe(destStream);
+    expect(mockAudioContext.resume).toHaveBeenCalled();
+    expect(mockAudioContext.createMediaStreamSource).toHaveBeenCalledTimes(2);
+
+    expect(typeof cleanup).toBe('function');
+    cleanup();
+    expect(mockAudioContext.close).toHaveBeenCalled();
   });
 
   it('mantém a mesma ordem determinística de participantes por user_id na ChannelSidebar para todos os usuários', () => {

@@ -187,13 +187,19 @@ export function createCompositeStream({
 
   const compositeStream = canvas.captureStream(30);
 
-  // Adiciona áudios do screenStream e microfone
-  screenStream.getAudioTracks().forEach((track) => compositeStream.addTrack(track));
+  // Adiciona áudio unificado (master áudio contendo som da tela + call) ao compositeStream
   if (audioStream && audioStream.getAudioTracks().length > 0) {
-    const audioTrack = audioStream.getAudioTracks()[0];
-    if (!compositeStream.getAudioTracks().some((t) => t.id === audioTrack.id)) {
-      compositeStream.addTrack(audioTrack);
-    }
+    audioStream.getAudioTracks().forEach((track) => {
+      if (!compositeStream.getAudioTracks().some((t) => t.id === track.id)) {
+        compositeStream.addTrack(track);
+      }
+    });
+  } else {
+    screenStream.getAudioTracks().forEach((track) => {
+      if (!compositeStream.getAudioTracks().some((t) => t.id === track.id)) {
+        compositeStream.addTrack(track);
+      }
+    });
   }
 
   const stop = () => {

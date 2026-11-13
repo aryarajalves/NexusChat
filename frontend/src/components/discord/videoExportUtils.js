@@ -63,13 +63,18 @@ export async function processVideoExport({
 
   return new Promise((resolve) => {
     const video = document.createElement('video');
-    video.muted = true;
     video.playsInline = true;
     const url = URL.createObjectURL(blob);
     video.src = url;
 
+    let audioCtx = null;
+    let elementAudioStream = null;
+
     const cleanup = () => {
       URL.revokeObjectURL(url);
+      if (audioCtx && typeof audioCtx.close === 'function') {
+        try { audioCtx.close(); } catch {}
+      }
       video.remove();
     };
 
@@ -83,6 +88,22 @@ export async function processVideoExport({
           const finalMime = targetFormat === 'mp4' ? 'video/mp4' : 'video/webm';
           resolve(new Blob([blob], { type: finalMime }));
           return;
+        }
+
+        // Se o captureStream do vídeo não capturou áudio ou foi silenciado, roteia via Web Audio
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx && (!stream.getAudioTracks || stream.getAudioTracks().length === 0)) {
+            audioCtx = new AudioCtx();
+            const sourceNode = audioCtx.createMediaElementSource(video);
+            const destNode = audioCtx.createMediaStreamDestination();
+            sourceNode.connect(destNode); // Conecta somente ao gravador sem emitir nos alto-falantes
+            elementAudioStream = destNode.stream;
+            elementAudioStream.getAudioTracks().forEach((t) => stream.addTrack(t));
+          }
+        } catch {
+          // Se createMediaElementSource falhar, mantém muted sem quebrar
+          video.muted = true;
         }
 
         const mimeType = getOptimalMimeType(targetFormat);

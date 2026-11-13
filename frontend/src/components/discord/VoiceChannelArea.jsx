@@ -367,7 +367,7 @@ export default function VoiceChannelArea({
                 isCameraOn={isCameraOn} onToggleCamera={handleToggleCamera} isScreenSharing={isScreenSharing}
                 onToggleScreenShare={handleToggleScreenShare} cameraBlurMode={cameraBlurMode} onChangeCameraBlurMode={setCameraBlurMode}
                 channel={channel} mixedCallAudio={mixedCallAudio} activeRecordingScreen={activeRecordingScreen}
-                cameraStream={cameraStream} currentUser={currentUser} onDisconnectVoice={onDisconnectVoice || onDisconnect}
+                cameraStream={cameraStream} micStream={micStream} currentUser={currentUser} onDisconnectVoice={onDisconnectVoice || onDisconnect}
                 getAnnotationCanvas={() => annotationCanvasRef.current}
                 hasActiveScreenShare={Boolean(activeRecordingScreen)}
                 isAnnotationActive={isAnnotationActive}

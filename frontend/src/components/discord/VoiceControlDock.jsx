@@ -17,6 +17,7 @@ export default function VoiceControlDock({
   mixedCallAudio,
   activeRecordingScreen,
   cameraStream,
+  micStream,
   currentUser,
   onDisconnectVoice,
   getAnnotationCanvas,
@@ -146,6 +147,7 @@ export default function VoiceControlDock({
       <VoiceChannelRecorder
         channel={channel}
         audioStream={mixedCallAudio}
+        micStream={micStream}
         screenStream={activeRecordingScreen}
         cameraStream={cameraStream}
         isCameraOn={isCameraOn}

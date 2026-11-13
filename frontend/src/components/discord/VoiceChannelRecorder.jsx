@@ -4,10 +4,12 @@ import { useToast } from '../../context/ToastContext';
 import VoiceRecordingModal from './VoiceRecordingModal';
 import WebcamPipOverlay from './WebcamPipOverlay';
 import { createCompositeStream, PIP_CORNERS } from './videoCompositeUtils';
+import { createRecordingMasterAudioStream } from './webrtcMediaUtils';
 
 export default function VoiceChannelRecorder({
   channel,
   audioStream,
+  micStream,
   screenStream,
   cameraStream,
   isCameraOn = false,
@@ -34,6 +36,7 @@ export default function VoiceChannelRecorder({
   const recordingStreamRef = useRef(null);
   const menuRef = useRef(null);
   const compositeStopRef = useRef(null);
+  const audioCleanupRef = useRef(null);
   const pipPositionRef = useRef(pipPosition);
   pipPositionRef.current = pipPosition;
 
@@ -62,6 +65,10 @@ export default function VoiceChannelRecorder({
       if (compositeStopRef.current) {
         compositeStopRef.current();
         compositeStopRef.current = null;
+      }
+      if (audioCleanupRef.current) {
+        audioCleanupRef.current();
+        audioCleanupRef.current = null;
       }
       if (recordedUrl) {
         URL.revokeObjectURL(recordedUrl);
@@ -96,7 +103,15 @@ export default function VoiceChannelRecorder({
     setRecordedUrl(null);
     try {
       let stream = audioStream;
-      if (!stream || stream.getAudioTracks().length === 0) {
+      if (stream && stream._mixedAudioCtx && stream._mixedAudioCtx.state === 'suspended') {
+        try {
+          await stream._mixedAudioCtx.resume();
+        } catch {}
+      }
+      if (!stream || !stream.getAudioTracks || stream.getAudioTracks().length === 0) {
+        stream = micStream;
+      }
+      if (!stream || !stream.getAudioTracks || stream.getAudioTracks().length === 0) {
         if (!navigator?.mediaDevices?.getUserMedia) {
           throw new Error('Dispositivo de gravação de áudio não suportado.');
         }
@@ -159,6 +174,14 @@ export default function VoiceChannelRecorder({
         });
       }
 
+      // Mixa de forma síncrona/unificada o áudio da tela (se houver som do PC) + voz da call + microfone
+      const { stream: masterAudioStream, cleanup: audioCleanup } = await createRecordingMasterAudioStream({
+        screenStream: stream,
+        audioStream,
+        micStream,
+      });
+      audioCleanupRef.current = audioCleanup;
+
       let recordingStream = stream;
       const hasActiveCamera = isCameraOn || (cameraStream && cameraStream.getVideoTracks().length > 0);
 
@@ -167,19 +190,20 @@ export default function VoiceChannelRecorder({
         const composite = createCompositeStream({
           screenStream: stream,
           cameraStream: includeWebcam && hasActiveCamera ? cameraStream : null,
-          audioStream,
+          audioStream: masterAudioStream,
           getPipPosition: () => pipPositionRef.current,
           getAnnotationCanvas,
         });
         recordingStream = composite.stream;
         compositeStopRef.current = composite.stop;
       } else {
-        // Se temos microfone separado, adiciona track ao stream de tela
-        if (audioStream && audioStream.getAudioTracks().length > 0) {
-          const audioTrack = audioStream.getAudioTracks()[0];
-          if (!recordingStream.getAudioTracks().some((t) => t.id === audioTrack.id)) {
-            recordingStream.addTrack(audioTrack);
-          }
+        // Se temos áudio master unificado, adiciona suas tracks ao recordingStream
+        if (masterAudioStream && masterAudioStream.getAudioTracks && masterAudioStream.getAudioTracks().length > 0) {
+          masterAudioStream.getAudioTracks().forEach((track) => {
+            if (!recordingStream.getAudioTracks().some((t) => t.id === track.id)) {
+              recordingStream.addTrack(track);
+            }
+          });
         }
       }
 
@@ -215,6 +239,10 @@ export default function VoiceChannelRecorder({
         if (compositeStopRef.current) {
           compositeStopRef.current();
           compositeStopRef.current = null;
+        }
+        if (audioCleanupRef.current) {
+          audioCleanupRef.current();
+          audioCleanupRef.current = null;
         }
         const blob = new Blob(chunksRef.current, { type: 'video/webm' });
         const url = URL.createObjectURL(blob);

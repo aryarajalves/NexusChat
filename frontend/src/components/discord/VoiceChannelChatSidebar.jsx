@@ -1,7 +1,9 @@
 // VoiceChannelChatSidebar.jsx - Painel Lateral de Bate-Papo de Texto da Call (Estilo Discord)
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, X, Send, Paperclip, Loader2, Sparkles } from 'lucide-react';
+import { MessageSquare, X, Send, Paperclip, Loader2, Sparkles, UploadCloud, FileText } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
+import { formatBrasiliaDateTime, formatFileSize } from './chatUtils';
+import VoiceChatAttachmentPreview from './VoiceChatAttachmentPreview';
 import '../../styles/discord-voice-chat.css';
 
 function renderTextWithLinks(text) {
@@ -22,9 +24,7 @@ function renderTextWithLinks(text) {
 }
 
 function formatMessageTime(dateString) {
-  if (!dateString) return '';
-  const d = new Date(dateString);
-  return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return formatBrasiliaDateTime(dateString);
 }
 
 export default function VoiceChannelChatSidebar({ channel, currentUser, token, onClose }) {
@@ -32,11 +32,13 @@ export default function VoiceChannelChatSidebar({ channel, currentUser, token, o
   const [loading, setLoading] = useState(true);
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [pendingFiles, setPendingFiles] = useState([]);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [uploading, setUploading] = useState(false);
 
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const dragCounterRef = useRef(0);
 
   let addToast = () => {};
   try {
@@ -45,6 +47,15 @@ export default function VoiceChannelChatSidebar({ channel, currentUser, token, o
   } catch {}
 
   const authToken = token || localStorage.getItem('auth_token') || localStorage.getItem('token') || '';
+
+  // Limpa URLs de preview criadas ao desmontar
+  useEffect(() => {
+    return () => {
+      pendingFiles.forEach((item) => {
+        if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      });
+    };
+  }, []);
 
   const scrollToBottom = () => {
     if (typeof messagesEndRef.current?.scrollIntoView === 'function') {
@@ -103,74 +114,196 @@ export default function VoiceChannelChatSidebar({ channel, currentUser, token, o
     return () => clearInterval(interval);
   }, [channel?.id, authToken]);
 
-  const handleFileSelect = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 50 * 1024 * 1024) {
-      addToast('O arquivo excede o limite máximo permitido de 50 MB.', 'warning');
-      return;
+  const addFilesToPending = (fileList) => {
+    if (!fileList || fileList.length === 0) return;
+    const newItems = [];
+    for (const file of fileList) {
+      if (file.size > 50 * 1024 * 1024) {
+        addToast(`O arquivo "${file.name}" excede o limite de 50 MB.`, 'warning');
+        continue;
+      }
+      const isMedia = file.type?.startsWith('image/') || file.type?.startsWith('video/');
+      const previewUrl = isMedia ? URL.createObjectURL(file) : null;
+      newItems.push({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        file,
+        previewUrl,
+      });
     }
-    setSelectedFile(file);
+    if (newItems.length > 0) {
+      setPendingFiles((prev) => [...prev, ...newItems]);
+    }
+  };
+
+  const handleRemovePendingFile = (idToRemove) => {
+    setPendingFiles((prev) => {
+      const target = prev.find((item) => item.id === idToRemove);
+      if (target?.previewUrl) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      return prev.filter((item) => item.id !== idToRemove);
+    });
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleClearAllPendingFiles = () => {
+    pendingFiles.forEach((item) => {
+      if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+    });
+    setPendingFiles([]);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files || []);
+    addFilesToPending(files);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // Drag and Drop Handlers
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current += 1;
+    if (e.dataTransfer?.items && e.dataTransfer.items.length > 0) {
+      setIsDraggingOver(true);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDraggingOver) setIsDraggingOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current -= 1;
+    if (dragCounterRef.current <= 0) {
+      dragCounterRef.current = 0;
+      setIsDraggingOver(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current = 0;
+    setIsDraggingOver(false);
+    const files = Array.from(e.dataTransfer?.files || []);
+    addFilesToPending(files);
   };
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
     const cleanContent = inputText.trim();
-    if (!cleanContent && !selectedFile) return;
+    if (!cleanContent && pendingFiles.length === 0) return;
     if (!channel?.id) return;
 
     setSending(true);
-    let attachmentUrl = null;
-    let attachmentType = null;
-    let attachmentSize = null;
 
     try {
-      if (selectedFile) {
+      let uploadedAttachments = [];
+      if (pendingFiles.length > 0) {
         setUploading(true);
-        const formData = new FormData();
-        formData.append('file', selectedFile);
-        const uploadRes = await fetch('/api/v1/discord/attachments/upload', {
-          method: 'POST',
-          headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
-          body: formData,
+        const uploadPromises = pendingFiles.map(async (item) => {
+          const formData = new FormData();
+          formData.append('file', item.file);
+          const uploadRes = await fetch(`/api/v1/discord/channels/${channel.id}/attachments`, {
+            method: 'POST',
+            headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+            body: formData,
+          });
+
+          if (!uploadRes.ok) {
+            const errData = await uploadRes.json().catch(() => ({}));
+            throw new Error(errData.detail || `Falha ao enviar o arquivo "${item.file.name}".`);
+          }
+
+          const uploadData = await uploadRes.json();
+          return {
+            attachment_url: uploadData.attachment_url || uploadData.url,
+            attachment_type: uploadData.attachment_type || item.file.type,
+            attachment_size: uploadData.attachment_size || item.file.size,
+          };
         });
 
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json();
-          attachmentUrl = uploadData.attachment_url || uploadData.url;
-          attachmentType = selectedFile.type;
-          attachmentSize = selectedFile.size;
+        uploadedAttachments = await Promise.all(uploadPromises);
+        setUploading(false);
+      }
+
+      if (uploadedAttachments.length > 0) {
+        // Envia primeira mensagem com a legenda + 1ª mídia
+        const first = uploadedAttachments[0];
+        const resFirst = await fetch(`/api/v1/discord/channels/${channel.id}/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+          },
+          body: JSON.stringify({
+            content: cleanContent,
+            attachment_url: first.attachment_url,
+            attachment_type: first.attachment_type,
+            attachment_size: first.attachment_size,
+          }),
+        });
+
+        if (resFirst.ok) {
+          const firstMsg = await resFirst.json();
+          setMessages((prev) => [...prev, firstMsg]);
+        }
+
+        // Envia as demais mídias consecutivamente em sequência
+        for (let i = 1; i < uploadedAttachments.length; i++) {
+          const extra = uploadedAttachments[i];
+          const resExtra = await fetch(`/api/v1/discord/channels/${channel.id}/messages`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+            },
+            body: JSON.stringify({
+              content: '',
+              attachment_url: extra.attachment_url,
+              attachment_type: extra.attachment_type,
+              attachment_size: extra.attachment_size,
+            }),
+          });
+          if (resExtra.ok) {
+            const extraMsg = await resExtra.json();
+            setMessages((prev) => [...prev, extraMsg]);
+          }
+        }
+      } else {
+        const res = await fetch(`/api/v1/discord/channels/${channel.id}/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+          },
+          body: JSON.stringify({
+            content: cleanContent,
+            attachment_url: null,
+            attachment_type: null,
+            attachment_size: null,
+          }),
+        });
+
+        if (res.ok) {
+          const newMsg = await res.json();
+          setMessages((prev) => [...prev, newMsg]);
         } else {
-          addToast('Falha ao enviar anexo na call.', 'error');
+          const err = await res.json().catch(() => ({}));
+          addToast(err.detail || 'Não foi possível enviar a mensagem.', 'error');
         }
       }
 
-      const res = await fetch(`/api/v1/discord/channels/${channel.id}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-        },
-        body: JSON.stringify({
-          content: cleanContent,
-          attachment_url: attachmentUrl,
-          attachment_type: attachmentType,
-          attachment_size: attachmentSize,
-        }),
-      });
-
-      if (res.ok) {
-        const newMsg = await res.json();
-        setMessages((prev) => [...prev, newMsg]);
-        setInputText('');
-        setSelectedFile(null);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-      } else {
-        const err = await res.json().catch(() => ({}));
-        addToast(err.detail || 'Não foi possível enviar a mensagem.', 'error');
-      }
-    } catch {
-      addToast('Erro ao enviar mensagem no bate-papo de voz.', 'error');
+      setInputText('');
+      handleClearAllPendingFiles();
+    } catch (err) {
+      addToast(err.message || 'Erro ao enviar mídia na call.', 'error');
     } finally {
       setSending(false);
       setUploading(false);
@@ -178,7 +311,26 @@ export default function VoiceChannelChatSidebar({ channel, currentUser, token, o
   };
 
   return (
-    <aside className="voice-chat-sidebar" data-testid="voice-chat-sidebar" aria-label="Bate-papo de texto da call">
+    <aside
+      className={`voice-chat-sidebar ${isDraggingOver ? 'is-drag-over' : ''}`}
+      data-testid="voice-chat-sidebar"
+      aria-label="Bate-papo de texto da call"
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Overlay de Drag & Drop para envio rápido de mídia */}
+      {isDraggingOver && (
+        <div className="voice-chat-drag-overlay" data-testid="voice-chat-drag-overlay">
+          <div className="voice-chat-drag-modal">
+            <UploadCloud size={38} className="voice-chat-drag-icon" />
+            <h4 className="voice-chat-drag-title">Envie para #{channel?.name || 'voz'}</h4>
+            <p className="voice-chat-drag-subtitle">Solte sua mídia aqui para enviar com legenda!</p>
+          </div>
+        </div>
+      )}
+
       {/* Cabeçalho do Bate-papo */}
       <div className="voice-chat-header">
         <div className="voice-chat-header-info">
@@ -227,20 +379,10 @@ export default function VoiceChannelChatSidebar({ channel, currentUser, token, o
                 <div className="voice-chat-msg-content">
                   <div className="voice-chat-msg-header">
                     <span className="voice-chat-msg-author">{authorName}</span>
-                    <span className="voice-chat-msg-time">{formatMessageTime(m.created_at)}</span>
+                    <span className="voice-chat-msg-time">{formatBrasiliaDateTime(m.created_at)}</span>
                   </div>
                   {m.content && <div className="voice-chat-msg-text">{renderTextWithLinks(m.content)}</div>}
-                  {m.attachment_url && (
-                    <div className="voice-chat-attachment">
-                      {m.attachment_type?.startsWith('image/') || m.attachment_url.match(/\.(png|jpe?g|gif|webp)$/i) ? (
-                        <img src={m.attachment_url} alt="Anexo da call" />
-                      ) : (
-                        <a href={m.attachment_url} target="_blank" rel="noopener noreferrer" style={{ color: '#00a8fc', fontSize: '12px' }}>
-                          📎 Ver anexo ({m.attachment_url.split('/').pop()})
-                        </a>
-                      )}
-                    </div>
-                  )}
+                  {m.attachment_url && <VoiceChatAttachmentPreview msg={m} />}
                 </div>
               </div>
             );
@@ -249,26 +391,52 @@ export default function VoiceChannelChatSidebar({ channel, currentUser, token, o
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Barra de Input */}
+      {/* Barra de Input com suporte a prévia de múltiplos anexos e legenda */}
       <div className="voice-chat-input-bar">
-        {selectedFile && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#1e1f22', padding: '6px 10px', borderRadius: '6px', marginBottom: '8px', fontSize: '11.5px', color: '#dbdee1' }}>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }}>
-              📎 {selectedFile.name}
-            </span>
-            <button
-              type="button"
-              onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-              style={{ background: 'transparent', border: 'none', color: '#f23f43', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-            >
-              ✕
-            </button>
+        {pendingFiles.length > 0 && (
+          <div className="voice-chat-attachments-row" data-testid="voice-chat-attachments-row">
+            {pendingFiles.map((item, idx) => {
+              const isImg = item.file.type?.startsWith('image/');
+              const isVid = item.file.type?.startsWith('video/');
+
+              return (
+                <div key={item.id} className="voice-chat-attachment-preview" data-testid={`voice-chat-attachment-preview-${idx}`}>
+                  <div className="voice-chat-thumb-box">
+                    {item.previewUrl && isImg ? (
+                      <img src={item.previewUrl} alt={item.file.name} className="voice-chat-thumb-img" data-testid={`voice-chat-preview-img-${idx}`} />
+                    ) : item.previewUrl && isVid ? (
+                      <video src={item.previewUrl} className="voice-chat-thumb-img" muted playsInline data-testid={`voice-chat-preview-video-${idx}`} />
+                    ) : (
+                      <FileText size={24} className="voice-chat-thumb-file-icon" />
+                    )}
+                  </div>
+                  <div className="voice-chat-attachment-meta">
+                    <div className="voice-chat-attachment-name" title={item.file.name}>
+                      {item.file.name}
+                    </div>
+                    <div className="voice-chat-attachment-size">
+                      {formatFileSize(item.file.size)}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="voice-chat-remove-attachment-btn"
+                    onClick={() => handleRemovePendingFile(item.id)}
+                    title={`Remover ${item.file.name}`}
+                    data-testid={`voice-chat-remove-attachment-btn-${idx}`}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
         <form onSubmit={handleSendMessage} className="voice-chat-form">
           <input
             type="file"
             ref={fileInputRef}
+            multiple
             style={{ display: 'none' }}
             onChange={handleFileSelect}
             data-testid="voice-chat-file-input"
@@ -276,7 +444,7 @@ export default function VoiceChannelChatSidebar({ channel, currentUser, token, o
           <button
             type="button"
             className="voice-chat-action-btn"
-            title="Anexar arquivo"
+            title="Anexar arquivos ou mídias"
             onClick={() => fileInputRef.current?.click()}
             disabled={sending || uploading}
             data-testid="voice-chat-attach-btn"
@@ -286,7 +454,13 @@ export default function VoiceChannelChatSidebar({ channel, currentUser, token, o
           <input
             type="text"
             className="voice-chat-input"
-            placeholder={`Conversar em #${channel?.name || 'voz'}...`}
+            placeholder={
+              pendingFiles.length === 1
+                ? 'Adicione uma legenda... (opcional)'
+                : pendingFiles.length > 1
+                ? `Adicione uma legenda para as ${pendingFiles.length} mídias... (opcional)`
+                : `Conversar em #${channel?.name || 'voz'}...`
+            }
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             disabled={sending || uploading}
@@ -296,7 +470,7 @@ export default function VoiceChannelChatSidebar({ channel, currentUser, token, o
             type="submit"
             className="voice-chat-action-btn voice-chat-send-btn"
             title="Enviar mensagem"
-            disabled={(!inputText.trim() && !selectedFile) || sending || uploading}
+            disabled={(!inputText.trim() && pendingFiles.length === 0) || sending || uploading}
             data-testid="voice-chat-send-btn"
           >
             {sending || uploading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}

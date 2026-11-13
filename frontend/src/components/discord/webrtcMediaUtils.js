@@ -157,3 +157,105 @@ export function createMixedCallAudioStream(localMicStream, remotePeersMedia) {
   }
 }
 
+/**
+ * Cria um MediaStream com UMA ÚNICA FAIXA MASTER DE ÁUDIO combinando:
+ * 1. O som da tela compartilhada / sistema operacional / aba (se houver)
+ * 2. O microfone e voz dos participantes da call (audioStream / micStream)
+ * 
+ * Ativa o AudioContext de forma garantida no clique do usuário (user gesture)
+ * e evita o descarte da segunda faixa de áudio pelo MediaRecorder do navegador.
+ */
+export async function createRecordingMasterAudioStream({ screenStream, audioStream, micStream, remotePeersMedia }) {
+  const sourcesToMix = [];
+
+  // 1. Áudio da tela compartilhada (se o usuário marcou transmitir áudio da aba/sistema)
+  if (screenStream && screenStream.getAudioTracks && screenStream.getAudioTracks().length > 0) {
+    sourcesToMix.push(screenStream);
+  }
+
+  // 2. Fluxo da call de voz
+  if (audioStream && audioStream.getAudioTracks && audioStream.getAudioTracks().length > 0) {
+    // Se houver um AudioContext associado suspenso, retoma imediatamente
+    if (audioStream._mixedAudioCtx && audioStream._mixedAudioCtx.state === 'suspended') {
+      try {
+        await audioStream._mixedAudioCtx.resume();
+      } catch {}
+    }
+    sourcesToMix.push(audioStream);
+  } else if (micStream && micStream.getAudioTracks && micStream.getAudioTracks().length > 0) {
+    // Fallback: microfone local direto
+    sourcesToMix.push(micStream);
+  }
+
+  // Se não temos nenhuma fonte de áudio disponível
+  if (sourcesToMix.length === 0) {
+    if (micStream && micStream.getAudioTracks && micStream.getAudioTracks().length > 0) {
+      return { stream: micStream, cleanup: () => {} };
+    }
+    return { stream: null, cleanup: () => {} };
+  }
+
+  // Se temos apenas 1 fonte de áudio e não há áudio da tela para mesclar
+  const hasScreenAudio = Boolean(screenStream && screenStream.getAudioTracks && screenStream.getAudioTracks().length > 0);
+  if (sourcesToMix.length === 1 && !hasScreenAudio) {
+    const single = sourcesToMix[0];
+    if (single._mixedAudioCtx && single._mixedAudioCtx.state === 'suspended') {
+      try {
+        await single._mixedAudioCtx.resume();
+      } catch {}
+    }
+    return { stream: single, cleanup: () => {} };
+  }
+
+  // Mixagem master via Web Audio API
+  const AudioCtx = typeof window !== 'undefined' ? (window.AudioContext || window.webkitAudioContext) : null;
+  if (!AudioCtx) {
+    return { stream: sourcesToMix[0], cleanup: () => {} };
+  }
+
+  try {
+    const ctx = new AudioCtx();
+    if (ctx.state === 'suspended') {
+      try {
+        await ctx.resume();
+      } catch {}
+    }
+
+    const dest = ctx.createMediaStreamDestination ? ctx.createMediaStreamDestination() : null;
+    if (!dest) {
+      return { stream: sourcesToMix[0], cleanup: () => {} };
+    }
+
+    const connectedNodes = [];
+    sourcesToMix.forEach((st) => {
+      try {
+        if (typeof ctx.createMediaStreamSource === 'function') {
+          const node = ctx.createMediaStreamSource(st);
+          node.connect(dest);
+          connectedNodes.push(node);
+        }
+      } catch {}
+    });
+
+    const masterStream = dest.stream;
+    const cleanup = () => {
+      try {
+        connectedNodes.forEach((node) => {
+          try { node.disconnect(); } catch {}
+        });
+        if (ctx.state !== 'closed' && typeof ctx.close === 'function') {
+          ctx.close().catch(() => {});
+        }
+      } catch {}
+    };
+
+    return {
+      stream: (masterStream && masterStream.getAudioTracks && masterStream.getAudioTracks().length > 0) ? masterStream : sourcesToMix[0],
+      cleanup,
+    };
+  } catch {
+    return { stream: sourcesToMix[0], cleanup: () => {} };
+  }
+}
+
+
