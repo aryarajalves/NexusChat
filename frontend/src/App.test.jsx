@@ -6,6 +6,7 @@ import { ToastProvider } from './context/ToastContext';
 describe('App Component', () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
   });
 
   it('renders login screen when unauthenticated', () => {
@@ -297,6 +298,30 @@ describe('App Component', () => {
     // Esta aba antiga deve deslogar e exibir a tela de login
     expect(await screen.findByTestId('login-email-input')).toBeInTheDocument();
     expect(screen.queryByRole('complementary', { name: /menu lateral/i })).not.toBeInTheDocument();
+  });
+
+  it('permite múltiplas abas no mesmo perfil sem reivindicar ou derrubar a sessão existente ao montar', () => {
+    localStorage.setItem('auth_token', 'mock_token');
+    localStorage.setItem(
+      'auth_user',
+      JSON.stringify({
+        id: 1,
+        name: 'Super Admin',
+        email: 'admin@test.com',
+        role: 'superadmin',
+      })
+    );
+    localStorage.setItem('auth_session_id', 'session_login_original');
+
+    render(
+      <ToastProvider>
+        <App />
+      </ToastProvider>
+    );
+
+    // Dashboard permanece autenticado e não sobrescreve auth_session_id com o id da aba
+    expect(screen.getByRole('complementary', { name: /menu lateral/i })).toBeInTheDocument();
+    expect(localStorage.getItem('auth_session_id')).toBe('session_login_original');
   });
 });
 

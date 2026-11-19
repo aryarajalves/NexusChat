@@ -39,19 +39,20 @@ def test_user_websocket_disconnect_cleans_voice_rooms():
     assert socket_manager.is_user_online(1) is False
 
 
-def test_user_websocket_new_session_terminates_previous_session():
-    """Valida que quando uma nova aba/sessão conecta, a sessão antiga recebe aviso de término e é encerrada."""
+def test_user_websocket_allows_multiple_tabs_with_same_token():
+    """Valida que múltiplas abas no mesmo perfil (mesmo token JWT) permanecem conectadas simultaneamente sem derrubar umas às outras."""
     headers = get_auth_headers()
     token = headers["Authorization"].replace("Bearer ", "")
 
     with client.websocket_connect(f"/api/v1/discord/ws/me?token={token}&session_id=session_aba_1") as ws_aba_1:
-        # Nova aba conecta com session_id diferente
         with client.websocket_connect(f"/api/v1/discord/ws/me?token={token}&session_id=session_aba_2") as ws_aba_2:
-            # A aba 1 deve receber o evento de sessão terminada
-            term_event = ws_aba_1.receive_json()
-            assert term_event["event"] == "session:terminated"
-            assert term_event["reason"] == "new_login"
-            assert "outra aba" in term_event["detail"]
+            ws_aba_1.send_json({"type": "ping"})
+            pong_1 = ws_aba_1.receive_json()
+            assert pong_1.get("type") == "pong" or pong_1.get("event") == "pong"
+
+            ws_aba_2.send_json({"type": "ping"})
+            pong_2 = ws_aba_2.receive_json()
+            assert pong_2.get("type") == "pong" or pong_2.get("event") == "pong"
 
 
 def test_login_endpoint_notifies_active_websockets():

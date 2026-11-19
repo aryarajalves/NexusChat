@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { computeVoiceSignalLevel, createProcessedVoiceStream } from './voiceNoiseGate';
 
 function bindLocalVideoElement(el, stream) {
   if (!el || !stream) return;
@@ -32,6 +33,8 @@ export default function useVoiceLocalMedia({
   const [cameraStream, setCameraStream] = useState(null);
 
   const streamRef = useRef(null);
+  const rawStreamRef = useRef(null);
+  const noiseGateRef = useRef(null);
   const audioContextRef = useRef(null);
   const animationFrameRef = useRef(null);
   const screenStreamRef = useRef(null);
@@ -55,18 +58,22 @@ export default function useVoiceLocalMedia({
     onSpeakingChangeRef.current?.(Boolean(isSpeaking && !isMuted && !isDeafened));
   }, [isSpeaking, isMuted, isDeafened]);
 
-  // Aplica supressão de ruído em tempo real nas tracks de áudio do microfone
+  // Aplica supressão de ruído e Noise Gate em tempo real nas tracks de áudio do microfone
   useEffect(() => {
-    if (!streamRef.current) return;
-    const tracks = streamRef.current.getAudioTracks
-      ? streamRef.current.getAudioTracks()
-      : streamRef.current.getTracks?.() || [];
+    const enabled = Boolean(isNoiseSuppressionEnabled);
+    noiseGateRef.current?.setEnabled(enabled);
+
+    const targetStream = rawStreamRef.current || streamRef.current;
+    if (!targetStream) return;
+    const tracks = targetStream.getAudioTracks
+      ? targetStream.getAudioTracks()
+      : targetStream.getTracks?.() || [];
     tracks.forEach((track) => {
       try {
         track.applyConstraints?.({
-          noiseSuppression: Boolean(isNoiseSuppressionEnabled),
-          echoCancellation: Boolean(isNoiseSuppressionEnabled),
-          autoGainControl: true,
+          noiseSuppression: enabled,
+          echoCancellation: enabled,
+          autoGainControl: !enabled,
         })?.catch?.(() => {});
       } catch {}
     });
@@ -74,15 +81,14 @@ export default function useVoiceLocalMedia({
 
   // Sincroniza tracks locais com o estado Mudo / Ensurdecer
   useEffect(() => {
-    if (streamRef.current) {
-      const tracks = streamRef.current.getAudioTracks
-        ? streamRef.current.getAudioTracks()
-        : streamRef.current.getTracks?.() || [];
-      const disabled = Boolean(isMuted || isDeafened);
+    const disabled = Boolean(isMuted || isDeafened);
+    [rawStreamRef.current, streamRef.current].forEach((st) => {
+      if (!st) return;
+      const tracks = st.getAudioTracks ? st.getAudioTracks() : st.getTracks?.() || [];
       tracks.forEach((track) => {
         track.enabled = !disabled;
       });
-    }
+    });
     if (isMuted || isDeafened) setIsSpeaking(false);
     emitVoiceStateRef.current?.({ is_muted: isMuted, is_deafened: isDeafened, is_speaking: false });
   }, [isMuted, isDeafened]);
@@ -101,28 +107,50 @@ export default function useVoiceLocalMedia({
         const useNS = Boolean(isNoiseSuppressionRef.current);
         const audioConstraints =
           savedMic && savedMic !== 'default'
-            ? { deviceId: { ideal: savedMic }, echoCancellation: useNS, noiseSuppression: useNS, autoGainControl: true }
-            : { echoCancellation: useNS, noiseSuppression: useNS, autoGainControl: true };
+            ? { deviceId: { ideal: savedMic }, echoCancellation: useNS, noiseSuppression: useNS, autoGainControl: !useNS }
+            : { echoCancellation: useNS, noiseSuppression: useNS, autoGainControl: !useNS };
 
-        let stream;
+        let rawStream;
         try {
-          stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+          rawStream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
         } catch {
-          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          rawStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         }
 
         if (!active) {
-          stream?.getTracks?.().forEach((t) => t.stop());
+          rawStream?.getTracks?.().forEach((t) => t.stop());
           return;
         }
 
-        const audioTracks = stream?.getAudioTracks ? stream.getAudioTracks() : stream?.getTracks?.() || [];
-        audioTracks.forEach((t) => {
+        const rawAudioTracks = rawStream?.getAudioTracks ? rawStream.getAudioTracks() : rawStream?.getTracks?.() || [];
+        rawAudioTracks.forEach((t) => {
           t.enabled = !(isMutedRef.current || isDeafenedRef.current);
         });
+        rawStreamRef.current = rawStream;
 
-        streamRef.current = stream;
-        setMicStream(stream);
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) {
+          streamRef.current = rawStream;
+          setMicStream(rawStream);
+          emitVoiceStateRef.current?.({
+            is_muted: isMutedRef.current,
+            is_deafened: isDeafenedRef.current,
+            is_speaking: false,
+          });
+          return;
+        }
+
+        const ctx = new AudioCtx();
+        audioContextRef.current = ctx;
+
+        const gateController = createProcessedVoiceStream(ctx, rawStream, {
+          enabled: isNoiseSuppressionRef.current,
+        });
+        noiseGateRef.current = gateController;
+
+        const outputStream = gateController.stream || rawStream;
+        streamRef.current = outputStream;
+        setMicStream(outputStream);
 
         emitVoiceStateRef.current?.({
           is_muted: isMutedRef.current,
@@ -130,27 +158,26 @@ export default function useVoiceLocalMedia({
           is_speaking: false,
         });
 
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (!AudioCtx) return;
+        let analyser = gateController.analyser;
+        if (!analyser && typeof ctx.createMediaStreamSource === 'function' && typeof ctx.createAnalyser === 'function') {
+          const source = ctx.createMediaStreamSource(rawStream);
+          analyser = ctx.createAnalyser();
+          analyser.fftSize = 512;
+          source.connect(analyser);
+        }
+        if (!analyser) return;
 
-        const ctx = new AudioCtx();
-        audioContextRef.current = ctx;
-        const source = ctx.createMediaStreamSource(stream);
-        const analyser = ctx.createAnalyser();
-        analyser.fftSize = 512;
-        source.connect(analyser);
-
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        const freqData = new Uint8Array(analyser.frequencyBinCount || 256);
+        const timeData = typeof Float32Array !== 'undefined' ? new Float32Array(analyser.fftSize || 512) : null;
 
         const checkVolume = () => {
           if (!active) return;
-          analyser.getByteFrequencyData(dataArray);
-          let sum = 0;
-          for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-          const avg = sum / dataArray.length;
+          const level = computeVoiceSignalLevel(analyser, timeData, freqData);
           const mutedNow = isMutedRef.current;
           const deafNow = isDeafenedRef.current;
-          const speaking = avg > 20 && !mutedNow && !deafNow;
+          const speaking = gateController.analyser
+            ? gateController.updateGateState(level, Date.now(), mutedNow || deafNow)
+            : level > 0.08 && !mutedNow && !deafNow;
 
           setIsSpeaking((prev) => {
             if (prev !== speaking) {
@@ -177,6 +204,14 @@ export default function useVoiceLocalMedia({
     return () => {
       active = false;
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+      if (noiseGateRef.current) {
+        noiseGateRef.current.cleanup();
+        noiseGateRef.current = null;
+      }
+      if (rawStreamRef.current) {
+        rawStreamRef.current.getTracks?.().forEach((t) => t.stop());
+        rawStreamRef.current = null;
+      }
       if (streamRef.current) {
         streamRef.current.getTracks?.().forEach((t) => t.stop());
         streamRef.current = null;

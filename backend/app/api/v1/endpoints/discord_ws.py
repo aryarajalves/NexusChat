@@ -53,28 +53,6 @@ async def user_notification_websocket(
 
     socket_manager.register_active_token(user_id, token, token_iat)
 
-    # Se o usuário já possuir conexões ativas de outra sessão/aba/dispositivo no canal /ws/me, desconecta a anterior
-    if user_id in socket_manager.user_sockets:
-        for old_ws in list(socket_manager.user_sockets[user_id]):
-            if old_ws not in socket_manager.ws_sessions:
-                continue
-            old_sid = socket_manager.ws_sessions.get(old_ws)
-            is_same_session = bool(session_id and old_sid and session_id == old_sid)
-            if old_ws != websocket and not is_same_session:
-                try:
-                    await old_ws.send_json({
-                        "event": "session:terminated",
-                        "reason": "new_login",
-                        "detail": "Sua conta foi conectada em outra aba ou dispositivo."
-                    })
-                    await old_ws.close(code=4001, reason="Nova sessao iniciada em outra aba")
-                except Exception:
-                    pass
-                finally:
-                    socket_manager.ws_sessions.pop(old_ws, None)
-                    if user_id in socket_manager.user_sockets:
-                        socket_manager.user_sockets[user_id].discard(old_ws)
-
     await websocket.accept()
     if session_id:
         socket_manager.ws_sessions[websocket] = session_id

@@ -173,15 +173,15 @@ Este documento centraliza as regras de negócio oficiais do sistema e as decisõ
     - `discord_active_dm_id`: conversa privada de DM selecionada.
   - Validação de integridade automática: caso o servidor, canal ou DM salvo não exista mais (ou o usuário não tenha mais acesso), o sistema realiza fallback seguro para o primeiro item disponível.
   - Ao confirmar logout, todas as chaves de navegação são limpas para garantir isolamento e segurança entre diferentes contas.
-- **Sessão Única por Conta e Logout Automático de Abas Antigas (Single Active Session):**
-  - O sistema permite apenas uma sessão ativa por usuário simultaneamente.
-  - Ao realizar login ou autenticar em uma nova aba ou dispositivo, qualquer aba/sessão anterior do mesmo usuário é desconectada compulsoriamente em tempo real.
-  - A nova sessão logada tem **precedência absoluta**: reconexões em segundo plano de abas antigas portando tokens obsoletos são sumariamente bloqueadas e rejeitadas pelo backend (código `4001`), impedindo que a aba antiga desconecte a nova conta recém-logada.
+- **Sessão Única por Login e Múltiplas Abas no Mesmo Perfil:**
+  - O sistema permite **múltiplas abas simultâneas no mesmo navegador/perfil** compartilhando o mesmo token JWT ativo (sem derrubar abas irmãs ao abrir ou restaurar uma aba).
+  - O logout forçado de sessões anteriores ocorre **apenas** quando o usuário realiza um **novo login com e-mail e senha** (`POST /auth/login`), quando o usuário clica em sair, ou quando o tempo configurado em `ACCESS_TOKEN_EXPIRE_MINUTES` expira.
+  - A nova sessão logada via `POST /auth/login` tem **precedência absoluta**: reconexões em segundo plano de sessões antigas portando tokens obsoletos são rejeitadas pelo backend (código `4001`), impedindo que a sessão antiga desconecte a nova.
   - O controle é sincronizado em camadas:
-    1. **BroadcastChannel e Storage Event no Frontend:** Comunicação imediata entre abas do mesmo navegador (`nexus_active_tab_session_id`), garantindo logout síncrono e sem latência de rede na aba anterior.
-    2. **Validação de Token Ativo no Backend (`/ws/me` e canais):** Todo token JWT possui identificador único (`jti`) e timestamp (`iat`). O backend mantém o token ativo mais recente por usuário (`active_user_tokens`) e rejeita tentativas de conexão com tokens antigos.
-    3. **Encerramento Forçado:** O servidor envia o evento `session:terminated` com código 4001 para as conexões ativas anteriores e cancela os loops de reconexão automática (`intentionalCloseRef`).
-  - A aba desconectada encerra qualquer canal de voz ativo (`/voice-leave-all`), limpa os dados da sessão em memória nesta aba e retorna à tela de login exibindo a notificação de toast: *"Sua conta foi conectada em outra aba. Você foi desconectado."*.
+    1. **BroadcastChannel e Storage Event no Frontend:** `Login.jsx` emite `NEW_LOGIN` e atualiza `auth_token`/`auth_session_id` apenas no login com e-mail e senha, desconectando abas de sessões anteriores no mesmo navegador.
+    2. **Validação de Token Ativo no Backend (`/ws/me` e canais):** Todo token JWT possui identificador único (`jti`), timestamp (`iat`) e expiração (`ACCESS_TOKEN_EXPIRE_MINUTES`). O backend mantém o token ativo mais recente por usuário (`active_user_tokens`) e rejeita tentativas de conexão com tokens antigos.
+    3. **Encerramento Forçado no Login:** Ao autenticar em `POST /auth/login`, o servidor envia o evento `session:terminated` com código `4001` para as conexões WebSocket anteriores e cancela os loops de reconexão automática (`intentionalCloseRef`).
+  - A aba desconectada encerra qualquer canal de voz ativo (`/voice-leave-all`), limpa os dados da sessão em memória nesta aba e retorna à tela de login exibindo a notificação de toast.
   - O recarregamento de página (`F5`) na mesma aba preserva a sessão normalmente via `sessionStorage` (`nexus_tab_session_id`).
 - **Gravação e Exportação de Canais de Voz (Voice & Video Recording):**
   - Usuários conectados a um canal de voz contam com a opção de gravar a conversa e atividades da sala diretamente no dock inferior de controles.

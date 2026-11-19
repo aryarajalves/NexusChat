@@ -80,19 +80,6 @@ function App() {
         sessionStorage.setItem('current_session_id', mySessionId);
       }
 
-      // Reivindica este identificador como a sessão de aba ativa
-      localStorage.setItem('nexus_active_tab_session_id', mySessionId);
-      localStorage.setItem('auth_session_id', mySessionId);
-
-      try {
-        const channel = new BroadcastChannel('nexus_session_channel');
-        channel.postMessage({
-          type: 'ACTIVE_SESSION_CLAIM',
-          sessionId: mySessionId,
-        });
-        channel.close();
-      } catch (_) {}
-
       setToken(savedToken);
       try {
         setUser(JSON.parse(savedUser));
@@ -211,18 +198,18 @@ function App() {
     try {
       channel = new BroadcastChannel('nexus_session_channel');
       channel.onmessage = (event) => {
-        if (
-          (event.data?.type === 'NEW_LOGIN' || event.data?.type === 'ACTIVE_SESSION_CLAIM') &&
-          event.data?.sessionId
-        ) {
+        if (event.data?.type === 'NEW_LOGIN' && event.data?.sessionId) {
           checkSessionMismatch(event.data.sessionId);
         }
       };
     } catch (_) {}
 
     const handleStorageChange = (e) => {
-      if ((e.key === 'nexus_active_tab_session_id' || e.key === 'auth_session_id') && e.newValue) {
+      if (e.key === 'auth_session_id' && e.newValue) {
         checkSessionMismatch(e.newValue);
+      }
+      if (e.key === 'auth_token' && e.newValue && e.newValue !== token) {
+        handleRemoteLogout('Sua conta foi conectada em outro login. Você foi desconectado.');
       }
       if (e.key === 'auth_token' && !e.newValue) {
         handleRemoteLogout('Você encerrou a sessão.');
